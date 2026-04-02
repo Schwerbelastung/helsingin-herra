@@ -1,0 +1,272 @@
+// Helsinki Tycoon - Events System
+const Events = (() => {
+
+    const EVENT_POOL = [
+        // Positive events (month-specific)
+        {
+            id: 'vappu',
+            name: 'Vappu / May Day Celebrations',
+            description: 'Helsinki celebrates Vappu! Restaurants and bars are packed.',
+            month: 4, // May (0-indexed)
+            chance: 1.0, // Always happens
+            duration: 1,
+            revenueModifier: 0.2,
+            affectedTypes: ['restaurant'],
+            global: true,
+            positive: true,
+        },
+        {
+            id: 'pride',
+            name: 'Helsinki Pride Parade',
+            description: 'Pride celebrations boost nightlife in Kamppi and Kallio!',
+            month: 5, // June
+            chance: 1.0,
+            duration: 1,
+            revenueModifier: 0.2,
+            affectedDistricts: ['kamppi', 'kallio', 'punavuori'],
+            positive: true,
+        },
+        {
+            id: 'flow_festival',
+            name: 'Flow Festival',
+            description: 'Flow Festival fills Suvilahti! Nearby businesses boom.',
+            month: 7, // August
+            chance: 1.0,
+            duration: 1,
+            revenueModifier: 0.3,
+            affectedDistricts: ['sornainen', 'kallio', 'hakaniemi'],
+            positive: true,
+        },
+        {
+            id: 'helsinki_festival',
+            name: 'Helsinki Festival',
+            description: 'Arts and culture festival across the city.',
+            month: 7, // August
+            chance: 0.8,
+            duration: 1,
+            revenueModifier: 0.15,
+            global: true,
+            positive: true,
+        },
+        {
+            id: 'design_week',
+            name: 'Helsinki Design Week',
+            description: 'Design Week puts Punavuori in the spotlight!',
+            month: 8, // September
+            chance: 1.0,
+            duration: 1,
+            revenueModifier: 0.25,
+            affectedDistricts: ['punavuori', 'kamppi', 'kluuvi'],
+            positive: true,
+        },
+        {
+            id: 'slush',
+            name: 'Slush Conference',
+            description: 'Tech startups flood Helsinki. Hotels and offices in high demand!',
+            month: 10, // November
+            chance: 1.0,
+            duration: 1,
+            revenueModifier: 0.15,
+            affectedTypes: ['hotel', 'office'],
+            global: true,
+            positive: true,
+        },
+        {
+            id: 'christmas_market',
+            name: 'Helsinki Christmas Market',
+            description: 'Senate Square Christmas market draws visitors!',
+            month: 11, // December
+            chance: 1.0,
+            duration: 1,
+            revenueModifier: 0.25,
+            affectedDistricts: ['kruununhaka', 'kluuvi', 'kaartinkaupunki'],
+            positive: true,
+        },
+        {
+            id: 'lux_helsinki',
+            name: 'Lux Helsinki',
+            description: 'Light art festival brightens the dark winter.',
+            month: 0, // January
+            chance: 0.9,
+            duration: 1,
+            revenueModifier: 0.1,
+            global: true,
+            positive: true,
+        },
+
+        // Negative events (random, can happen any month)
+        {
+            id: 'recession',
+            name: 'Economic Recession',
+            description: 'The economy takes a downturn. Revenue drops across the board.',
+            month: -1, // Any month
+            chance: 0.05, // 5% per month
+            duration: 3,
+            revenueModifier: -0.2,
+            global: true,
+            positive: false,
+        },
+        {
+            id: 'construction',
+            name: 'Street Construction',
+            description: 'Major construction disrupts a district for months.',
+            month: -1,
+            chance: 0.08,
+            duration: 2,
+            revenueModifier: -0.3,
+            randomDistrict: true,
+            positive: false,
+        },
+        {
+            id: 'pipe_burst',
+            name: 'Pipe Burst!',
+            description: 'A water pipe bursts in one of your properties! Keep properties well-maintained to prevent this.',
+            month: -1,
+            chance: 0.06,
+            duration: 1,
+            costRange: [10000, 50000],
+            positive: false,
+            playerOnly: true,
+            conditionScaled: true, // chance & cost scale with avg condition
+        },
+        {
+            id: 'tenant_dispute',
+            name: 'Tenant Dispute',
+            description: 'A tenant refuses to pay rent this month.',
+            month: -1,
+            chance: 0.07,
+            duration: 1,
+            revenueModifier: -1.0, // Lose all revenue from affected property
+            randomProperty: true,
+            positive: false,
+            playerOnly: true,
+        },
+        {
+            id: 'harsh_winter',
+            name: 'Harsh Winter',
+            description: 'An exceptionally cold winter drives up heating costs.',
+            month: -1, // Only triggers in winter months via code
+            chance: 0.15,
+            duration: 1,
+            maintenanceModifier: 0.5,
+            global: true,
+            positive: false,
+            winterOnly: true,
+        },
+        {
+            id: 'market_crash',
+            name: 'Market Crash',
+            description: 'Property values plummet across Helsinki! Markets will recover in 6 months.',
+            month: -1,
+            chance: 0.03,
+            duration: 6,
+            valueModifier: -0.15,
+            recoveryModifier: 1.0, // recover to basePrice
+            global: true,
+            positive: false,
+        },
+
+        // Special events
+        {
+            id: 'alien_invasion',
+            name: 'ALIEN INVASION!',
+            description: 'Aliens have landed in Helsinki! Property values crash, but tourist boom will push them above normal in 6 months.',
+            month: -1,
+            chance: 0.017, // ~2% per year
+            duration: 6,
+            valueModifier: -0.5, // Immediate 50% drop
+            recoveryModifier: 1.5, // Recovers to 150%
+            randomDistrict: true,
+            positive: false,
+            special: true,
+        },
+    ];
+
+    function checkEvents(gameState) {
+        const month = gameState.month;
+        const season = Seasons.getCurrentSeason(month);
+        const newEvents = [];
+
+        for (const template of EVENT_POOL) {
+            // Skip if already active
+            if (gameState.activeEvents.some(e => e.id === template.id)) continue;
+
+            // Check month-specific events
+            if (template.month >= 0 && template.month !== month) continue;
+
+            // Winter-only check
+            if (template.winterOnly && season !== 'winter') continue;
+
+            // Condition-scaled events: chance & cost depend on avg property condition
+            let effectiveChance = template.chance;
+            let costMultiplier = 1;
+            if (template.conditionScaled) {
+                const playerProps = gameState.properties.filter(p => p.owner === 'player');
+                if (playerProps.length === 0) continue;
+                const avgCondition = playerProps.reduce((s, p) => s + p.condition, 0) / playerProps.length;
+                if (avgCondition >= 90) continue; // well-maintained = immune
+                // Scale: 0% at 90 condition, full chance at 0 condition
+                const scale = 1 - (avgCondition / 90);
+                effectiveChance = template.chance * scale;
+                costMultiplier = 0.5 + 0.5 * scale; // 50%-100% of max cost range
+            }
+
+            // Roll for chance
+            if (Math.random() > effectiveChance) continue;
+
+            // Create event instance
+            const event = { ...template, remainingDuration: template.duration };
+
+            // Assign random district if needed
+            if (template.randomDistrict) {
+                const districts = HelsinkiDistricts.districts;
+                event.affectedDistricts = [districts[Math.floor(Math.random() * districts.length)].id];
+            }
+
+            // Assign random player property if needed
+            if (template.randomProperty) {
+                const playerProps = gameState.properties.filter(p => p.owner === 'player');
+                if (playerProps.length > 0) {
+                    event.affectedPropertyId = playerProps[Math.floor(Math.random() * playerProps.length)].id;
+                } else {
+                    continue; // Skip if player has no properties
+                }
+            }
+
+            // Apply immediate effects
+            if (template.costRange) {
+                const baseCost = Math.floor(Math.random() * (template.costRange[1] - template.costRange[0])) + template.costRange[0];
+                event.immediateCost = Math.floor(baseCost * costMultiplier);
+            }
+
+            newEvents.push(event);
+        }
+
+        return newEvents;
+    }
+
+    function tickEvents(gameState) {
+        // Decrease duration of active events, remove expired ones
+        gameState.activeEvents = gameState.activeEvents.filter(event => {
+            event.remainingDuration--;
+            if (event.remainingDuration <= 0) {
+                // Apply recovery effects if any
+                if (event.recoveryModifier) {
+                    for (const prop of gameState.properties) {
+                        if (event.global || (event.affectedDistricts && event.affectedDistricts.includes(prop.district))) {
+                            prop.price = Math.floor(prop.basePrice * event.recoveryModifier);
+                        }
+                    }
+                }
+                return false;
+            }
+            return true;
+        });
+    }
+
+    return {
+        EVENT_POOL,
+        checkEvents,
+        tickEvents,
+    };
+})();
