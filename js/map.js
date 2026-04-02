@@ -279,6 +279,7 @@ const MapRenderer = (() => {
         drawDistrictOverlays(palette);
         drawLandmarks(palette);
         drawProperties(palette);
+        drawAlienInvasion(palette);
         drawDistrictLabels(palette);
         drawHoverTooltips(palette);
 
@@ -328,6 +329,14 @@ const MapRenderer = (() => {
         ctx.restore();
         drawFilledPolygon(HelsinkiDistricts.lauttasaariIsland, palette.land, palette.coastEdge, 1);
 
+        // Jätkäsaari island
+        ctx.fillStyle = palette.coastEdge;
+        ctx.save();
+        ctx.translate(1.5, 1.5);
+        fillPolygon(HelsinkiDistricts.jatkasaariIsland);
+        ctx.restore();
+        drawFilledPolygon(HelsinkiDistricts.jatkasaariIsland, palette.land, palette.coastEdge, 1);
+
         // Kaskisaari island
         ctx.fillStyle = palette.coastEdge;
         ctx.save();
@@ -351,6 +360,14 @@ const MapRenderer = (() => {
         fillPolygon(HelsinkiDistricts.kuusisaariIsland);
         ctx.restore();
         drawFilledPolygon(HelsinkiDistricts.kuusisaariIsland, palette.land, palette.coastEdge, 1);
+
+        // Kulosaari island
+        ctx.fillStyle = palette.coastEdge;
+        ctx.save();
+        ctx.translate(1.5, 1.5);
+        fillPolygon(HelsinkiDistricts.kulosaariIsland);
+        ctx.restore();
+        drawFilledPolygon(HelsinkiDistricts.kulosaariIsland, palette.land, palette.coastEdge, 1);
 
         // Small decorative islands
         if (HelsinkiDistricts.islands) {
@@ -427,9 +444,10 @@ const MapRenderer = (() => {
         // Draw roads — subtle, thin lines
         for (const road of HelsinkiDistricts.roads) {
             const isMajor = road.name === 'Mannerheimintie' || road.name === 'Hämeentie';
-            ctx.strokeStyle = isMajor ? palette.roadMajor : palette.road;
-            ctx.lineWidth = isMajor ? 1.5 : 0.8;
-            ctx.globalAlpha = isMajor ? 0.3 : 0.2;
+            const isBridge = road.name.includes('silta') || road.name.includes('bridge');
+            ctx.strokeStyle = isBridge ? palette.roadMajor : (isMajor ? palette.roadMajor : palette.road);
+            ctx.lineWidth = isBridge ? 2 : (isMajor ? 1.5 : 0.8);
+            ctx.globalAlpha = isBridge ? 0.5 : (isMajor ? 0.3 : 0.2);
             ctx.beginPath();
             for (let i = 0; i < road.points.length; i++) {
                 if (i === 0) ctx.moveTo(road.points[i][0], road.points[i][1]);
@@ -507,56 +525,380 @@ const MapRenderer = (() => {
         }
     }
 
+    // === PIXEL ART BUILDING SPRITES ===
+    // Each sprite is drawn relative to (x, y) = bottom-center of the building
+    // p = pixel size (1 map-unit per pixel)
+
+    function drawRetailSprite(x, y, color, level) {
+        const p = 1;
+        const h = 6 + Math.min(level, 3); // taller with upgrades
+        // Main building
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 4*p, y - h*p, 8*p, h*p);
+        // Darker base
+        ctx.fillStyle = shadeColor(color, -30);
+        ctx.fillRect(x - 4*p, y - 2*p, 8*p, 2*p);
+        // Awning (striped)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 5*p, y - h*p, 10*p, 2*p);
+        ctx.fillStyle = shadeColor(color, 20);
+        for (let i = 0; i < 5; i++) {
+            ctx.fillRect(x - 5*p + i*2*p, y - h*p, 1*p, 2*p);
+        }
+        // Door
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(x - 1*p, y - 3*p, 2*p, 3*p);
+        // Window
+        ctx.fillStyle = '#ffee88';
+        ctx.fillRect(x - 3*p, y - (h-1)*p, 2*p, 2*p);
+        ctx.fillRect(x + 1*p, y - (h-1)*p, 2*p, 2*p);
+    }
+
+    function drawRestaurantSprite(x, y, color, level) {
+        const p = 1;
+        const h = 7 + Math.min(level, 3);
+        // Main building
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 4*p, y - h*p, 8*p, h*p);
+        // Darker side wall (3D effect)
+        ctx.fillStyle = shadeColor(color, -25);
+        ctx.fillRect(x + 2*p, y - h*p, 2*p, h*p);
+        // Chimney
+        ctx.fillStyle = '#664444';
+        ctx.fillRect(x + 2*p, y - (h+3)*p, 2*p, 3*p);
+        // Smoke puffs (animated)
+        const t = (Date.now() / 600) % 4;
+        ctx.fillStyle = 'rgba(180,180,180,0.5)';
+        ctx.fillRect(x + 2*p, y - (h+4+Math.floor(t))*p, 2*p, 1*p);
+        ctx.fillRect(x + 1*p, y - (h+5+Math.floor(t))*p, 2*p, 1*p);
+        // Door
+        ctx.fillStyle = '#5a2a2a';
+        ctx.fillRect(x - 1*p, y - 3*p, 2*p, 3*p);
+        // Windows (warm glow)
+        ctx.fillStyle = '#ffcc44';
+        ctx.fillRect(x - 3*p, y - (h-1)*p, 2*p, 2*p);
+        ctx.fillRect(x + 1*p, y - (h-2)*p, 2*p, 2*p);
+    }
+
+    function drawResidentialSprite(x, y, color, level) {
+        const p = 1;
+        const floors = 2 + Math.min(level, 3);
+        const h = floors * 3 + 2;
+        // Main building
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 4*p, y - h*p, 8*p, h*p);
+        // Peaked roof
+        ctx.fillStyle = '#884422';
+        ctx.beginPath();
+        ctx.moveTo(x - 5*p, y - h*p);
+        ctx.lineTo(x, y - (h+4)*p);
+        ctx.lineTo(x + 5*p, y - h*p);
+        ctx.closePath();
+        ctx.fill();
+        // Windows (rows per floor)
+        ctx.fillStyle = '#aaddff';
+        for (let f = 0; f < floors; f++) {
+            const wy = y - (3 + f*3)*p;
+            ctx.fillRect(x - 3*p, wy, 2*p, 2*p);
+            ctx.fillRect(x + 1*p, wy, 2*p, 2*p);
+        }
+        // Door
+        ctx.fillStyle = '#442211';
+        ctx.fillRect(x - 1*p, y - 3*p, 2*p, 3*p);
+    }
+
+    function drawOfficeSprite(x, y, color, level) {
+        const p = 1;
+        const floors = 3 + Math.min(level, 4);
+        const h = floors * 3 + 1;
+        // Main building (tall & narrow)
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 3*p, y - h*p, 6*p, h*p);
+        // Glass curtain wall effect — alternating window rows
+        for (let f = 0; f < floors; f++) {
+            const wy = y - (2 + f*3)*p;
+            ctx.fillStyle = '#88ccff';
+            ctx.fillRect(x - 2*p, wy, 1*p, 2*p);
+            ctx.fillRect(x - 0*p, wy, 1*p, 2*p);
+            ctx.fillRect(x + 2*p, wy, 1*p, 2*p);
+            // Window frame
+            ctx.fillStyle = shadeColor(color, -20);
+            ctx.fillRect(x - 2*p, wy - 1*p, 4*p, 1*p);
+        }
+        // Flat roof top
+        ctx.fillStyle = shadeColor(color, -15);
+        ctx.fillRect(x - 3*p, y - h*p, 6*p, 1*p);
+        // Antenna
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x, y - (h+3)*p, 1*p, 3*p);
+    }
+
+    function drawHotelSprite(x, y, color, level) {
+        const p = 1;
+        const floors = 3 + Math.min(level, 3);
+        const h = floors * 3 + 2;
+        // Main building (wide)
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 5*p, y - h*p, 10*p, h*p);
+        // Entrance canopy
+        ctx.fillStyle = '#cc2222';
+        ctx.fillRect(x - 3*p, y - 3*p, 6*p, 1*p);
+        // Grand entrance
+        ctx.fillStyle = '#442200';
+        ctx.fillRect(x - 2*p, y - 3*p, 4*p, 3*p);
+        // Windows (3 columns)
+        ctx.fillStyle = '#ffee88';
+        for (let f = 0; f < floors; f++) {
+            const wy = y - (5 + f*3)*p;
+            ctx.fillRect(x - 4*p, wy, 2*p, 2*p);
+            ctx.fillRect(x - 1*p, wy, 2*p, 2*p);
+            ctx.fillRect(x + 2*p, wy, 2*p, 2*p);
+        }
+        // Flag on top
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y - (h+4)*p, 1*p, 4*p);
+        ctx.fillStyle = '#0044cc';
+        ctx.fillRect(x + 1*p, y - (h+4)*p, 3*p, 2*p);
+    }
+
+    function drawLandmarkSprite(x, y, color, level) {
+        const p = 1;
+        // Unique star-topped monument
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 3*p, y - 8*p, 6*p, 8*p);
+        // Columns
+        ctx.fillStyle = shadeColor(color, 20);
+        ctx.fillRect(x - 4*p, y - 7*p, 1*p, 5*p);
+        ctx.fillRect(x + 3*p, y - 7*p, 1*p, 5*p);
+        // Pediment (triangle top)
+        ctx.fillStyle = shadeColor(color, 10);
+        ctx.beginPath();
+        ctx.moveTo(x - 5*p, y - 8*p);
+        ctx.lineTo(x, y - 12*p);
+        ctx.lineTo(x + 5*p, y - 8*p);
+        ctx.closePath();
+        ctx.fill();
+        // Star
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(x - 1*p, y - 13*p, 2*p, 2*p);
+    }
+
+    function shadeColor(hex, amount) {
+        let r = parseInt(hex.slice(1,3), 16) + amount;
+        let g = parseInt(hex.slice(3,5), 16) + amount;
+        let b = parseInt(hex.slice(5,7), 16) + amount;
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+        return '#' + [r,g,b].map(c => c.toString(16).padStart(2,'0')).join('');
+    }
+
+    const typeColors = {
+        retail: '#ff8844',
+        restaurant: '#ff4488',
+        residential: '#4488ff',
+        office: '#44bbff',
+        hotel: '#ffcc00',
+        landmark: '#ff44ff',
+    };
+
+    const spriteDrawers = {
+        retail: drawRetailSprite,
+        restaurant: drawRestaurantSprite,
+        residential: drawResidentialSprite,
+        office: drawOfficeSprite,
+        hotel: drawHotelSprite,
+        landmark: drawLandmarkSprite,
+    };
+
     function drawProperties(palette) {
         if (typeof GameState === 'undefined' || !GameState.properties) return;
 
         const filtering = typeof UI !== 'undefined' && UI.isFilterActive();
 
         for (const prop of GameState.properties) {
-            const [sx, sy] = [prop.x, prop.y];
-            const size = 5;
+            const sx = prop.x;
+            const sy = prop.y;
             const isHovered = prop === hoveredProperty;
             const matches = !filtering || UI.propertyMatchesFilter(prop);
 
-            const typeColors = {
-                retail: '#ff8844',
-                restaurant: '#ff4488',
-                residential: '#4488ff',
-                office: '#44bbff',
-                hotel: '#ffcc00',
-                landmark: '#ff44ff',
-            };
-
             if (!matches) {
-                // Dim non-matching properties
                 ctx.globalAlpha = 0.15;
             }
 
+            // Owner indicator — colored ground pad
             let borderColor = '#888888';
             if (prop.owner === 'player') borderColor = '#44ff44';
             else if (prop.owner) borderColor = '#ff4444';
 
-            ctx.fillStyle = typeColors[prop.type] || '#888888';
-            ctx.fillRect(sx - size / 2, sy - size / 2, size, size);
+            // Ground pad (ownership indicator)
+            ctx.fillStyle = borderColor;
+            ctx.fillRect(sx - 6, sy, 12, 2);
 
-            ctx.strokeStyle = borderColor;
-            ctx.lineWidth = isHovered ? 2 : 1;
-            ctx.strokeRect(sx - size / 2 - 1, sy - size / 2 - 1, size + 2, size + 2);
-
-            if (matches && isHovered) {
-                ctx.strokeStyle = '#ffcc00';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(sx - size / 2 - 3, sy - size / 2 - 3, size + 6, size + 6);
+            // Draw the pixel art sprite
+            const color = prop.color || typeColors[prop.type] || '#888888';
+            const drawer = spriteDrawers[prop.type];
+            if (drawer) {
+                drawer(sx, sy, color, prop.upgradeLevel);
+            } else {
+                // Fallback square
+                ctx.fillStyle = color;
+                ctx.fillRect(sx - 4, sy - 8, 8, 8);
             }
 
+            // Snow on rooftops in winter
             if (palette.snow && matches) {
                 ctx.fillStyle = '#e8e8f0';
-                ctx.fillRect(sx - size / 2, sy - size / 2, size, 1);
+                const h = prop.type === 'office' ? 12 : prop.type === 'hotel' ? 14 : 10;
+                ctx.fillRect(sx - 4, sy - h - 1, 8, 2);
+            }
+
+            // Hover highlight
+            if (matches && isHovered) {
+                ctx.strokeStyle = '#ffcc00';
+                ctx.lineWidth = 1.5;
+                const spriteH = prop.type === 'office' ? 16 : prop.type === 'hotel' ? 18 : 14;
+                ctx.strokeRect(sx - 7, sy - spriteH, 14, spriteH + 3);
             }
 
             if (!matches) {
                 ctx.globalAlpha = 1;
             }
+        }
+    }
+
+    // === ALIEN INVASION VISUALS ===
+
+    let alienAnimFrame = 0;
+    let alienAnimInterval = null;
+
+    function startAlienAnimation() {
+        if (alienAnimInterval) return;
+        alienAnimInterval = setInterval(() => {
+            alienAnimFrame++;
+            render();
+        }, 200);
+    }
+
+    function stopAlienAnimation() {
+        if (alienAnimInterval) {
+            clearInterval(alienAnimInterval);
+            alienAnimInterval = null;
+            alienAnimFrame = 0;
+        }
+    }
+
+    function drawAlienInvasion(palette) {
+        if (typeof GameState === 'undefined') return;
+        const alienEvent = GameState.activeEvents.find(e => e.id === 'alien_invasion');
+        if (!alienEvent) {
+            if (alienAnimInterval) stopAlienAnimation();
+            return;
+        }
+
+        startAlienAnimation();
+        const t = alienAnimFrame;
+
+        // Determine affected area center
+        let cx, cy;
+        if (alienEvent.affectedDistricts && alienEvent.affectedDistricts.length > 0) {
+            const district = HelsinkiDistricts.districts.find(d => d.id === alienEvent.affectedDistricts[0]);
+            if (district) {
+                [cx, cy] = district.center;
+            }
+        }
+        if (!cx) {
+            // Fallback: center of map
+            cx = HelsinkiDistricts.MAP_WIDTH / 2;
+            cy = HelsinkiDistricts.MAP_HEIGHT / 2;
+        }
+
+        // Eerie green atmospheric tint over affected area
+        ctx.globalAlpha = 0.06 + Math.sin(t * 0.3) * 0.02;
+        ctx.fillStyle = '#00ff44';
+        ctx.fillRect(0, 0, HelsinkiDistricts.MAP_WIDTH, HelsinkiDistricts.MAP_HEIGHT);
+        ctx.globalAlpha = 1;
+
+        // Draw 3 UFOs in formation around the district center
+        const ufoPositions = [
+            [cx, cy - 30],
+            [cx - 40 + Math.sin(t * 0.2) * 8, cy - 15 + Math.cos(t * 0.15) * 5],
+            [cx + 40 + Math.cos(t * 0.25) * 8, cy - 20 + Math.sin(t * 0.18) * 5],
+        ];
+
+        for (let i = 0; i < ufoPositions.length; i++) {
+            const [ux, uy] = ufoPositions[i];
+            // Tractor beam (green cone of light)
+            const beamFlicker = 0.12 + Math.sin(t * 0.4 + i * 2) * 0.05;
+            ctx.globalAlpha = beamFlicker;
+            ctx.fillStyle = '#44ff88';
+            ctx.beginPath();
+            ctx.moveTo(ux - 3, uy + 5);
+            ctx.lineTo(ux + 3, uy + 5);
+            ctx.lineTo(ux + 15, uy + 60);
+            ctx.lineTo(ux - 15, uy + 60);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            drawUFO(ux, uy, t, i);
+        }
+
+        // Scattered green "scan" particles
+        ctx.globalAlpha = 0.4;
+        for (let i = 0; i < 12; i++) {
+            const px = cx + Math.sin(t * 0.1 + i * 1.3) * 60;
+            const py = cy + Math.cos(t * 0.08 + i * 0.9) * 40;
+            const size = 1 + (i % 3);
+            ctx.fillStyle = i % 2 === 0 ? '#44ff88' : '#88ffcc';
+            ctx.fillRect(px, py, size, size);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawUFO(x, y, t, idx) {
+        const bob = Math.sin(t * 0.3 + idx * 2) * 2;
+        const uy = y + bob;
+
+        // UFO body (classic saucer shape)
+        // Bottom dome (dark)
+        ctx.fillStyle = '#556677';
+        ctx.beginPath();
+        ctx.ellipse(x, uy + 2, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main saucer disc
+        ctx.fillStyle = '#99aabb';
+        ctx.beginPath();
+        ctx.ellipse(x, uy, 10, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Saucer rim highlight
+        ctx.fillStyle = '#bbccdd';
+        ctx.beginPath();
+        ctx.ellipse(x, uy - 1, 10, 2, 0, 0, Math.PI);
+        ctx.fill();
+
+        // Cockpit dome (glass)
+        ctx.fillStyle = '#66ffaa';
+        ctx.beginPath();
+        ctx.ellipse(x, uy - 2, 4, 3, 0, Math.PI, 0);
+        ctx.fill();
+        // Cockpit highlight
+        ctx.fillStyle = '#aaffcc';
+        ctx.beginPath();
+        ctx.ellipse(x - 1, uy - 3, 2, 1.5, 0, Math.PI, 0);
+        ctx.fill();
+
+        // Blinking lights around rim
+        const numLights = 6;
+        for (let i = 0; i < numLights; i++) {
+            const angle = (i / numLights) * Math.PI * 2 + t * 0.5;
+            const lx = x + Math.cos(angle) * 9;
+            const ly = uy + Math.sin(angle) * 2.5;
+            const on = ((t + i * 2) % 4) < 2;
+            ctx.fillStyle = on ? '#ff4444' : '#ffcc00';
+            ctx.fillRect(lx - 0.5, ly - 0.5, 1.5, 1.5);
         }
     }
 
@@ -578,6 +920,28 @@ const MapRenderer = (() => {
             ctx.fillStyle = isHovered ? '#ffcc00' : 'rgba(255, 255, 255, 0.7)';
             ctx.fillText(label, cx, cy + 4);
         }
+
+        // Island labels (smaller, dimmer)
+        ctx.font = '5px "Press Start 2P"';
+        if (HelsinkiDistricts.islands) {
+            for (const island of HelsinkiDistricts.islands) {
+                if (!island.label) continue;
+                const poly = island.polygon;
+                // Compute centroid
+                let sx = 0, sy = 0;
+                for (const p of poly) { sx += p[0]; sy += p[1]; }
+                const cx = sx / poly.length;
+                const cy = sy / poly.length;
+
+                const metrics = ctx.measureText(island.name);
+                const tw = metrics.width;
+                ctx.fillStyle = 'rgba(10, 10, 26, 0.6)';
+                ctx.fillRect(cx - tw / 2 - 2, cy - 4, tw + 4, 10);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillText(island.name, cx, cy + 3);
+            }
+        }
+
         ctx.textAlign = 'left';
     }
 
@@ -628,9 +992,11 @@ const MapRenderer = (() => {
         ctx.fillStyle = palette.land;
         fillPolygon(HelsinkiDistricts.coastline);
         fillPolygon(HelsinkiDistricts.lauttasaariIsland);
+        fillPolygon(HelsinkiDistricts.jatkasaariIsland);
         fillPolygon(HelsinkiDistricts.kaskisaariIsland);
         fillPolygon(HelsinkiDistricts.lehtisaariIsland);
         fillPolygon(HelsinkiDistricts.kuusisaariIsland);
+        fillPolygon(HelsinkiDistricts.kulosaariIsland);
 
         // Draw small islands on minimap
         if (HelsinkiDistricts.islands) {

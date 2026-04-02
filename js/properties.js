@@ -7,13 +7,14 @@ const Properties = (() => {
         // === RETAIL ===
         { name: 'Stockmann', type: 'retail', district: 'kluuvi', price: 50000000, revenue: 1200000, description: 'Iconic Helsinki department store', lat: 60.170, lon: 24.941 },
         { name: 'Akateeminen Kirjakauppa', type: 'retail', district: 'kluuvi', price: 5000000, revenue: 105000, description: 'Historic academic bookstore', lat: 60.170, lon: 24.940 },
-        { name: 'Forum Shopping Centre', type: 'retail', district: 'kamppi', price: 30000000, revenue: 750000, description: 'Major shopping centre in Kamppi', lat: 60.170, lon: 24.921 },
+        { name: 'Forum Shopping Centre', type: 'retail', district: 'kamppi', price: 30000000, revenue: 750000, description: 'Major shopping centre in Kamppi', lat: 60.168, lon: 24.930 },
         { name: 'Citycenter', type: 'retail', district: 'kluuvi', price: 25000000, revenue: 600000, description: 'Shopping centre by Railway Station', lat: 60.171, lon: 24.940 },
-        { name: 'Kamppi Centre', type: 'retail', district: 'kamppi', price: 35000000, revenue: 840000, description: 'Bus terminal and shopping complex', lat: 60.169, lon: 24.922 },
+        { name: 'Kamppi Centre', type: 'retail', district: 'kamppi', price: 35000000, revenue: 840000, description: 'Bus terminal and shopping complex', lat: 60.170, lon: 24.924 },
+        { name: 'Finnkino Tennispalatsi', type: 'retail', district: 'kamppi', price: 12000000, revenue: 300000, description: 'Major movie theatre and entertainment complex', lat: 60.171, lon: 24.922 },
         { name: 'Marimekko Flagship', type: 'retail', district: 'kamppi', price: 3000000, revenue: 75000, description: 'Finnish design icon store', lat: 60.170, lon: 24.923 },
         { name: 'Iittala Store', type: 'retail', district: 'kluuvi', price: 2000000, revenue: 54000, description: 'Finnish glassware on Esplanadi', lat: 60.168, lon: 24.943 },
         { name: 'K-Supermarket Kamppi', type: 'retail', district: 'kamppi', price: 1500000, revenue: 45000, description: 'Grocery store in Kamppi', lat: 60.168, lon: 24.923 },
-        { name: 'Hakaniemi Market Hall', type: 'retail', district: 'hakaniemi', price: 8000000, revenue: 180000, description: 'Historic indoor market', lat: 60.178, lon: 24.950 },
+        { name: 'Hakaniemi Market Hall', type: 'retail', district: 'hakaniemi', price: 8000000, revenue: 180000, description: 'Historic indoor market', lat: 60.182, lon: 24.958 },
         { name: 'Old Market Hall', type: 'retail', district: 'kluuvi', price: 10000000, revenue: 210000, description: 'Vanha Kauppahalli on the harbour', lat: 60.167, lon: 24.953 },
 
         // === RESTAURANTS & CAFES ===
@@ -34,13 +35,12 @@ const Properties = (() => {
         { name: 'Scandic Grand Marina', type: 'hotel', district: 'katajanokka', price: 15000000, revenue: 360000, description: 'Large hotel in converted warehouse', lat: 60.170, lon: 24.968 },
         { name: 'Radisson Blu Plaza', type: 'hotel', district: 'kluuvi', price: 18000000, revenue: 450000, description: 'Hotel next to Railway Station', lat: 60.172, lon: 24.942 },
         { name: 'Hotel St. George', type: 'hotel', district: 'kamppi', price: 16000000, revenue: 390000, description: 'Design hotel on Yrjönkatu', lat: 60.168, lon: 24.928 },
-        { name: 'Clarion Hotel Helsinki', type: 'hotel', district: 'jatkasaari', price: 14000000, revenue: 330000, description: 'Modern hotel in Jätkäsaari', lat: 60.157, lon: 24.903 },
+        { name: 'Clarion Hotel Helsinki', type: 'hotel', district: 'jatkasaari', price: 14000000, revenue: 330000, description: 'Modern hotel in Jätkäsaari', lat: 60.158, lon: 24.907 },
         { name: 'Hotel Lilla Roberts', type: 'hotel', district: 'punavuori', price: 10000000, revenue: 255000, description: 'Boutique hotel in art deco building', lat: 60.163, lon: 24.925 },
 
         // === LANDMARK / SPECIAL ===
-        { name: 'Allas Sea Pool', type: 'landmark', district: 'katajanokka', price: 8000000, revenue: 180000, description: 'Floating sea pool and saunas', lat: 60.167, lon: 24.958 },
         { name: 'Suvilahti Event Space', type: 'landmark', district: 'sornainen', price: 6000000, revenue: 150000, description: 'Former power plant, event venue', lat: 60.188, lon: 24.963 },
-        { name: 'Finlandia Hall', type: 'landmark', district: 'toolo', price: 15000000, revenue: 240000, description: 'Alvar Aalto\'s congress hall', lat: 60.176, lon: 24.932 },
+        { name: 'Kansallismuseo', type: 'landmark', district: 'toolo', price: 12000000, revenue: 210000, description: 'National Museum of Finland, Art Nouveau castle', lat: 60.177, lon: 24.929 },
 
         // === OFFICES ===
         { name: 'Salmisaari Office Park', type: 'office', district: 'ruoholahti', price: 12000000, revenue: 270000, description: 'Modern office complex', lat: 60.168, lon: 24.908 },
@@ -76,22 +76,31 @@ const Properties = (() => {
         // === KUUSISAARI ===
         { name: 'Kuusisaari Private Villa', type: 'residential', district: 'kuusisaari', price: 7000000, revenue: 84000, description: 'One of Helsinki\'s most secluded luxury homes', lat: 60.185, lon: 24.894 },
 
+        // === KULOSAARI ===
+        { name: 'Kulosaari Manor', type: 'residential', district: 'kulosaari', price: 6000000, revenue: 72000, description: 'Grand waterfront manor with private garden', lat: 60.193, lon: 24.988 },
+        { name: 'Kulosaari Villa', type: 'residential', district: 'kulosaari', price: 4000000, revenue: 48000, description: 'Elegant villa on a quiet tree-lined street', lat: 60.195, lon: 24.986 },
+        { name: 'Kulosaari Casino', type: 'restaurant', district: 'kulosaari', price: 2000000, revenue: 45000, description: 'Historic restaurant overlooking the sea', lat: 60.191, lon: 24.990 },
+
         // === AFFORDABLE / STARTER PROPERTIES ===
         { name: 'R-kioski Kamppi', type: 'retail', district: 'kamppi', price: 60000, revenue: 3600, description: 'Small newspaper and snack kiosk', lat: 60.169, lon: 24.925 },
         { name: 'R-kioski Sörnäinen', type: 'retail', district: 'sornainen', price: 45000, revenue: 2700, description: 'Corner kiosk near the metro', lat: 60.187, lon: 24.965 },
-        { name: 'R-kioski Hakaniemi', type: 'retail', district: 'hakaniemi', price: 55000, revenue: 3300, description: 'Kiosk by Hakaniemi square', lat: 60.179, lon: 24.951 },
+        { name: 'R-kioski Hakaniemi', type: 'retail', district: 'hakaniemi', price: 55000, revenue: 3300, description: 'Kiosk by Hakaniemi square', lat: 60.183, lon: 24.960 },
         { name: 'Kallio Pizza', type: 'restaurant', district: 'kallio', price: 120000, revenue: 7200, description: 'Popular neighborhood pizzeria', lat: 60.184, lon: 24.949 },
         { name: 'Punavuori Barber', type: 'retail', district: 'punavuori', price: 80000, revenue: 4800, description: 'Hipster barbershop on Iso Roobertinkatu', lat: 60.162, lon: 24.924 },
         { name: 'Kallio Vinyl Bar', type: 'restaurant', district: 'kallio', price: 150000, revenue: 9000, description: 'Trendy vinyl record bar', lat: 60.183, lon: 24.951 },
         { name: 'Lauttasaari Gym', type: 'retail', district: 'lauttasaari', price: 180000, revenue: 9000, description: 'Neighborhood fitness studio', lat: 60.162, lon: 24.878 },
         { name: 'Kamppi Laundromat', type: 'retail', district: 'kamppi', price: 70000, revenue: 4200, description: 'Self-service laundromat', lat: 60.167, lon: 24.926 },
         { name: 'Sörnäinen Kebab', type: 'restaurant', district: 'sornainen', price: 90000, revenue: 5400, description: 'Late-night kebab shop', lat: 60.186, lon: 24.962 },
-        { name: 'Hakaniemi Flower Shop', type: 'retail', district: 'hakaniemi', price: 65000, revenue: 3600, description: 'Small flower shop by the market', lat: 60.178, lon: 24.952 },
+        { name: 'Hakaniemi Flower Shop', type: 'retail', district: 'hakaniemi', price: 65000, revenue: 3600, description: 'Small flower shop by the market', lat: 60.181, lon: 24.961 },
         { name: 'Kruununhaka Antiques', type: 'retail', district: 'kruununhaka', price: 110000, revenue: 5400, description: 'Antique shop on a quiet street', lat: 60.173, lon: 24.955 },
         { name: 'Töölö Bakery', type: 'restaurant', district: 'toolo', price: 130000, revenue: 7800, description: 'Artisan bakery near Töölöntori', lat: 60.177, lon: 24.925 },
-        { name: 'Jätkäsaari Food Truck Spot', type: 'restaurant', district: 'jatkasaari', price: 35000, revenue: 2400, description: 'Food truck parking permit', lat: 60.156, lon: 24.908 },
+        { name: 'Jätkäsaari Food Truck Spot', type: 'restaurant', district: 'jatkasaari', price: 35000, revenue: 2400, description: 'Food truck parking permit', lat: 60.153, lon: 24.900 },
         { name: 'Kallio Tattoo Studio', type: 'retail', district: 'kallio', price: 95000, revenue: 5700, description: 'Popular tattoo parlour', lat: 60.182, lon: 24.948 },
         { name: 'Eira Massage Studio', type: 'retail', district: 'eira', price: 100000, revenue: 5400, description: 'Wellness studio near the park', lat: 60.156, lon: 24.928 },
+
+        // === EASTER EGGS ===
+        { name: 'Schwerbelastung\'s Penthouse', type: 'residential', district: 'jatkasaari', price: 300000, revenue: 15000, description: 'A mysterious developer\'s luxury penthouse with a suspiciously good Wi-Fi setup', lat: 60.152, lon: 24.901, color: '#cc44ff', easterEgg: true },
+        { name: 'Sharetribe Office', type: 'office', district: 'kaartinkaupunki', price: 500000, revenue: 24000, description: 'Marketplace platform company HQ in the heart of Helsinki', lat: 60.166, lon: 24.938, color: '#ff8800', easterEgg: true },
     ];
 
     // Templates for procedural generation (revenue is 3x realistic for gameplay pacing)
@@ -144,10 +153,46 @@ const Properties = (() => {
         sompasaari: ['Sompasaarenlaituri', 'Sompasaarenaukio'],
         kaivopuisto: ['Itäinen Puistotie', 'Ehrenströmintie', 'Kalliolinnantie'],
         kuusisaari: ['Kuusisaarentie'],
+        kulosaari: ['Hopeasalmentie', 'Kulosaaren puistotie', 'Svinhufvudintie'],
     };
 
     function randomInRange(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    // Districts with waterfront access (for seaside apartments)
+    const SEASIDE_DISTRICTS = [
+        'katajanokka', 'jatkasaari', 'hernesaari', 'kaskisaari', 'lehtisaari',
+        'sompasaari', 'kaivopuisto', 'eira', 'lauttasaari', 'kalasatama',
+        'kuusisaari', 'kulosaari', 'merihaka', 'ruoholahti', 'kaartinkaupunki',
+    ];
+
+    // Point-in-polygon test (ray casting)
+    function pointInPolygon(px, py, polygon) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i][0], yi = polygon[i][1];
+            const xj = polygon[j][0], yj = polygon[j][1];
+            const intersect = ((yi > py) !== (yj > py))
+                && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    // Generate a random position inside a district polygon, near its center
+    function randomPointInDistrict(district, spreadX, spreadY) {
+        const [cx, cy] = district.center;
+        // Try up to 20 times to find a point inside the polygon
+        for (let attempt = 0; attempt < 20; attempt++) {
+            const x = cx + (Math.random() - 0.5) * spreadX;
+            const y = cy + (Math.random() - 0.5) * spreadY;
+            if (pointInPolygon(x, y, district.polygon)) {
+                return [x, y];
+            }
+        }
+        // Fallback: use center with small jitter
+        return [cx + (Math.random() - 0.5) * 6, cy + (Math.random() - 0.5) * 4];
     }
 
     function generateProperties() {
@@ -161,7 +206,7 @@ const Properties = (() => {
             const x = HelsinkiDistricts.lonToX(np.lon);
             const y = HelsinkiDistricts.latToY(np.lat);
 
-            properties.push({
+            const prop = {
                 id: np.name.toLowerCase().replace(/\s+/g, '_'),
                 name: np.name,
                 type: np.type,
@@ -178,7 +223,10 @@ const Properties = (() => {
                 maxUpgrade: 5,
                 owner: null, // null = available, 'player', or rival name
                 tenantSatisfaction: 80,
-            });
+            };
+            if (np.color) prop.color = np.color;
+            if (np.easterEgg) prop.easterEgg = true;
+            properties.push(prop);
         }
 
         // Generate procedural residential properties
@@ -190,16 +238,24 @@ const Properties = (() => {
             const count = district.propertyDensity === 'high' ? 4 :
                          district.propertyDensity === 'medium' ? 3 : 2;
 
+            // Exclusive villa-only islands — no apartments, towers, lofts
+            const villaOnly = ['kaskisaari', 'kuusisaari', 'kulosaari'];
+
             for (let i = 0; i < count; i++) {
-                const template = RESIDENTIAL_TEMPLATES[Math.floor(Math.random() * RESIDENTIAL_TEMPLATES.length)];
+                // Filter templates based on district character
+                let available = RESIDENTIAL_TEMPLATES;
+                if (villaOnly.includes(district.id)) {
+                    available = available.filter(t => t.template.startsWith('Seaside') || t.template.startsWith('Renovated') || t.template.startsWith('Family'));
+                } else if (!SEASIDE_DISTRICTS.includes(district.id)) {
+                    available = available.filter(t => !t.template.startsWith('Seaside'));
+                }
+                const template = available[Math.floor(Math.random() * available.length)];
                 const name = template.template.replace('{district}', district.name);
                 const price = randomInRange(template.priceRange[0], template.priceRange[1]);
                 const revenue = randomInRange(template.revenueRange[0], template.revenueRange[1]);
 
-                // Random position within district polygon (simplified: offset from center)
-                const [cx, cy] = district.center;
-                const x = cx + (Math.random() - 0.5) * 30;
-                const y = cy + (Math.random() - 0.5) * 20;
+                // Random position inside district polygon
+                const [x, y] = randomPointInDistrict(district, 30, 20);
 
                 properties.push({
                     id: `res_${district.id}_${i}`,
@@ -230,15 +286,15 @@ const Properties = (() => {
                 const price = randomInRange(shopTemplate.priceRange[0], shopTemplate.priceRange[1]);
                 const revenue = randomInRange(shopTemplate.revenueRange[0], shopTemplate.revenueRange[1]);
 
-                const [cx, cy] = district.center;
+                const [shopX, shopY] = randomPointInDistrict(district, 25, 15);
                 properties.push({
                     id: `shop_${district.id}_0`,
                     name: shopName,
                     type: 'retail',
                     district: district.id,
                     districtName: district.name,
-                    x: cx + (Math.random() - 0.5) * 25,
-                    y: cy + (Math.random() - 0.5) * 15,
+                    x: shopX,
+                    y: shopY,
                     basePrice: price,
                     price,
                     baseRevenue: revenue,
@@ -259,15 +315,15 @@ const Properties = (() => {
                 const price = randomInRange(offTemplate.priceRange[0], offTemplate.priceRange[1]);
                 const revenue = randomInRange(offTemplate.revenueRange[0], offTemplate.revenueRange[1]);
 
-                const [cx, cy] = district.center;
+                const [offX, offY] = randomPointInDistrict(district, 25, 15);
                 properties.push({
                     id: `office_${district.id}_0`,
                     name: officeName,
                     type: 'office',
                     district: district.id,
                     districtName: district.name,
-                    x: cx + (Math.random() - 0.5) * 25,
-                    y: cy + (Math.random() - 0.5) * 15,
+                    x: offX,
+                    y: offY,
                     basePrice: price,
                     price,
                     baseRevenue: revenue,

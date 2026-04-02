@@ -60,7 +60,7 @@ const Rivals = (() => {
 
     function processRivalTurn(rival, gameState) {
         const actions = [];
-        const availableProperties = gameState.properties.filter(p => p.owner === null);
+        const availableProperties = gameState.properties.filter(p => p.owner === null && !p.easterEgg);
 
         if (availableProperties.length === 0) return actions;
 

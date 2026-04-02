@@ -68,6 +68,7 @@
                 <button class="action-btn" id="btn-filter"><u>F</u>ilter</button>
                 <button class="action-btn" id="btn-staff">S<u>t</u>aff</button>
                 <button class="action-btn" id="btn-menu"><u>M</u>enu</button>
+                <button class="action-btn" id="btn-help"><u>H</u>elp</button>
             </div>
             <div id="action-info">
                 <span id="actions-remaining">Actions: 3/3</span>
@@ -327,11 +328,12 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.8.5 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v0.9.0 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
                 <button id="btn-changelog" class="changelog-btn">CHANGELOG</button>
+                <button id="btn-tutorial" class="changelog-btn">HOW TO PLAY</button>
             </div>
 
             <!-- Changelog overlay (inside start screen) -->
@@ -347,18 +349,45 @@
         </div>
     </div>
 
-    <script src="js/districts.js?v=085"></script>
-    <script src="js/properties.js?v=085"></script>
-    <script src="js/economy.js?v=085"></script>
-    <script src="js/events.js?v=085"></script>
-    <script src="js/seasons.js?v=085"></script>
-    <script src="js/rivals.js?v=085"></script>
-    <script src="js/staff.js?v=085"></script>
-    <script src="js/sound.js?v=085"></script>
-    <script src="js/changelog.js?v=085"></script>
-    <script src="js/ui.js?v=085"></script>
-    <script src="js/game.js?v=085"></script>
-    <script src="js/map.js?v=085"></script>
-    <script src="js/main.js?v=085"></script>
+        <!-- Tutorial prompt (shown after clicking START) -->
+        <div id="tutorial-prompt" class="overlay hidden">
+            <div id="tutorial-prompt-box">
+                <div class="tutorial-prompt-text">First time playing?</div>
+                <div class="tutorial-prompt-buttons">
+                    <button id="tutorial-prompt-yes" class="start-btn">SHOW ME HOW</button>
+                    <button id="tutorial-prompt-no" class="start-btn continue-btn">JUMP RIGHT IN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial overlay -->
+        <div id="tutorial-overlay" class="overlay hidden">
+            <div id="tutorial-content">
+                <div class="tutorial-header">
+                    <span>HOW TO PLAY</span>
+                    <span id="tutorial-step-indicator">1/6</span>
+                </div>
+                <div id="tutorial-body"></div>
+                <div class="tutorial-nav">
+                    <button id="tutorial-prev" class="tutorial-btn">BACK</button>
+                    <button id="tutorial-next" class="tutorial-btn">NEXT</button>
+                    <button id="tutorial-skip" class="tutorial-btn tutorial-skip">SKIP</button>
+                </div>
+            </div>
+        </div>
+
+    <script src="js/districts.js?v=090"></script>
+    <script src="js/properties.js?v=090"></script>
+    <script src="js/economy.js?v=090"></script>
+    <script src="js/events.js?v=090"></script>
+    <script src="js/seasons.js?v=090"></script>
+    <script src="js/rivals.js?v=090"></script>
+    <script src="js/staff.js?v=090"></script>
+    <script src="js/sound.js?v=090"></script>
+    <script src="js/changelog.js?v=090"></script>
+    <script src="js/ui.js?v=090"></script>
+    <script src="js/game.js?v=090"></script>
+    <script src="js/map.js?v=090"></script>
+    <script src="js/main.js?v=090"></script>
 </body>
 </html>

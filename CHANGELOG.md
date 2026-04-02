@@ -1,5 +1,105 @@
 # Helsingin Herra - Changelog
 
+## v0.9.0 — Stats Graphs & Tutorial (2026-04-03)
+
+### Added
+- **Financial history tracking** — revenue, expenses, net worth, and cash recorded each turn (up to 120 months)
+- **Income vs Expenses bar graph** in the Stats panel — green bars for income, red for expenses, showing the last 12 months side by side
+- **Net Worth line graph** in the Stats panel — yellow bars showing net worth trend over the last 12 months
+- **Tutorial / How to Play** — accessible from the start screen via "HOW TO PLAY" button
+  - 6-step guided walkthrough covering: game objective, map navigation, buying & managing properties, actions & turns, economy & events, keyboard controls
+  - Navigate with Back/Next buttons or skip at any time
+- Financial history is saved and loaded with game saves
+
+---
+
+## v0.8.8 — Landmark & Property Cleanup (2026-04-03)
+
+### Added
+- **Finnkino Tennispalatsi** — new purchaseable retail property in Kamppi (€12M)
+- **Kansallismuseo** — new purchaseable landmark property in Töölö, west of Finlandia Hall (€12M)
+- **Hietaniemi Beach** landmark on the coastline near Sibelius Monument
+- **Temppeliaukio Church** landmark at the northern edge of Kamppi
+
+### Changed
+- **Finlandia Hall** is now a landmark only (no longer a purchaseable property)
+- **Temppeliaukio Church** is now a landmark only (no longer a purchaseable property)
+- **Allas Sea Pool** is now a landmark only (no longer a purchaseable property)
+- **REDI Centre** is now a property only (removed duplicate landmark; REDI Shopping Centre remains purchaseable)
+- **Kamppi Centre** — hardcoded position, moved west within the district
+- **Forum Shopping Centre** — hardcoded to southeastern edge of Kamppi
+- **Clarion Hotel Helsinki** — hardcoded to northeastern Jätkäsaari
+
+### Fixed
+- **Landmark/property duplicates** — Kamppi Centre, Finlandia Hall, Allas Sea Pool, and REDI Centre no longer appear as both a landmark and a purchaseable property in the same game
+
+---
+
+## v0.8.7 — Coastline Overhaul, New Districts & Islands (2026-04-03)
+
+### Added
+- **Kulosaari district** — exclusive residential island (prestige 5) with villas only
+  - Named properties: Kulosaari Manor (€6M), Kulosaari Villa (€4M), Kulosaari Casino restaurant (€2M)
+  - Streets: Hopeasalmentie, Kulosaaren puistotie, Svinhufvudintie
+  - Connected to mainland via Kulosaaren silta (bridge)
+- **Mustikkamaa island** — decorative island just south of Kulosaari with map label
+- **Suomenlinna island** — decorative island in the southern sea with map label
+- **Linnanmäki landmark** — amusement park east of Olympiastadioni
+- **Northern green area** — large park covering the area north of Töölö/Kallio/Sörnäinen
+- **Alppipuisto park** — green area around Linnanmäki
+- **Vanhankaupunginlahti bay** — water body northeast of Sörnäinen toward Arabianranta
+- **Island labels** — decorative islands with `label: true` now render text labels on the map
+- **Bridge rendering** — roads with "silta" or "bridge" in the name render thicker
+- **Point-in-polygon property placement** — procedural properties now use ray casting to stay within district boundaries
+
+### Changed
+- **Jätkäsaari** is now a separate island polygon (no longer part of the main coastline), fixing self-intersecting coastline issues
+- **Hakaniemi district** moved north to avoid buildings rendering in water
+- **Kalasatama polygon** simplified to convex shape to keep district center on land
+- **Sörnäinen polygon** expanded northeast
+- **Coastline significantly reworked** for better accuracy compared to real Helsinki geography
+- **Hietalahti water body** updated to fill the gap between mainland and Jätkäsaari island
+- **Villa-only filtering** for exclusive island districts (Kaskisaari, Kuusisaari, Kulosaari)
+- **Easter egg properties** excluded from AI rival purchases (`easterEgg: true` flag)
+- **Sharetribe Office** moved to middle of Kaartinkaupunki district
+
+### Fixed
+- **Buildings in ocean** — properties in Jätkäsaari, Hakaniemi, and Kalasatama no longer spawn in water
+- **Retail sprite artifact** — two dots to the right of awning fixed (stripe stride changed from `i*4*p` to `i*2*p`)
+- **Game crash** — `kulosaariIsland` const used before declaration; fixed with inline polygon
+- **Named property coordinates** updated for Jätkäsaari, Hakaniemi to stay within district bounds
+
+---
+
+## v0.8.6 — Pixel Art Buildings & Alien Invasion Visuals (2026-04-02)
+
+### Added
+- **Pixel art building sprites** — each property type now has a distinct building sprite instead of colored squares
+  - Retail: shop with striped awning and warm-lit windows
+  - Restaurant: building with chimney and animated smoke puffs
+  - Residential: house/apartment with peaked roof and window rows (scales with upgrade level)
+  - Office: tall glass curtain-wall tower with antenna (grows taller with upgrades)
+  - Hotel: wide building with entrance canopy, flag, and lit windows
+  - Landmark: columned monument with star on top
+- **All buildings grow taller with upgrades** — visual feedback for property investment
+- **Snow on rooftops** in winter season
+- **Alien invasion visual effects** — when an alien invasion event is active:
+  - 3 UFOs hover over the affected district in formation with bobbing animation
+  - Green tractor beams project down from each UFO
+  - Blinking red/yellow lights around saucer rims
+  - Eerie green atmospheric tint pulses across the map
+  - Floating green scan particles
+- **Easter egg properties**:
+  - Schwerbelastung's Penthouse (Jätkäsaari, €300K) — purple color
+  - Sharetribe Office (Kaartinkaupunki, €500K) — orange color
+- **Seaside apartments** now only appear in waterfront districts
+
+### Changed
+- **Ownership indicator** changed from border color to colored ground pad beneath buildings
+- **Hover highlight** adapted for taller building sprites
+
+---
+
 ## v0.8.5 — Victory Screen, Cheats & Trophies (2026-04-02)
 
 ### Added
@@ -412,20 +512,10 @@ All core systems implemented in a single session. Game is fully playable.
 
 ## Planned Future Versions
 
-### v0.7.0 — UI Polish
-- [ ] Replace alert/prompt dialogs with proper in-game panels
-- [ ] Better stats screen with graphs
-- [ ] Richer property tooltips
-
-### v0.9.0 — Visual Polish
-- [ ] Pixel art sprites for buildings
-- [ ] Alien invasion visual effects
-- [ ] Animated transitions between seasons
-- [ ] Better property markers by type
-
 ### v1.0.0 — Release
 - [ ] Bidding wars with rivals
 - [ ] Balance tuning
 - [ ] Achievement system
 - [ ] Mobile/touch support
-- [ ] Tutorial/help system
+- [ ] Animated transitions between seasons
+- [ ] Richer property tooltips

@@ -19,6 +19,7 @@ const GameState = {
     winTarget: 50000000,
     gameOver: false,
     totalRevenueEarned: 0,
+    financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
 
 const Game = (() => {
@@ -29,6 +30,7 @@ const Game = (() => {
         GameState.difficulty = difficulty;
         GameState.mode = mode;
         GameState.staff = [];
+        GameState.financeHistory = [];
 
         // Difficulty settings
         const diffSettings = {
@@ -119,18 +121,31 @@ const Game = (() => {
             }
         }
 
-        // 5. Advance time
+        // 5. Record financial history
+        GameState.financeHistory.push({
+            turn: GameState.turn,
+            revenue: financeSummary.revenue,
+            maintenance: financeSummary.maintenance,
+            loanPayment: financeSummary.loanPayment,
+            staffSalaries: financeSummary.staffSalaries,
+            netIncome: financeSummary.netIncome,
+            netWorth: Economy.calculateNetWorth(GameState),
+            cash: GameState.money,
+        });
+        if (GameState.financeHistory.length > 120) GameState.financeHistory.shift();
+
+        // 6. Advance time
         GameState.month = (GameState.month + 1) % 12;
         if (GameState.month === 0) GameState.year++;
         GameState.turn++;
         GameState.actionsRemaining = GameState.actionsPerTurn + Staff.getActionsBonus(GameState);
 
-        // 6. Update season visuals and music
+        // 7. Update season visuals and music
         const season = Seasons.getCurrentSeason(GameState.month);
         MapRenderer.setSeason(season);
         Sound.setSeason(season);
 
-        // 7. Show turn summary
+        // 8. Show turn summary
         UI.showTurnSummary({
             ...financeSummary,
             rivalActions: allRivalActions,
@@ -138,7 +153,7 @@ const Game = (() => {
             staffResults,
         });
 
-        // 8. Check win condition
+        // 9. Check win condition
         if (GameState.mode === 'campaign') {
             const netWorth = Economy.calculateNetWorth(GameState);
             if (netWorth >= GameState.winTarget) {
@@ -148,7 +163,7 @@ const Game = (() => {
             }
         }
 
-        // 9. Check bankruptcy
+        // 10. Check bankruptcy
         if (GameState.money < -100000) {
             GameState.gameOver = true;
             Sound.playBankrupt();
@@ -156,11 +171,11 @@ const Game = (() => {
             alert('Game Over!\n\nYou have gone bankrupt.\nFinal turn: ' + GameState.turn);
         }
 
-        // 10. Update display
+        // 11. Update display
         UI.updateHUD(GameState);
         MapRenderer.render();
 
-        // 11. Auto-save
+        // 12. Auto-save
         autoSave();
     }
 
@@ -268,7 +283,7 @@ const Game = (() => {
 
     function buildSaveData() {
         return {
-            version: '0.8.5',
+            version: '0.9.0',
             savedAt: Date.now(),
             money: GameState.money,
             month: GameState.month,
@@ -301,6 +316,8 @@ const Game = (() => {
                 maxUpgrade: p.maxUpgrade,
                 owner: p.owner,
                 tenantSatisfaction: p.tenantSatisfaction,
+                ...(p.color ? { color: p.color } : {}),
+                ...(p.easterEgg ? { easterEgg: true } : {}),
             })),
             rivals: GameState.rivals.map(r => ({
                 id: r.id,
@@ -319,6 +336,7 @@ const Game = (() => {
             })),
             activeEvents: GameState.activeEvents.map(e => ({ ...e })),
             staff: [...GameState.staff],
+            financeHistory: GameState.financeHistory.map(h => ({ ...h })),
         };
     }
 
@@ -355,6 +373,7 @@ const Game = (() => {
             GameState.rivals = data.rivals;
             GameState.activeEvents = data.activeEvents || [];
             GameState.staff = data.staff || [];
+            GameState.financeHistory = data.financeHistory || [];
 
             // Update visuals
             const season = Seasons.getCurrentSeason(GameState.month);

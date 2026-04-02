@@ -1,5 +1,75 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.8.5 — Victory Screen, Cheats & Trophies (2026-04-02)
+const CHANGELOG_MD = `## v0.9.0 — Stats Graphs & Tutorial (2026-04-03)
+
+### Added
+- **Income vs Expenses bar graph** in Stats panel — last 12 months of green (income) vs red (expenses)
+- **Net Worth line graph** in Stats panel — yellow bars showing your wealth trend
+- **Tutorial / How to Play** — 6-step guided walkthrough from the start screen
+- Financial history saved with game saves
+
+---
+
+## v0.8.8 — Landmark & Property Cleanup (2026-04-03)
+
+### Added
+- **Finnkino Tennispalatsi** — new purchaseable retail property in Kamppi
+- **Kansallismuseo** — new purchaseable landmark in Töölö, west of Finlandia Hall
+- **Hietaniemi Beach** and **Temppeliaukio Church** landmarks
+
+### Changed
+- **Finlandia Hall**, **Temppeliaukio Church**, **Allas Sea Pool** — now landmarks only (not purchaseable)
+- **REDI Centre** landmark removed (REDI Shopping Centre stays as property)
+- **Kamppi Centre**, **Forum Shopping Centre**, **Clarion Hotel** — hardcoded positions adjusted
+
+### Fixed
+- No more landmark/property duplicates appearing in the same game
+
+---
+
+## v0.8.7 — Coastline Overhaul, New Districts & Islands (2026-04-03)
+
+### Added
+- **Kulosaari district** — exclusive residential island with villas, manor, and casino restaurant
+- **Mustikkamaa** and **Suomenlinna** — decorative islands with map labels
+- **Linnanmäki landmark** — amusement park near Kallio
+- **Northern green area** and **Alppipuisto** parks
+- **Vanhankaupunginlahti bay** — new water body northeast of Sörnäinen
+- **Bridge rendering** — bridges render thicker on the map
+- **Point-in-polygon property placement** — properties stay within district boundaries
+
+### Changed
+- **Jätkäsaari** is now a separate island polygon for accurate coastline
+- **Hakaniemi** moved north, **Kalasatama** simplified, **Sörnäinen** expanded
+- **Coastline significantly reworked** for better geographic accuracy
+- **Villa-only filtering** for exclusive island districts
+- **Easter egg properties** excluded from AI rival purchases
+
+### Fixed
+- **Buildings in ocean** — properties no longer spawn in water in coastal districts
+- **Retail sprite artifact** — two dots to the right of awning removed
+- **Game crash** — const used before declaration bug fixed
+
+---
+
+## v0.8.6 — Pixel Art Buildings & Alien Invasion Visuals (2026-04-02)
+
+### Added
+- **Pixel art building sprites** — each property type now has a distinct building sprite
+  - Retail: shop with striped awning and warm-lit windows
+  - Restaurant: building with chimney and animated smoke puffs
+  - Residential: house/apartment with peaked roof (scales with upgrade level)
+  - Office: tall glass curtain-wall tower with antenna
+  - Hotel: wide building with entrance canopy and flag
+  - Landmark: columned monument with star on top
+- **All buildings grow taller with upgrades** — visual feedback for investment
+- **Snow on rooftops** in winter
+- **Alien invasion visual effects** — UFOs, tractor beams, blinking lights, green atmosphere
+- **Easter egg properties**: Schwerbelastung's Penthouse, Sharetribe Office
+- **Seaside apartments** now only spawn in waterfront districts
+
+---
+
+## v0.8.5 — Victory Screen, Cheats & Trophies (2026-04-02)
 
 ### Added
 - **Victory screen overhaul** — proper overlay with 10 end-game stats and up to 3 trophies

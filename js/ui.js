@@ -17,6 +17,17 @@ const UI = (() => {
     // Cheat state
     let freeBuyMode = false;
 
+    // Pending game start (held while tutorial prompt is shown)
+    let pendingStart = null;
+
+    function launchPendingGame() {
+        if (!pendingStart) return;
+        Sound.playStartGame();
+        const s = pendingStart;
+        pendingStart = null;
+        Game.start(s.capital, s.difficulty, s.mode, s.rivalCount, s.target);
+    }
+
     function init() {
         setupStartScreen();
         setupActionButtons();
@@ -57,16 +68,31 @@ const UI = (() => {
         // Start game button
         document.getElementById('btn-start-game').addEventListener('click', () => {
             Sound.init();
-            Sound.playStartGame();
+            Sound.playClick();
 
-            const capital = document.querySelector('.option-btn.selected[data-capital]')?.dataset.capital || 'small';
-            const difficulty = document.querySelector('.option-btn.selected[data-difficulty]')?.dataset.difficulty || 'normal';
-            const rivalCount = parseInt(document.querySelector('.option-btn.selected[data-rivals]')?.dataset.rivals ?? '3');
-            const mode = document.querySelector('.option-btn.selected[data-mode]')?.dataset.mode || 'campaign';
-            const target = parseInt(document.querySelector('.option-btn.selected[data-target]')?.dataset.target || '50000000');
-
+            // Stash selections for after the prompt
+            pendingStart = {
+                capital: document.querySelector('.option-btn.selected[data-capital]')?.dataset.capital || 'small',
+                difficulty: document.querySelector('.option-btn.selected[data-difficulty]')?.dataset.difficulty || 'normal',
+                rivalCount: parseInt(document.querySelector('.option-btn.selected[data-rivals]')?.dataset.rivals ?? '3'),
+                mode: document.querySelector('.option-btn.selected[data-mode]')?.dataset.mode || 'campaign',
+                target: parseInt(document.querySelector('.option-btn.selected[data-target]')?.dataset.target || '50000000'),
+            };
             document.getElementById('start-screen').classList.add('hidden');
-            Game.start(capital, difficulty, mode, rivalCount, target);
+            document.getElementById('tutorial-prompt').classList.remove('hidden');
+        });
+
+        // Tutorial prompt buttons
+        document.getElementById('tutorial-prompt-yes').addEventListener('click', () => {
+            Sound.playClick();
+            document.getElementById('tutorial-prompt').classList.add('hidden');
+            launchPendingGame();
+            showTutorial();
+        });
+        document.getElementById('tutorial-prompt-no').addEventListener('click', () => {
+            Sound.playClick();
+            document.getElementById('tutorial-prompt').classList.add('hidden');
+            launchPendingGame();
         });
 
         // Continue button — loads auto-save (most recent turn)
@@ -92,6 +118,13 @@ const UI = (() => {
         });
         document.getElementById('changelog-close').addEventListener('click', () => {
             document.getElementById('changelog-overlay').classList.add('hidden');
+        });
+
+        // Tutorial
+        document.getElementById('btn-tutorial').addEventListener('click', () => {
+            Sound.init();
+            Sound.playClick();
+            showTutorial();
         });
     }
 
@@ -175,6 +208,120 @@ const UI = (() => {
         }
     }
 
+    // =========================================================
+    // TUTORIAL SYSTEM
+    // =========================================================
+    const TUTORIAL_STEPS = [
+        {
+            title: 'Welcome to Helsingin Herra!',
+            body: `You are a real estate investor in Helsinki, Finland. Your goal is to build a property empire by buying, upgrading, and managing properties across the city's districts.
+
+<strong>In Campaign mode</strong>, reach the target net worth to win.
+<strong>In Sandbox mode</strong>, play endlessly and see how rich you can get.
+
+You'll compete against up to 3 AI rivals who also buy properties!`,
+        },
+        {
+            title: 'The Map',
+            body: `The map shows Helsinki with its real districts, landmarks, and coastline.
+
+<strong>Click on a property</strong> (coloured building) to see its details and buy it.
+<strong>Scroll</strong> to zoom in/out. <strong>Drag</strong> to pan around.
+The <strong>minimap</strong> in the top-right shows your current view.
+
+Properties have coloured ground pads:
+- <span style="color:#ffcc00">Gold</span> = yours
+- <span style="color:#ff4444">Red/Blue/Cyan</span> = rival-owned
+- No pad = available for purchase`,
+        },
+        {
+            title: 'Buying & Managing Properties',
+            body: `Each property has a <strong>type</strong> (retail, restaurant, hotel, office, residential, landmark), a <strong>price</strong>, and monthly <strong>revenue</strong>.
+
+After buying, you can:
+- <strong>Upgrade</strong> (up to Lv.5) to increase revenue
+- <strong>Repair</strong> to restore condition (condition degrades over time and reduces income)
+- <strong>Sell</strong> at 85% of current value
+
+Tip: Keep properties in good condition! Below 25% you'll get warnings.`,
+        },
+        {
+            title: 'Actions & Turns',
+            body: `Each turn represents one month. You have <strong>3 actions per turn</strong> (4 on Easy).
+
+Actions are spent on: buying, selling, upgrading, or repairing.
+
+Press <strong>Space</strong> or click <strong>End Turn</strong> to advance.
+Each turn:
+- You collect revenue from owned properties
+- Maintenance costs are deducted
+- Loan interest is charged
+- Property conditions degrade slightly
+- Random events may occur`,
+        },
+        {
+            title: 'Economy & Events',
+            body: `<strong>Bank</strong> (B): Take loans up to 2x your net worth. Interest is charged monthly.
+
+<strong>Staff</strong> (T): Hire employees — a Maintenance Person auto-repairs, a Manager gives +1 action, an Accountant lowers interest, a Scout reveals deals.
+
+<strong>Events</strong>: Helsinki events like Flow Festival, Slush, and Christmas Markets boost revenue. Watch out for recessions, pipe bursts, and the occasional alien invasion!
+
+<strong>Seasons</strong> affect revenue: hotels boom in summer, retail peaks in winter.`,
+        },
+        {
+            title: 'Controls',
+            body: `<strong>Keyboard shortcuts:</strong>
+<span style="color:#ffcc00">Space</span> — End Turn
+<span style="color:#ffcc00">B</span> — Bank &nbsp; <span style="color:#ffcc00">S</span> — Stats &nbsp; <span style="color:#ffcc00">T</span> — Staff
+<span style="color:#ffcc00">P</span> — My Properties &nbsp; <span style="color:#ffcc00">L</span> — Turn Log
+<span style="color:#ffcc00">F</span> — Map Filter &nbsp; <span style="color:#ffcc00">M</span> — Menu (save/load)
+<span style="color:#ffcc00">Esc</span> — Close any panel
+<span style="color:#ffcc00">1-4</span> — Buy/Sell/Upgrade/Repair (when panel open)
+<span style="color:#ffcc00">Ctrl+Shift+C</span> — Cheats
+
+Good luck — become the Helsingin Herra!`,
+        },
+    ];
+
+    let tutorialStep = 0;
+
+    function showTutorial() {
+        tutorialStep = 0;
+        renderTutorialStep();
+        document.getElementById('tutorial-overlay').classList.remove('hidden');
+        // Wire up buttons (only once)
+        const prevBtn = document.getElementById('tutorial-prev');
+        const nextBtn = document.getElementById('tutorial-next');
+        const skipBtn = document.getElementById('tutorial-skip');
+        prevBtn.onclick = () => { if (tutorialStep > 0) { tutorialStep--; renderTutorialStep(); Sound.playClick(); } };
+        nextBtn.onclick = () => {
+            Sound.playClick();
+            if (tutorialStep < TUTORIAL_STEPS.length - 1) {
+                tutorialStep++;
+                renderTutorialStep();
+            } else {
+                closeTutorial();
+            }
+        };
+        skipBtn.onclick = () => { Sound.playClick(); closeTutorial(); };
+    }
+
+    function closeTutorial() {
+        document.getElementById('tutorial-overlay').classList.add('hidden');
+    }
+
+    function renderTutorialStep() {
+        const step = TUTORIAL_STEPS[tutorialStep];
+        document.getElementById('tutorial-step-indicator').textContent = `${tutorialStep + 1}/${TUTORIAL_STEPS.length}`;
+        document.getElementById('tutorial-body').innerHTML =
+            `<div class="tutorial-title">${step.title}</div>` +
+            `<div class="tutorial-text">${step.body}</div>`;
+        document.getElementById('tutorial-prev').style.visibility = tutorialStep === 0 ? 'hidden' : 'visible';
+        const nextBtn = document.getElementById('tutorial-next');
+        nextBtn.textContent = tutorialStep === TUTORIAL_STEPS.length - 1 ? 'START' : 'NEXT';
+    }
+
     function setupActionButtons() {
         document.getElementById('btn-end-turn').addEventListener('click', () => {
             Sound.playClick();
@@ -214,6 +361,11 @@ const UI = (() => {
         document.getElementById('btn-menu').addEventListener('click', () => {
             Sound.playClick();
             showMenuPanel();
+        });
+
+        document.getElementById('btn-help').addEventListener('click', () => {
+            Sound.playClick();
+            showTutorial();
         });
     }
 
@@ -257,6 +409,9 @@ const UI = (() => {
             } else if (key === 'm') {
                 Sound.playClick();
                 showMenuPanel();
+            } else if (key === 'h') {
+                Sound.playClick();
+                showTutorial();
             } else if ((key === '1' || key === '2' || key === '3' || key === '4') &&
                        !document.getElementById('property-panel').classList.contains('hidden')) {
                 // Property panel hotkeys
@@ -581,6 +736,61 @@ const UI = (() => {
         document.getElementById('stats-panel').classList.add('hidden');
     }
 
+    function renderBarGraph(history, label, getIncome, getExpense) {
+        const count = Math.min(history.length, 12);
+        if (count === 0) return `<div class="stats-graph-empty">No data yet</div>`;
+        const data = history.slice(-count);
+        // Find max value for scaling
+        let maxVal = 0;
+        for (const h of data) {
+            maxVal = Math.max(maxVal, getIncome(h), getExpense(h));
+        }
+        if (maxVal === 0) maxVal = 1;
+
+        let html = `<div class="stats-graph-label">${label}</div>`;
+        html += '<div class="stats-graph">';
+        for (const h of data) {
+            const incH = Math.round((getIncome(h) / maxVal) * 100);
+            const expH = Math.round((getExpense(h) / maxVal) * 100);
+            html += '<div class="stats-graph-col">';
+            html += `<div class="stats-bar-pair">`;
+            html += `<div class="stats-bar income" style="height:${incH}%" title="Income: €${formatMoney(getIncome(h))}"></div>`;
+            html += `<div class="stats-bar expense" style="height:${expH}%" title="Expenses: €${formatMoney(getExpense(h))}"></div>`;
+            html += '</div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        // Legend
+        html += '<div class="stats-graph-legend"><span class="legend-income">Income</span><span class="legend-expense">Expenses</span></div>';
+        return html;
+    }
+
+    function renderLineGraph(history, label, getValue) {
+        const count = Math.min(history.length, 12);
+        if (count === 0) return '';
+        const data = history.slice(-count);
+        let maxVal = 0;
+        let minVal = Infinity;
+        for (const h of data) {
+            const v = getValue(h);
+            if (v > maxVal) maxVal = v;
+            if (v < minVal) minVal = v;
+        }
+        const range = maxVal - minVal || 1;
+
+        let html = `<div class="stats-graph-label">${label}</div>`;
+        html += '<div class="stats-graph line-graph">';
+        for (const h of data) {
+            const v = getValue(h);
+            const pct = Math.round(((v - minVal) / range) * 100);
+            html += '<div class="stats-graph-col">';
+            html += `<div class="stats-line-bar" style="height:${Math.max(pct, 2)}%" title="€${formatMoney(v)}"></div>`;
+            html += '</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
     function updateStatsPanel() {
         const body = document.getElementById('stats-body');
         if (!body) return;
@@ -600,6 +810,22 @@ const UI = (() => {
         html += `<div class="stats-row"><span>Total Earned</span><span>€${formatMoney(GameState.totalRevenueEarned || 0)}</span></div>`;
         if (GameState.staff.length > 0) {
             html += `<div class="stats-row"><span>Staff</span><span>${GameState.staff.length} (€${formatMoney(Staff.getTotalSalaries(GameState))}/mo)</span></div>`;
+        }
+
+        // Financial graphs
+        if (GameState.financeHistory.length > 0) {
+            html += '<div class="stats-divider"></div>';
+            html += renderBarGraph(
+                GameState.financeHistory,
+                'Monthly Income vs Expenses (last 12 mo)',
+                h => h.revenue,
+                h => h.maintenance + h.loanPayment + h.staffSalaries
+            );
+            html += renderLineGraph(
+                GameState.financeHistory,
+                'Net Worth',
+                h => h.netWorth
+            );
         }
 
         if (GameState.rivals.length > 0) {

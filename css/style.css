@@ -1121,6 +1121,213 @@ html {
     color: var(--text-accent);
 }
 
+/* === Stats Graphs === */
+.stats-graph-label {
+    font-size: 6px;
+    color: var(--text-secondary);
+    margin: 6px 0 3px;
+    text-align: center;
+}
+
+.stats-graph {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 60px;
+    padding: 2px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stats-graph-col {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+}
+
+.stats-bar-pair {
+    display: flex;
+    gap: 1px;
+    width: 100%;
+    height: 100%;
+    align-items: flex-end;
+}
+
+.stats-bar {
+    flex: 1;
+    min-height: 1px;
+    transition: height 0.2s;
+}
+
+.stats-bar.income {
+    background: var(--text-money);
+    opacity: 0.8;
+}
+
+.stats-bar.expense {
+    background: var(--text-danger);
+    opacity: 0.8;
+}
+
+.stats-graph-legend {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    font-size: 6px;
+    margin: 3px 0;
+}
+
+.legend-income { color: var(--text-money); }
+.legend-expense { color: var(--text-danger); }
+
+.legend-income::before,
+.legend-expense::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 3px;
+    vertical-align: middle;
+}
+
+.legend-income::before { background: var(--text-money); }
+.legend-expense::before { background: var(--text-danger); }
+
+.stats-graph-empty {
+    font-size: 6px;
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 8px 0;
+}
+
+.line-graph .stats-graph-col {
+    justify-content: flex-end;
+}
+
+.stats-line-bar {
+    width: 100%;
+    background: var(--text-accent);
+    opacity: 0.7;
+    min-height: 1px;
+    transition: height 0.2s;
+}
+
+/* === Tutorial Prompt === */
+#tutorial-prompt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+#tutorial-prompt.hidden {
+    display: none;
+}
+
+#tutorial-prompt-box {
+    background: var(--bg-panel);
+    border: 2px solid var(--text-accent);
+    padding: 24px 32px;
+    text-align: center;
+}
+
+.tutorial-prompt-text {
+    font-family: var(--font-pixel);
+    font-size: 11px;
+    color: var(--text-accent);
+    margin-bottom: 20px;
+}
+
+.tutorial-prompt-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.tutorial-prompt-buttons .start-btn {
+    font-size: 9px;
+    padding: 8px 18px;
+}
+
+/* === Tutorial Overlay === */
+#tutorial-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+#tutorial-overlay.hidden {
+    display: none;
+}
+
+#tutorial-content {
+    background: var(--bg-panel);
+    border: 2px solid var(--text-accent);
+    width: 420px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-panel-hover);
+    border-bottom: 2px solid var(--border-color);
+    font-size: 9px;
+    color: var(--text-accent);
+}
+
+#tutorial-body {
+    padding: 14px;
+}
+
+.tutorial-title {
+    font-size: 9px;
+    color: var(--text-accent);
+    margin-bottom: 10px;
+}
+
+.tutorial-text {
+    font-size: 7px;
+    color: var(--text-primary);
+    line-height: 2;
+    white-space: pre-line;
+}
+
+.tutorial-nav {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-top: 2px solid var(--border-color);
+    gap: 8px;
+}
+
+.tutorial-btn {
+    font-family: var(--font-pixel);
+    font-size: 8px;
+    padding: 6px 14px;
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.tutorial-btn:hover {
+    background: var(--btn-hover);
+    border-color: var(--text-accent);
+    color: var(--text-accent);
+}
+
+.tutorial-skip {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 7px;
+}
+
 .menu-info {
     font-size: 7px;
     color: var(--text-secondary);
