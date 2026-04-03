@@ -255,6 +255,18 @@ const Events = (() => {
             positive: true,
             special: true,
         },
+        {
+            id: 'swedish_invasion',
+            name: 'SWEDISH INVASION!',
+            description: 'Sweden has temporarily claimed Helsinki! All district signs have been replaced with Swedish names. Du gamla, du fria...',
+            month: -1,
+            chance: 0.012,
+            duration: 3,
+            revenueModifier: 0.15,
+            global: true,
+            positive: true,
+            special: true,
+        },
     ];
 
     function checkEvents(gameState) {
@@ -269,6 +281,12 @@ const Events = (() => {
             // Nokia Comeback: once per campaign (unless cheat)
             if (template.id === 'nokia_comeback' && gameState.nokiaHasOccurred) continue;
 
+            // Per-event occurrence cap: max 3 times per playthrough (1 for Nokia, handled above)
+            if (template.special && gameState.specialEventOccurrences) {
+                const count = gameState.specialEventOccurrences[template.id] || 0;
+                if (count >= 3) continue;
+            }
+
             // Special events: at least 2 months between procs
             if (template.special && (gameState.turn - gameState.lastSpecialEventTurn) < 3) continue;
 
@@ -278,8 +296,13 @@ const Events = (() => {
             // Winter-only check
             if (template.winterOnly && season !== 'winter') continue;
 
-            // Condition-scaled events: chance & cost depend on avg property condition
+            // Apply dynamic special event multiplier
             let effectiveChance = template.chance;
+            if (template.special && gameState.specialEventMultiplier) {
+                effectiveChance *= gameState.specialEventMultiplier;
+            }
+
+            // Condition-scaled events: chance & cost depend on avg property condition
             let costMultiplier = 1;
             if (template.conditionScaled) {
                 const playerProps = gameState.properties.filter(p => p.owner === 'player');
@@ -295,8 +318,27 @@ const Events = (() => {
             // Roll for chance
             if (Math.random() > effectiveChance) continue;
 
+            // Prevent same special event from firing twice in a row — swap to a different one
+            let chosen = template;
+            if (template.special && gameState.lastSpecialEventId && template.id === gameState.lastSpecialEventId) {
+                // Find other eligible special events to swap to
+                const alternatives = EVENT_POOL.filter(t =>
+                    t.special &&
+                    t.id !== template.id &&
+                    !gameState.activeEvents.some(e => e.id === t.id) &&
+                    !(t.id === 'nokia_comeback' && gameState.nokiaHasOccurred) &&
+                    (!gameState.specialEventOccurrences || (gameState.specialEventOccurrences[t.id] || 0) < 3) &&
+                    (t.month < 0 || t.month === month) &&
+                    (!t.winterOnly || season === 'winter')
+                );
+                if (alternatives.length > 0) {
+                    chosen = alternatives[Math.floor(Math.random() * alternatives.length)];
+                }
+                // If no alternatives, allow the repeat rather than skipping entirely
+            }
+
             // Create event instance
-            const event = { ...template, remainingDuration: template.duration };
+            const event = { ...chosen, remainingDuration: chosen.duration };
 
             // Assign random district if needed
             if (template.randomDistrict) {

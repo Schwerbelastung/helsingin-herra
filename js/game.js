@@ -17,9 +17,18 @@ const GameState = {
     loanAmount: 0,
     loanInterestRate: 0.05, // 5% annual
     winTarget: 50000000,
+    playerName: 'The Tycoon of Helsinki',
+    playerGender: 'male', // 'male' or 'female'
+    yearlyLog: [], // { type, text, month } entries for newspaper generation
+    usedFillerIndices: [], // track which filler stories have been shown
+    usedRivalFillerIndices: {}, // track which rival filler stories have been shown per rival
     gameOver: false,
     nokiaHasOccurred: false, // Nokia Comeback can only trigger once per campaign
     lastSpecialEventTurn: -3, // turn when last special event triggered (cooldown: 2 months)
+    specialEventMultiplier: 1.0, // dynamic easter egg chance multiplier (halved on proc, doubled if dry year)
+    specialEventThisYear: false, // tracks if any special event fired this calendar year
+    specialEventOccurrences: {}, // tracks how many times each special event has fired (max 3, 1 for Nokia)
+    lastSpecialEventId: null, // ID of the last special event that fired (prevent back-to-back repeats)
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
@@ -29,15 +38,24 @@ let undoSnapshot = null;
 
 const Game = (() => {
 
-    function start(capital, difficulty, mode, rivalCount, target) {
+    function start(capital, difficulty, mode, rivalCount, target, playerName, playerGender) {
         // Set starting money
         GameState.money = capital === 'wealthy' ? 2000000 : 200000;
+        GameState.playerName = playerName || 'The Tycoon of Helsinki';
+        GameState.playerGender = playerGender || 'male';
         GameState.difficulty = difficulty;
         GameState.mode = mode;
         GameState.staff = [];
         GameState.financeHistory = [];
+        GameState.yearlyLog = [];
+        GameState.usedFillerIndices = [];
+        GameState.usedRivalFillerIndices = {};
         GameState.nokiaHasOccurred = false;
         GameState.lastSpecialEventTurn = -3;
+        GameState.specialEventMultiplier = 1.0;
+        GameState.specialEventThisYear = false;
+        GameState.specialEventOccurrences = {};
+        GameState.lastSpecialEventId = null;
 
         // Difficulty settings
         const diffSettings = {
@@ -71,7 +89,17 @@ const Game = (() => {
         Sound.setSeason(season);
         Sound.startMusic();
 
-        UI.setNewsText('Tervetuloa! Start building your real estate empire. Click on properties to buy them.');
+        UI.setNewsText(`Tervetuloa, ${GameState.playerName}! Start building your real estate empire. Click on properties to buy them.`);
+
+        // Show day 1 newspaper
+        const day1Paper = Newspaper.generateDay1Paper(GameState);
+        UI.showNewspaperPrompt(day1Paper);
+    }
+
+    function logYearlyEvent(type, text, extra) {
+        const entry = { type, text, month: GameState.month, year: GameState.year };
+        if (extra) Object.assign(entry, extra);
+        GameState.yearlyLog.push(entry);
     }
 
     function endTurn() {
@@ -94,6 +122,9 @@ const Game = (() => {
         }
         if (allRivalActions.length > 0) {
             Sound.playRivalAction();
+            for (const a of allRivalActions) {
+                logYearlyEvent('rival_buy', `${a.rival} bought ${a.property} in ${a.district || 'Helsinki'}`);
+            }
         }
 
         // 3. Tick existing events
@@ -110,13 +141,24 @@ const Game = (() => {
                 UI.showNokiaAnnouncement();
             }
 
-            // Track special event cooldown
+            // Log event for newspaper
+            logYearlyEvent(event.special ? 'special_event' : 'event', event.name);
+
+            // Track special event cooldown and dynamic probability
             if (event.special) {
                 GameState.lastSpecialEventTurn = GameState.turn;
+                GameState.specialEventMultiplier *= 0.5; // halve chances for rest of year
+                GameState.specialEventThisYear = true;
+                // Track occurrence count (max 3 per event per playthrough)
+                if (!GameState.specialEventOccurrences) GameState.specialEventOccurrences = {};
+                GameState.specialEventOccurrences[event.id] = (GameState.specialEventOccurrences[event.id] || 0) + 1;
+                GameState.lastSpecialEventId = event.id;
             }
 
             // Play event sound
-            if (event.special) {
+            if (event.id === 'swedish_invasion') {
+                Sound.playSwedishAnthem();
+            } else if (event.special) {
                 Sound.playEventSpecial();
             } else if (event.positive) {
                 Sound.playEventPositive();
@@ -153,10 +195,33 @@ const Game = (() => {
         if (GameState.financeHistory.length > 120) GameState.financeHistory.shift();
 
         // 6. Advance time
+        const prevMonth = GameState.month;
         GameState.month = (GameState.month + 1) % 12;
         if (GameState.month === 0) GameState.year++;
         GameState.turn++;
         GameState.actionsRemaining = GameState.actionsPerTurn + Staff.getActionsBonus(GameState);
+
+        // 6b. Newspaper: show prompt in January, auto-dismiss in March
+        if (GameState.month === 0 && GameState.turn > 1) {
+            // January — generate year-in-review for the year that just ended
+            const reviewYear = GameState.year - 1;
+            const paper = Newspaper.generateYearlyPaper(GameState, GameState.yearlyLog, reviewYear);
+            UI.showNewspaperPrompt(paper);
+            // Clear yearly log for new year
+            GameState.yearlyLog = GameState.yearlyLog.filter(e => e.year >= GameState.year);
+            // Adjust special event probability for the new year
+            if (GameState.specialEventThisYear) {
+                // Had an event last year — reset to baseline
+                GameState.specialEventMultiplier = 1.0;
+            } else {
+                // Dry year — double the chances (capped at 4x)
+                GameState.specialEventMultiplier = Math.min(4.0, GameState.specialEventMultiplier * 2);
+            }
+            GameState.specialEventThisYear = false;
+        } else if (GameState.month === 2) {
+            // March — auto-dismiss if still showing
+            UI.hideNewspaperPrompt();
+        }
 
         // 7. Update season visuals and music
         const season = Seasons.getCurrentSeason(GameState.month);
@@ -283,7 +348,7 @@ const Game = (() => {
         } else {
             // Player buys rival's property
             if (GameState.money < offer.price) {
-                UI.setNewsText("You can't afford this property right now!");
+                UI.setNewsText(GameState.playerName + " can't afford this property right now!");
                 document.getElementById('offer-overlay').classList.add('hidden');
                 return;
             }
@@ -307,7 +372,7 @@ const Game = (() => {
         pendingOffer = null;
         document.getElementById('offer-overlay').classList.add('hidden');
         Sound.playClick();
-        UI.setNewsText(`You declined ${name}'s offer.`);
+        UI.setNewsText(`${GameState.playerName} declined ${name}'s offer.`);
     }
 
     // === AUCTION / BIDDING WAR ===
@@ -329,7 +394,7 @@ const Game = (() => {
         const nextBid = a.currentBid + a.increment;
 
         if (GameState.money < nextBid) {
-            UI.setNewsText("You can't afford to raise!");
+            UI.setNewsText(GameState.playerName + " can't afford to raise!");
             return;
         }
 
@@ -437,9 +502,10 @@ const Game = (() => {
             GameState.money -= a.currentBid;
             a.property.owner = 'player';
             Sound.playAuctionWin();
-            UI.showAuctionResult(a, true, `You won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
+            UI.showAuctionResult(a, true, `${GameState.playerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
             UI.setNewsText(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
             UI.addLogAction(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
+            logYearlyEvent('auction', `${GameState.playerName} won a heated bidding war for ${a.property.name}, paying €${UI.formatMoney(a.currentBid)}`, { winnerId: 'player' });
         } else if (a.leader) {
             // A rival wins
             const winner = a.bidders.find(b => b.rival.id === a.leader);
@@ -451,6 +517,7 @@ const Game = (() => {
             Sound.playAuctionLose();
             const winnerName = winner ? winner.rival.shortName : 'Unknown';
             UI.showAuctionResult(a, false, `${winnerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}.`);
+            logYearlyEvent('auction', `${winnerName} outbid the competition for ${a.property.name}, paying €${UI.formatMoney(a.currentBid)}`, { winnerId: winner ? winner.rival.id : null });
             UI.setNewsText(`${winnerName} won the auction for ${a.property.name}.`);
             UI.addLogAction(`${winnerName} won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
         } else {
@@ -506,7 +573,7 @@ const Game = (() => {
         const options = [
             'polar_bears', 'alien_invasion',
             'tonttu_invasion', 'moose_rush_hour', 'nokia_comeback',
-            'northern_lights', 'rubber_duck', 'angry_bird',
+            'northern_lights', 'rubber_duck', 'angry_bird', 'swedish_invasion',
         ];
         // Remove any already active
         const available = options.filter(id => !GameState.activeEvents.some(e => e.id === id));
@@ -525,6 +592,7 @@ const Game = (() => {
             northern_lights: 'Look up... the sky over Helsinki is glowing. A rare aurora borealis illuminates the night.',
             rubber_duck: 'HARBOUR MYSTERY: Something large and yellow has appeared in South Harbour. What could it be?',
             angry_bird: 'EYEWITNESS: Something red, round, and very angry just launched across the Helsinki sky!',
+            swedish_invasion: 'BREAKING: Swedish flags spotted across Helsinki! District signs are being replaced... Du gamla, du fria!',
         };
 
         // Check if seasonal cheat is out of season
@@ -615,6 +683,7 @@ const Game = (() => {
         UI.showPropertyPanel(property);
         UI.setNewsText(`Bought ${property.name} for €${UI.formatMoney(property.price)}!`);
         UI.addLogAction(`Bought ${property.name} for €${UI.formatMoney(property.price)}`);
+        logYearlyEvent('player_buy', `${GameState.playerName} acquired ${property.name} in ${property.districtName || property.district} for €${UI.formatMoney(property.price)}`);
         MapRenderer.render();
     }
 
@@ -638,6 +707,7 @@ const Game = (() => {
         UI.hidePropertyPanel();
         UI.setNewsText(`Sold ${property.name} for €${UI.formatMoney(sellPrice)}.`);
         UI.addLogAction(`Sold ${property.name} for €${UI.formatMoney(sellPrice)}`);
+        logYearlyEvent('player_sell', `${GameState.playerName} sold ${property.name} in ${property.districtName || property.district} for €${UI.formatMoney(sellPrice)}`);
         MapRenderer.render();
     }
 
@@ -699,7 +769,7 @@ const Game = (() => {
 
     function buildSaveData() {
         return {
-            version: '0.12.0',
+            version: '0.15.2',
             savedAt: Date.now(),
             money: GameState.money,
             month: GameState.month,
@@ -753,6 +823,17 @@ const Game = (() => {
             activeEvents: GameState.activeEvents.map(e => ({ ...e })),
             staff: [...GameState.staff],
             financeHistory: GameState.financeHistory.map(h => ({ ...h })),
+            playerName: GameState.playerName,
+            playerGender: GameState.playerGender,
+            yearlyLog: GameState.yearlyLog,
+            usedFillerIndices: GameState.usedFillerIndices,
+            usedRivalFillerIndices: GameState.usedRivalFillerIndices,
+            nokiaHasOccurred: GameState.nokiaHasOccurred,
+            lastSpecialEventTurn: GameState.lastSpecialEventTurn,
+            specialEventMultiplier: GameState.specialEventMultiplier,
+            specialEventThisYear: GameState.specialEventThisYear,
+            specialEventOccurrences: GameState.specialEventOccurrences,
+            lastSpecialEventId: GameState.lastSpecialEventId,
         };
     }
 
@@ -789,6 +870,17 @@ const Game = (() => {
             GameState.rivals = data.rivals;
             GameState.activeEvents = data.activeEvents || [];
             GameState.staff = data.staff || [];
+            GameState.playerName = data.playerName || 'The Tycoon of Helsinki';
+            GameState.playerGender = data.playerGender || 'male';
+            GameState.yearlyLog = data.yearlyLog || [];
+            GameState.usedFillerIndices = data.usedFillerIndices || [];
+            GameState.usedRivalFillerIndices = data.usedRivalFillerIndices || {};
+            GameState.nokiaHasOccurred = data.nokiaHasOccurred || false;
+            GameState.lastSpecialEventTurn = data.lastSpecialEventTurn || -3;
+            GameState.specialEventMultiplier = data.specialEventMultiplier || 1.0;
+            GameState.specialEventThisYear = data.specialEventThisYear || false;
+            GameState.specialEventOccurrences = data.specialEventOccurrences || {};
+            GameState.lastSpecialEventId = data.lastSpecialEventId || null;
             GameState.financeHistory = data.financeHistory || [];
 
             // Update visuals
@@ -893,5 +985,6 @@ const Game = (() => {
         deleteAutoSave,
         getAutoSaveInfo,
         getManualSaveInfo,
+        logYearlyEvent,
     };
 })();

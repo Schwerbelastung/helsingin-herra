@@ -1483,6 +1483,34 @@ const HelsinkiDistricts = (() => {
         },
     ];
 
+    // Swedish names for all districts (Finland is officially bilingual)
+    const SWEDISH_NAMES = {
+        'lauttasaari': 'Drumsö',
+        'jatkasaari': 'Busholmen',
+        'ruoholahti': 'Gräsviken',
+        'kamppi': 'Kampen',
+        'punavuori': 'Rödbergen',
+        'eira': 'Eira',
+        'ullanlinna': 'Ulrikasborg',
+        'kaivopuisto': 'Brunnsparken',
+        'kaartinkaupunki': 'Gardesstaden',
+        'kluuvi': 'Gloet',
+        'kruununhaka': 'Kronohagen',
+        'katajanokka': 'Skatudden',
+        'kallio': 'Berghäll',
+        'hakaniemi': 'Hagnäs',
+        'sornainen': 'Sörnäs',
+        'kalasatama': 'Fiskehamnen',
+        'sompasaari': 'Sompaholmen',
+        'merihaka': 'Havshagen',
+        'hernesaari': 'Ärtholmen',
+        'kaskisaari': 'Granö',
+        'lehtisaari': 'Lövö',
+        'kuusisaari': 'Granholmen',
+        'toolo': 'Tölö',
+        'kulosaari': 'Brändö',
+    };
+
     return {
         districts,
         coastline,
@@ -1502,5 +1530,6 @@ const HelsinkiDistricts = (() => {
         geoToMap,
         MAP_WIDTH,
         MAP_HEIGHT,
+        SWEDISH_NAMES,
     };
 })();

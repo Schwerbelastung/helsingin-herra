@@ -1,5 +1,93 @@
 # Helsingin Herra - Changelog
 
+## v0.15.2 — Quality of Life (2026-04-03)
+
+### Added
+- **"Can Afford & Available" filter** — new toggle in the filter panel highlights only unowned properties within the player's budget, works alongside existing type/price/owner filters
+- **30 new advisor quotes** — general tips (30→60), context quotes doubled per category, action quotes nearly doubled per action type
+- **No back-to-back easter eggs** — if the same special event would fire twice in a row, a different eligible easter egg is chosen instead
+
+### Fixed
+- **Rival starting net worth** — rivals now show their actual starting cash on the scoreboard from turn 1 (was showing €0 until their first turn)
+
+---
+
+## v0.15.1 — Swedish Invasion (2026-04-03)
+
+### Added
+- **SWEDISH INVASION!** easter egg — Sweden symbolically reclaims Helsinki for 3 turns
+  - All 23 district labels switch to their official Swedish names (e.g. Kallio → Berghäll, Kamppi → Kampen)
+  - Swedish flag with gentle wave animation appears at top-center of screen
+  - "HELSINGFORS" label beneath the flag
+  - Swedish national anthem fanfare ("Du gamla, du fria" opening phrase)
+  - Pixel art newspaper illustration with Swedish flag raised over Helsinki
+  - Full newspaper article text for year-in-review coverage
+- **Per-event occurrence cap** — each special event can fire at most 3 times per playthrough (Nokia stays at 1)
+
+---
+
+## v0.15.0 — Tycoon Identity (2026-04-03)
+
+### Added
+- **Gender selector** on start screen — choose male or female portrait
+- **Player portrait** — gendered pixel art portrait appears in newspapers and auction dialog
+  - Male: green suit with tie, brown hair, confident smile
+  - Female: green blazer with emerald blouse, auburn hair, gold necklace
+- **100 filler stories** (doubled from 50) — enough variety for the longest campaigns
+- **Dynamic easter egg probability** — special events self-balance across years:
+  - Each event that fires halves the chance of further events that year
+  - A dry year with no events doubles the chances for the next year (up to 4×)
+  - Ensures a natural ebb and flow of surprises across long campaigns
+- **Distinct music styles** — Minimal and Cinematic modes completely redesigned:
+  - Minimal: rhythmic lo-fi with square wave plucks, bouncy bassline, hi-hat clicks
+  - Cinematic: epic orchestral pads, deep bass pedals, chord swells, timpani hits
+
+### Changed
+- Female portrait expression softened — arched eyebrows, warm smile, eye shine
+
+---
+
+## v0.14.0 — The Polish Update (2026-04-03)
+
+### Added
+- **Music style selector** — choose between Ambient, Minimal, and Cinematic music via dropdown in the HUD
+  - Ambient: the classic seasonal pentatonic generative music
+  - Minimal: sparse, piano-like triangle wave with deliberate silences
+  - Cinematic: rich layered sound with bass drones, chord stacks, and high shimmers
+- **Max upgrade star** — fully upgraded (5/5) properties show a pulsing golden star on the map
+- **Newspaper illustrations** — special event headlines now include pixel art sprites (UFO, tonttu, moose, polar bear, rubber duck, angry bird, northern lights, Nokia 3310)
+- **Rival portraits in newspaper** — stories mentioning a specific tycoon show their pixel art portrait
+- **Rival-specific filler stories** — 15 personality-driven stories (5 per rival: Nalle's wine auctions, Hjallis's parties, Risto's AI keynotes)
+- **Polar bear newspaper coverage** — polar bear sightings are now logged and appear in year-in-review papers
+- **3 additional sailboats** in the northwestern corner of the map
+
+### Changed
+- Year-in-review event summaries now use varied titles, intros, and closing lines instead of fixed text
+- Cleaned up ~300 temporary files left by previous editing sessions
+
+---
+
+## v0.13.0 — Helsingin Sanomat (2026-04-03)
+
+### Added
+- **Helsingin Sanomat newspaper** — a newspaper appears each January with a year-in-review
+  - Cream-parchment overlay styled like a classic broadsheet
+  - Headline story chosen from the year's most dramatic event (special events, auctions, acquisitions)
+  - 2-4 smaller stories covering rival activity, player sales, market events
+  - One handwritten filler story per year — pure Helsinki flavor (saunas, seagulls, salmiakki shortages...)
+  - 10 unique filler stories in rotation
+- **Day 1 newspaper** — introduces the competition and all rival tycoons with personalized profiles
+- **Player name input** — enter your tycoon name on the start screen (default: "The Tycoon of Helsinki")
+  - Name appears in ticker messages, scoreboard, auctions, and newspaper stories
+- **Newspaper prompt bar** — READ or SKIP the paper; auto-dismisses after 2 months if ignored
+
+### Changed
+- "You" replaced with player name throughout ticker messages, auction UI, and scoreboard
+- Monopoly man advisor scaled up 1.25× for better visibility
+- Tonttu invasion now spreads across all landmarks and unowned properties city-wide
+
+---
+
 ## v0.12.0 — Mysteries of Helsinki (2026-04-03)
 
 ### Added

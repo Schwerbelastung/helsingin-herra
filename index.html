@@ -14,6 +14,11 @@
             <div id="hud-left">
                 <span id="game-title">HELSINGIN HERRA</span>
                 <button id="btn-toggle-music" class="sound-btn" title="Toggle Music">&#9835;</button>
+                <select id="music-style-select" class="music-style-select" title="Music Style">
+                    <option value="ambient">Ambient</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="cinematic">Cinematic</option>
+                </select>
                 <button id="btn-toggle-sfx" class="sound-btn" title="Toggle SFX">&#128266;</button>
             </div>
             <div id="hud-center">
@@ -126,6 +131,12 @@
                     <button class="filter-btn" data-owner="forsale">For Sale</button>
                     <button class="filter-btn" data-owner="player">Mine</button>
                     <button class="filter-btn" data-owner="rival">Rival</button>
+                </div>
+            </div>
+            <div class="filter-section">
+                <label>Quick Filter:</label>
+                <div class="filter-group" id="filter-affordable">
+                    <button class="filter-btn" data-affordable="yes">Can Afford &amp; Available</button>
                 </div>
             </div>
         </div>
@@ -344,6 +355,26 @@
             </div>
         </div>
 
+        <!-- Newspaper overlay -->
+        <div id="newspaper-overlay" class="overlay hidden">
+            <div id="newspaper-content">
+                <div id="newspaper-masthead">HELSINGIN SANOMAT</div>
+                <div id="newspaper-date"></div>
+                <div id="newspaper-divider"></div>
+                <div id="newspaper-stories"></div>
+                <div id="newspaper-footer">
+                    <button class="newspaper-btn" id="newspaper-close">CLOSE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Newspaper prompt bar -->
+        <div id="newspaper-prompt" class="hidden">
+            <span id="newspaper-prompt-text">Helsingin Sanomat is available.</span>
+            <button class="newspaper-prompt-btn" id="newspaper-prompt-read">READ</button>
+            <button class="newspaper-prompt-btn" id="newspaper-prompt-skip">SKIP</button>
+        </div>
+
         <!-- Nokia press release overlay -->
         <div id="nokia-overlay" class="overlay hidden">
             <div id="nokia-content">
@@ -382,6 +413,19 @@
                 <h1>HELSINGIN<br>HERRA</h1>
                 <p class="subtitle-finnish">(Lord of Helsinki)</p>
                 <p class="subtitle">Build your real estate empire in the heart of Finland</p>
+
+                <div class="start-section">
+                    <label>Your Name:</label>
+                    <input type="text" id="player-name-input" class="player-name-input" placeholder="The Tycoon of Helsinki" maxlength="30" autocomplete="off">
+                </div>
+
+                <div class="start-section">
+                    <label>Portrait:</label>
+                    <div class="option-group">
+                        <button class="option-btn selected" data-gender="male">Male</button>
+                        <button class="option-btn" data-gender="female">Female</button>
+                    </div>
+                </div>
 
                 <div class="start-section">
                     <label>Starting Capital:</label>
@@ -427,7 +471,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.9.3 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v0.15.2 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
@@ -475,19 +519,20 @@
             </div>
         </div>
 
-    <script src="js/districts.js?v=0120"></script>
-    <script src="js/properties.js?v=0120"></script>
-    <script src="js/economy.js?v=0120"></script>
-    <script src="js/events.js?v=0120"></script>
-    <script src="js/seasons.js?v=0120"></script>
-    <script src="js/rivals.js?v=0120"></script>
-    <script src="js/staff.js?v=0120"></script>
-    <script src="js/sound.js?v=0120"></script>
-    <script src="js/achievements.js?v=0120"></script>
-    <script src="js/changelog.js?v=0120"></script>
-    <script src="js/ui.js?v=0120"></script>
-    <script src="js/game.js?v=0120"></script>
-    <script src="js/map.js?v=0120"></script>
-    <script src="js/main.js?v=0120"></script>
+    <script src="js/districts.js?v=0152"></script>
+    <script src="js/properties.js?v=0152"></script>
+    <script src="js/economy.js?v=0152"></script>
+    <script src="js/events.js?v=0152"></script>
+    <script src="js/seasons.js?v=0152"></script>
+    <script src="js/rivals.js?v=0152"></script>
+    <script src="js/staff.js?v=0152"></script>
+    <script src="js/sound.js?v=0152"></script>
+    <script src="js/achievements.js?v=0152"></script>
+    <script src="js/newspaper.js?v=0152"></script>
+    <script src="js/changelog.js?v=0152"></script>
+    <script src="js/ui.js?v=0152"></script>
+    <script src="js/game.js?v=0152"></script>
+    <script src="js/map.js?v=0152"></script>
+    <script src="js/main.js?v=0152"></script>
 </body>
 </html>

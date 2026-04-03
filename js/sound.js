@@ -10,6 +10,7 @@ const Sound = (() => {
     let sfxEnabled = true;
     let musicInterval = null;
     let currentSeason = 'winter';
+    let musicStyle = 'ambient'; // 'ambient', 'minimal', 'cinematic'
 
     // --- Seasonal pentatonic scales (frequencies in Hz) ---
     // Winter: D minor pentatonic, low register — contemplative, Nordic
@@ -124,6 +125,16 @@ const Sound = (() => {
         ensureAudio();
         if (musicInterval) return;
 
+        if (musicStyle === 'minimal') {
+            startMinimalMusic();
+        } else if (musicStyle === 'cinematic') {
+            startCinematicMusic();
+        } else {
+            startAmbientMusic();
+        }
+    }
+
+    function startAmbientMusic() {
         let noteIndex = 0;
         function playNextNote() {
             if (!musicEnabled) return;
@@ -154,9 +165,143 @@ const Sound = (() => {
             noteIndex++;
         }
 
-        // Start immediately
         playNextNote();
         musicInterval = setInterval(playNextNote, SEASON_SCALES[currentSeason]?.tempo || 2500);
+    }
+
+    function startMinimalMusic() {
+        // Rhythmic lo-fi: square wave plucks, steady beat, bouncy bassline
+        let noteIndex = 0;
+        let beat = 0;
+        function playNextNote() {
+            if (!musicEnabled) return;
+
+            const scale = SEASON_SCALES[currentSeason] || SEASON_SCALES.winter;
+            const notes = scale.notes;
+
+            // Steady rhythmic pattern: kick on 1&3, pluck on every beat
+            const note = notes[noteIndex % notes.length];
+
+            // Main pluck — crisp square wave, short decay
+            playTone(note, 0.3, 'square', 0.07, musicGain);
+
+            // Bouncy sub-bass on beats 1 and 3
+            if (beat % 2 === 0) {
+                playTone(notes[0] * 0.5, 0.5, 'sine', 0.12, musicGain);
+            }
+
+            // Off-beat hi-hat click (noise burst)
+            if (beat % 2 === 1) {
+                playNoise(0.05, 0.06);
+            }
+
+            // Every 4th beat, add octave harmony
+            if (beat % 4 === 0) {
+                setTimeout(() => {
+                    playTone(note * 2, 0.2, 'square', 0.04, musicGain);
+                }, 150);
+            }
+
+            // Occasional slides between notes
+            if (Math.random() < 0.2) {
+                const nextNote = notes[(noteIndex + 1) % notes.length];
+                ensureAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(note, now);
+                osc.frequency.exponentialRampToValueAtTime(nextNote, now + 0.15);
+                g.gain.setValueAtTime(0.04, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                osc.connect(g);
+                g.connect(musicGain);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            noteIndex++;
+            beat++;
+        }
+
+        playNextNote();
+        // Faster tempo — rhythmic feel
+        const tempo = Math.floor((SEASON_SCALES[currentSeason]?.tempo || 2500) * 0.55);
+        musicInterval = setInterval(playNextNote, tempo);
+    }
+
+    function startCinematicMusic() {
+        // Epic orchestral feel: layered pads, deep bass, swelling chords, timpani hits
+        let noteIndex = 0;
+        let measure = 0;
+        function playNextNote() {
+            if (!musicEnabled) return;
+
+            const scale = SEASON_SCALES[currentSeason] || SEASON_SCALES.winter;
+            const notes = scale.notes;
+            const note = notes[noteIndex % notes.length];
+
+            // Warm pad — two detuned sines with long sustain
+            playTone(note * 0.5, 2.5, 'sine', 0.12, musicGain);
+            playTone(note * 0.501, 2.5, 'sine', 0.08, musicGain);
+
+            // Deep bass pedal — sustained root note
+            if (measure % 2 === 0) {
+                playTone(notes[0] * 0.125, 4.0, 'sine', 0.10, musicGain);
+                // Add fifth for power
+                playTone(notes[0] * 0.1875, 4.0, 'sine', 0.05, musicGain);
+            }
+
+            // Full chord on every other note — root + third + fifth
+            if (noteIndex % 2 === 0) {
+                const third = notes[(noteIndex + 2) % notes.length];
+                const fifth = notes[(noteIndex + 4) % notes.length];
+                setTimeout(() => {
+                    playTone(third * 0.5, 2.0, 'triangle', 0.08, musicGain);
+                    playTone(fifth * 0.5, 2.0, 'triangle', 0.06, musicGain);
+                }, 200);
+            }
+
+            // Rising string-like melody on top (higher octave, sawtooth for richness)
+            if (Math.random() < 0.4) {
+                setTimeout(() => {
+                    playTone(note * 2, 1.5, 'sawtooth', 0.03, musicGain);
+                }, 500);
+            }
+
+            // Timpani-like hits on strong beats
+            if (measure % 4 === 0) {
+                ensureAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(notes[0] * 0.25, now);
+                osc.frequency.exponentialRampToValueAtTime(notes[0] * 0.1, now + 0.5);
+                g.gain.setValueAtTime(0.15, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                osc.connect(g);
+                g.connect(musicGain);
+                osc.start(now);
+                osc.stop(now + 0.8);
+                // Impact noise
+                playNoise(0.08, 0.05);
+            }
+
+            // High shimmer / bell tones
+            if (Math.random() < 0.15) {
+                playTone(note * 4, 0.8, 'sine', 0.04, musicGain);
+                playTone(note * 6, 0.5, 'sine', 0.02, musicGain);
+            }
+
+            noteIndex++;
+            measure++;
+        }
+
+        playNextNote();
+        // Slower, grander tempo
+        const tempo = Math.floor((SEASON_SCALES[currentSeason]?.tempo || 2500) * 1.2);
+        musicInterval = setInterval(playNextNote, tempo);
     }
 
     function stopMusic() {
@@ -174,6 +319,18 @@ const Sound = (() => {
             stopMusic();
             startMusic();
         }
+    }
+
+    function setMusicStyle(style) {
+        musicStyle = style;
+        if (musicInterval) {
+            stopMusic();
+            startMusic();
+        }
+    }
+
+    function getMusicStyle() {
+        return musicStyle;
     }
 
     // === UI SOUNDS ===
@@ -364,6 +521,48 @@ const Sound = (() => {
             squawk.start(t);
             squawk.stop(t + 0.15);
         }, 800);
+    }
+
+    function playSwedishAnthem() {
+        // "Du gamla, du fria" — Swedish national anthem opening phrase
+        // Melody in Bb major: Bb-Bb-D-F-F-Eb-D-C-Bb (simplified recognizable opening)
+        ensureAudio();
+        const melody = [
+            // "Du gam-la, du fri-a, du fjäll-hö-ga Nord"
+            { f: 466, d: 0.4 },  // Bb - "Du"
+            { f: 466, d: 0.3 },  // Bb - "gam-"
+            { f: 587, d: 0.5 },  // D  - "la,"
+            { f: 698, d: 0.4 },  // F  - "du"
+            { f: 698, d: 0.3 },  // F  - "fri-"
+            { f: 622, d: 0.4 },  // Eb - "a,"
+            { f: 587, d: 0.4 },  // D  - "du"
+            { f: 523, d: 0.3 },  // C  - "fjäll-"
+            { f: 466, d: 0.6 },  // Bb - "hö-"
+            { f: 440, d: 0.3 },  // A  - "ga"
+            { f: 466, d: 0.8 },  // Bb - "Nord"
+        ];
+
+        let time = 0;
+        for (const note of melody) {
+            setTimeout(() => {
+                playTone(note.f, note.d + 0.1, 'sawtooth', 0.07, sfxGain);
+                // Harmony: third below for richness
+                playTone(note.f * 0.8, note.d + 0.1, 'triangle', 0.04, sfxGain);
+            }, time * 1000);
+            time += note.d;
+        }
+
+        // Bass foundation
+        playTone(233, 2.0, 'sine', 0.06, sfxGain); // Bb bass
+        setTimeout(() => playTone(175, 2.0, 'sine', 0.06, sfxGain), 2000); // F bass
+
+        // Final chord flourish
+        setTimeout(() => {
+            playTone(466, 1.5, 'sawtooth', 0.05, sfxGain); // Bb
+            playTone(587, 1.5, 'sawtooth', 0.05, sfxGain); // D
+            playTone(698, 1.5, 'sawtooth', 0.05, sfxGain); // F
+            playTone(932, 1.0, 'sine', 0.03, sfxGain);     // Bb octave shimmer
+        }, time * 1000);
     }
 
     function playRivalAction() {
@@ -577,6 +776,7 @@ const Sound = (() => {
         playEventSpecial,
         playPolarBears,
         playAngryBird,
+        playSwedishAnthem,
         playRivalAction,
         playOffer,
         playAuctionStart,
@@ -591,6 +791,8 @@ const Sound = (() => {
         playBankrupt,
         toggleMusic,
         toggleSfx,
+        setMusicStyle,
+        getMusicStyle,
         isMusicEnabled,
         isSfxEnabled,
     };

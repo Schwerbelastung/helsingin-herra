@@ -12,6 +12,7 @@ const UI = (() => {
         type: 'all',    // 'all' or a specific type string
         price: 'all',   // 'all' or a price range key
         owner: 'all',   // 'all', 'forsale', 'player', 'rival'
+        affordable: false, // true = show only unowned properties the player can afford
     };
 
     // Cheat state
@@ -25,7 +26,7 @@ const UI = (() => {
         Sound.playStartGame();
         const s = pendingStart;
         pendingStart = null;
-        Game.start(s.capital, s.difficulty, s.mode, s.rivalCount, s.target);
+        Game.start(s.capital, s.difficulty, s.mode, s.rivalCount, s.target, s.playerName, s.playerGender);
     }
 
     function init() {
@@ -72,7 +73,11 @@ const UI = (() => {
             Sound.playClick();
 
             // Stash selections for after the prompt
+            const nameInput = document.getElementById('player-name-input');
+            const playerName = nameInput.value.trim() || nameInput.placeholder;
             pendingStart = {
+                playerName,
+                playerGender: document.querySelector('.option-btn.selected[data-gender]')?.dataset.gender || 'male',
                 capital: document.querySelector('.option-btn.selected[data-capital]')?.dataset.capital || 'small',
                 difficulty: document.querySelector('.option-btn.selected[data-difficulty]')?.dataset.difficulty || 'normal',
                 rivalCount: parseInt(document.querySelector('.option-btn.selected[data-rivals]')?.dataset.rivals ?? '3'),
@@ -452,6 +457,14 @@ Good luck — become the Helsingin Herra!`,
                 if (!document.getElementById('offer-overlay').classList.contains('hidden')) {
                     Game.declineOffer();
                 }
+                // Close newspaper on escape
+                if (!document.getElementById('newspaper-overlay').classList.contains('hidden')) {
+                    closeNewspaper();
+                }
+                // Dismiss newspaper prompt on escape
+                if (!document.getElementById('newspaper-prompt').classList.contains('hidden')) {
+                    hideNewspaperPrompt();
+                }
                 // Close Nokia press release on escape
                 if (!document.getElementById('nokia-overlay').classList.contains('hidden')) {
                     closeNokiaDialog();
@@ -525,7 +538,7 @@ Good luck — become the Helsingin Herra!`,
         let html = '';
         html += `<div class="sb-entry sb-player">`;
         html += `<span class="sb-dot" style="background:#ffcc00"></span>`;
-        html += `<span class="sb-name">You</span>`;
+        html += `<span class="sb-name">${GameState.playerName}</span>`;
         html += `<span class="sb-worth">€${formatMoney(playerNetWorth)}</span>`;
         html += `<span class="sb-props">${playerProps}p</span>`;
         html += `</div>`;
@@ -556,7 +569,7 @@ Good luck — become the Helsingin Herra!`,
         document.getElementById('panel-title').textContent = property.name;
         document.getElementById('panel-type').innerHTML = `<span>Type:</span><span>${property.type}</span>`;
         document.getElementById('panel-district').innerHTML = `<span>District:</span><span>${property.districtName}</span>`;
-        document.getElementById('panel-owner').innerHTML = `<span>Owner:</span><span>${property.owner ? (property.owner === 'player' ? 'You' : property.owner) : 'For Sale'}</span>`;
+        document.getElementById('panel-owner').innerHTML = `<span>Owner:</span><span>${property.owner ? (property.owner === 'player' ? GameState.playerName : property.owner) : 'For Sale'}</span>`;
         document.getElementById('panel-price').innerHTML = `<span>Price:</span><span>€${formatMoney(property.price)}</span>`;
         document.getElementById('panel-revenue').innerHTML = `<span>Revenue/mo:</span><span>€${formatMoney(property.revenue)}</span>`;
         document.getElementById('panel-condition').innerHTML = `<span>Condition:</span><span>${Math.floor(property.condition)}%</span>`;
@@ -1612,6 +1625,9 @@ Good luck — become the Helsingin Herra!`,
             btn.classList.toggle('muted', !on);
             btn.title = on ? 'Toggle Music (ON)' : 'Toggle Music (OFF)';
         });
+        document.getElementById('music-style-select').addEventListener('change', (e) => {
+            Sound.setMusicStyle(e.target.value);
+        });
         document.getElementById('btn-toggle-sfx').addEventListener('click', () => {
             const on = Sound.toggleSfx();
             const btn = document.getElementById('btn-toggle-sfx');
@@ -1658,6 +1674,16 @@ Good luck — become the Helsingin Herra!`,
                 MapRenderer.render();
             });
         });
+
+        // Affordable toggle button
+        document.querySelectorAll('#filter-affordable .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                filters.affordable = !filters.affordable;
+                btn.classList.toggle('selected', filters.affordable);
+                updateFilterButtonState();
+                MapRenderer.render();
+            });
+        });
     }
 
     function toggleFilterPanel() {
@@ -1673,7 +1699,7 @@ Good luck — become the Helsingin Herra!`,
 
     function updateFilterButtonState() {
         const btn = document.getElementById('btn-filter');
-        const hasActiveFilter = filters.type !== 'all' || filters.price !== 'all' || filters.owner !== 'all';
+        const hasActiveFilter = filters.type !== 'all' || filters.price !== 'all' || filters.owner !== 'all' || filters.affordable;
         if (hasActiveFilter) {
             btn.classList.add('filter-active');
         } else if (document.getElementById('filter-panel').classList.contains('hidden')) {
@@ -1682,6 +1708,12 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function propertyMatchesFilter(property) {
+        // Affordable filter: must be unowned AND within player's cash
+        if (filters.affordable) {
+            if (property.owner !== null) return false;
+            if (typeof GameState !== 'undefined' && property.price > GameState.money) return false;
+        }
+
         // Type filter
         if (filters.type !== 'all' && property.type !== filters.type) return false;
 
@@ -1710,7 +1742,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function isFilterActive() {
-        return filters.type !== 'all' || filters.price !== 'all' || filters.owner !== 'all';
+        return filters.type !== 'all' || filters.price !== 'all' || filters.owner !== 'all' || filters.affordable;
     }
 
     function formatMoney(amount) {
@@ -1818,6 +1850,85 @@ Good luck — become the Helsingin Herra!`,
 
         overlay.classList.remove('hidden');
         Sound.playOffer();
+    }
+
+    // === NEWSPAPER ===
+
+    let pendingNewspaper = null; // stored paper data while prompt is showing
+
+    function showNewspaperPrompt(paper) {
+        pendingNewspaper = paper;
+        const prompt = document.getElementById('newspaper-prompt');
+        const textEl = document.getElementById('newspaper-prompt-text');
+        textEl.textContent = `Helsingin Sanomat — ${paper.date}`;
+        prompt.classList.remove('hidden');
+    }
+
+    function hideNewspaperPrompt() {
+        document.getElementById('newspaper-prompt').classList.add('hidden');
+        pendingNewspaper = null;
+    }
+
+    function showNewspaper(paper) {
+        if (!paper) paper = pendingNewspaper;
+        if (!paper) return;
+        hideNewspaperPrompt();
+
+        const overlay = document.getElementById('newspaper-overlay');
+        const dateEl = document.getElementById('newspaper-date');
+        const storiesEl = document.getElementById('newspaper-stories');
+
+        dateEl.textContent = paper.date;
+
+        let html = '';
+        for (const story of paper.stories) {
+            const isHeadline = story.headline;
+            const hasPortrait = !!story.rival;
+            const hasIllustration = !!story.illustration;
+            const hasVisual = hasPortrait || hasIllustration;
+
+            html += `<div class="${isHeadline ? 'newspaper-headline' : 'newspaper-story'}${hasVisual ? ' newspaper-story-with-visual' : ''}">`;
+            if (hasPortrait) {
+                html += `<canvas class="newspaper-portrait" data-rival="${story.rival}" width="96" height="96"></canvas>`;
+            }
+            if (hasIllustration) {
+                const ilSize = isHeadline ? 120 : 96;
+                html += `<canvas class="newspaper-illustration${isHeadline ? ' newspaper-illustration-headline' : ''}" data-illustration="${story.illustration}" width="${ilSize}" height="${ilSize}"></canvas>`;
+            }
+            html += `<div class="newspaper-story-content">`;
+            html += `<div class="newspaper-story-title">${story.title || story.headline}</div>`;
+            html += `<div class="newspaper-story-text">${story.text}</div>`;
+            html += `</div>`;
+            html += `</div>`;
+        }
+        storiesEl.innerHTML = html;
+
+        // Render portraits into canvases
+        storiesEl.querySelectorAll('.newspaper-portrait').forEach(canvas => {
+            const rivalId = canvas.dataset.rival;
+            if (rivalId === 'player') {
+                const gender = (typeof GameState !== 'undefined' && GameState.playerGender) || 'male';
+                MapRenderer.drawPlayerPortrait(canvas, gender);
+            } else if (rivalId && MapRenderer.drawRivalPortrait) {
+                MapRenderer.drawRivalPortrait(canvas, rivalId);
+            }
+        });
+
+        // Render illustrations into canvases
+        storiesEl.querySelectorAll('.newspaper-illustration').forEach(canvas => {
+            const illId = canvas.dataset.illustration;
+            if (illId && MapRenderer.drawNewsIllustration) {
+                MapRenderer.drawNewsIllustration(canvas, illId);
+            }
+        });
+
+        overlay.classList.remove('hidden');
+        // Scroll to top
+        document.getElementById('newspaper-content').scrollTop = 0;
+    }
+
+    function closeNewspaper() {
+        document.getElementById('newspaper-overlay').classList.add('hidden');
     }
 
     // === NOKIA PRESS RELEASE ===
@@ -2015,7 +2126,7 @@ Good luck — become the Helsingin Herra!`,
         playerCard.id = 'auction-player-card';
         playerCard.innerHTML = `
             <canvas width="56" height="56" id="auction-player-portrait"></canvas>
-            <div class="auction-participant-name" style="color:#44ff44">You</div>
+            <div class="auction-participant-name" style="color:#44ff44">${GameState.playerName}</div>
             <div class="auction-participant-status">IN</div>
         `;
         participantsEl.appendChild(playerCard);
@@ -2051,60 +2162,8 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function drawPlayerPortrait(canvasEl) {
-        const c = canvasEl.getContext('2d');
-        const w = canvasEl.width;
-        const h = canvasEl.height;
-        c.clearRect(0, 0, w, h);
-        c.imageSmoothingEnabled = false;
-        const s = w / 48;
-        c.save();
-        c.scale(s, s);
-        // Background
-        c.fillStyle = '#1a1a2e';
-        c.fillRect(0, 0, 48, 48);
-        // Simple player silhouette — green tinted
-        // Suit
-        c.fillStyle = '#224422';
-        c.fillRect(10, 33, 28, 15);
-        c.fillStyle = '#2a5a2a';
-        c.fillRect(14, 33, 4, 8);
-        c.fillRect(30, 33, 4, 8);
-        // Shirt
-        c.fillStyle = '#aaccaa';
-        c.fillRect(18, 31, 12, 8);
-        // Neck
-        c.fillStyle = '#d0a888';
-        c.fillRect(20, 28, 8, 5);
-        // Face
-        c.fillStyle = '#d0a888';
-        c.fillRect(15, 10, 18, 20);
-        c.fillRect(17, 28, 14, 2);
-        // Hair
-        c.fillStyle = '#554433';
-        c.fillRect(15, 6, 18, 6);
-        c.fillRect(14, 8, 2, 6);
-        c.fillRect(33, 8, 2, 5);
-        // Eyes
-        c.fillStyle = '#ffffff';
-        c.fillRect(18, 17, 4, 3);
-        c.fillRect(26, 17, 4, 3);
-        c.fillStyle = '#336633';
-        c.fillRect(20, 17, 2, 3);
-        c.fillRect(28, 17, 2, 3);
-        c.fillStyle = '#1a1a22';
-        c.fillRect(20, 18, 1, 2);
-        c.fillRect(28, 18, 1, 2);
-        // Nose
-        c.fillStyle = '#c09878';
-        c.fillRect(23, 20, 3, 4);
-        // Smile
-        c.fillStyle = '#b06050';
-        c.fillRect(21, 25, 6, 1);
-        // € symbol on suit pocket
-        c.fillStyle = '#44ff44';
-        c.font = '6px monospace';
-        c.fillText('€', 12, 40);
-        c.restore();
+        const gender = (typeof GameState !== 'undefined' && GameState.playerGender) || 'male';
+        MapRenderer.drawPlayerPortrait(canvasEl, gender);
     }
 
     function updateAuctionRound(auction, rivalResults) {
@@ -2117,7 +2176,7 @@ Good luck — become the Helsingin Herra!`,
         bidAmount.textContent = `€${formatMoney(auction.currentBid)}`;
 
         if (auction.leader === 'player') {
-            bidLeader.textContent = 'You are leading!';
+            bidLeader.textContent = GameState.playerName + ' is leading!';
             bidLeader.style.color = '#44ff44';
         } else {
             const leader = auction.bidders.find(b => b.rival.id === auction.leader);
@@ -2203,6 +2262,19 @@ Good luck — become the Helsingin Herra!`,
             Sound.playClick();
             Game.closeAuction();
         });
+        // Newspaper
+        document.getElementById('newspaper-close').addEventListener('click', () => {
+            Sound.playClick();
+            closeNewspaper();
+        });
+        document.getElementById('newspaper-prompt-read').addEventListener('click', () => {
+            Sound.playClick();
+            showNewspaper();
+        });
+        document.getElementById('newspaper-prompt-skip').addEventListener('click', () => {
+            Sound.playClick();
+            hideNewspaperPrompt();
+        });
         // Nokia press release
         document.getElementById('nokia-close').addEventListener('click', () => {
             Sound.playClick();
@@ -2223,6 +2295,10 @@ Good luck — become the Helsingin Herra!`,
         showBankPanel,
         showStatsPanel,
         showOfferDialog,
+        showNewspaperPrompt,
+        hideNewspaperPrompt,
+        showNewspaper,
+        closeNewspaper,
         showNokiaAnnouncement,
         closeNokiaDialog,
         showAuctionDialog,

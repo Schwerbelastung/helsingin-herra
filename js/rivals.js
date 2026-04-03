@@ -49,13 +49,16 @@ const Rivals = (() => {
         const mod = difficultyMods[difficulty] || difficultyMods.normal;
         const numRivals = Math.max(0, Math.min(RIVAL_PROFILES.length, count ?? RIVAL_PROFILES.length));
 
-        return RIVAL_PROFILES.slice(0, numRivals).map(profile => ({
-            ...profile,
-            money: Math.floor(playerStartingMoney * profile.startingCapitalMultiplier * mod.capitalMod),
-            aggressiveness: Math.min(1, profile.aggressiveness * mod.aggressivenessMod),
-            propertiesOwned: 0,
-            netWorth: 0,
-        }));
+        return RIVAL_PROFILES.slice(0, numRivals).map(profile => {
+            const money = Math.floor(playerStartingMoney * profile.startingCapitalMultiplier * mod.capitalMod);
+            return {
+                ...profile,
+                money,
+                aggressiveness: Math.min(1, profile.aggressiveness * mod.aggressivenessMod),
+                propertiesOwned: 0,
+                netWorth: money, // Start with net worth = cash so scoreboard shows correctly from turn 1
+            };
+        });
     }
 
     function processRivalTurn(rival, gameState) {

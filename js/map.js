@@ -1394,6 +1394,20 @@ const MapRenderer = (() => {
         ctx.stroke();
     }
 
+    function drawStar(cx, cy, outerR, innerR, points) {
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+            const r = i % 2 === 0 ? outerR : innerR;
+            const angle = (i * Math.PI / points) - Math.PI / 2;
+            const x = cx + Math.cos(angle) * r;
+            const y = cy + Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+    }
+
     function drawWaveCluster(x, y) {
         // Small wave marks — two or three curved lines
         ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -1459,6 +1473,10 @@ const MapRenderer = (() => {
             // Western waters
             { pos: HelsinkiDistricts.geoToMap([[60.168, 24.862]])[0], angle: 0.25 },
             { pos: HelsinkiDistricts.geoToMap([[60.178, 24.866]])[0], angle: -0.2 },
+            // Northwestern corner
+            { pos: HelsinkiDistricts.geoToMap([[60.196, 24.868]])[0], angle: 0.15 },
+            { pos: HelsinkiDistricts.geoToMap([[60.193, 24.863]])[0], angle: -0.25 },
+            { pos: HelsinkiDistricts.geoToMap([[60.190, 24.870]])[0], angle: 0.3 },
             // Trio south of Lauttasaari
             { pos: HelsinkiDistricts.geoToMap([[60.148, 24.878]])[0], angle: 0.1 },
             { pos: HelsinkiDistricts.geoToMap([[60.147, 24.882]])[0], angle: 0.25 },
@@ -2354,6 +2372,10 @@ const MapRenderer = (() => {
         polarBearsActive = Math.random() < 0.035;
         if (polarBearsActive) {
             Sound.playPolarBears();
+            // Log for newspaper
+            if (typeof Game !== 'undefined' && Game.logYearlyEvent) {
+                Game.logYearlyEvent('special_event', 'POLAR BEARS IN HELSINKI!');
+            }
         }
     }
     function forcePolarBears() {
@@ -2667,6 +2689,19 @@ const MapRenderer = (() => {
                 ctx.fillRect(sx - 4, sy - h - 1, 8, 2);
             }
 
+            // Shining star for max-upgraded properties (5/5)
+            if (prop.upgradeLevel >= 5 && prop.owner === 'player' && matches) {
+                const starX = sx + 5;
+                const starY = sy - (prop.type === 'hotel' ? 18 : prop.type === 'office' ? 16 : 14);
+                const pulse = 0.6 + Math.sin(animTime * 0.004 + prop.x * 0.1) * 0.4;
+                ctx.globalAlpha = pulse;
+                ctx.fillStyle = '#ffdd00';
+                drawStar(starX, starY, 3, 1.2, 4);
+                ctx.fillStyle = '#ffffff';
+                drawStar(starX, starY, 1.5, 0.6, 4);
+                ctx.globalAlpha = matches ? 1 : 0.15;
+            }
+
             // Hover highlight
             if (matches && isHovered) {
                 ctx.strokeStyle = '#ffcc00';
@@ -2835,7 +2870,65 @@ const MapRenderer = (() => {
         for (const evt of GameState.activeEvents) {
             if (evt.id === 'northern_lights') drawNorthernLights();
             if (evt.id === 'angry_bird') drawAngryBirdFlight();
+            if (evt.id === 'swedish_invasion') drawSwedishFlag();
         }
+    }
+
+    function drawSwedishFlag() {
+        if (!canvas) return;
+        // Draw Swedish flag at top-center of screen
+        const flagW = 80, flagH = 50;
+        const fx = (canvas.width - flagW) / 2;
+        const fy = 8;
+
+        // Gentle wave animation
+        const wave = Math.sin(animTime * 2) * 2;
+
+        ctx.save();
+
+        // Flag shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(fx + 2, fy + 2 + wave, flagW, flagH);
+
+        // Blue background
+        ctx.fillStyle = '#006AA7';
+        ctx.fillRect(fx, fy + wave, flagW, flagH);
+
+        // Yellow cross (Scandinavian cross — offset left)
+        ctx.fillStyle = '#FECC00';
+        // Horizontal bar
+        ctx.fillRect(fx, fy + wave + flagH * 0.4, flagW, flagH * 0.2);
+        // Vertical bar (offset to left third)
+        ctx.fillRect(fx + flagW * 0.3, fy + wave, flagW * 0.15, flagH);
+
+        // Flag border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(fx, fy + wave, flagW, flagH);
+
+        // Flagpole
+        ctx.fillStyle = '#666';
+        ctx.fillRect(fx - 3, fy - 4, 4, flagH + 16);
+        // Pole finial
+        ctx.fillStyle = '#FECC00';
+        ctx.beginPath();
+        ctx.arc(fx - 1, fy - 6, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // "SVENSKA HELSINFORS" text below flag
+        ctx.font = '5px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 2;
+        ctx.lineJoin = 'round';
+        const textX = fx + flagW / 2;
+        const textY = fy + flagH + wave + 4;
+        ctx.strokeText('HELSINGFORS', textX, textY);
+        ctx.fillStyle = '#FECC00';
+        ctx.fillText('HELSINGFORS', textX, textY);
+
+        ctx.restore();
     }
 
     // --- ANGRY BIRD ---
@@ -3001,23 +3094,34 @@ const MapRenderer = (() => {
         // Track when invasion started for bounce effect
         if (!tonttuStartTime) tonttuStartTime = animTime;
         const elapsed = (animTime - tonttuStartTime) * 0.001; // seconds since start
-
-        // Place tontut near player/rival properties
-        const props = GameState.properties.filter(p => p.owner);
         const t = animTime * 0.001;
-        for (let i = 0; i < props.length && i < 20; i++) {
-            const p = props[i];
-            // Sit on top of the building sprite
+        let idx = 0;
+
+        // Place tontut on owned properties
+        const ownedProps = GameState.properties.filter(p => p.owner);
+        for (let i = 0; i < ownedProps.length && i < 20; i++) {
+            const p = ownedProps[i];
             const tx = p.x + (i % 3 - 1) * 3;
             const ty = p.y - 12 - (i % 2) * 2;
-            drawTonttu(tx, ty, t + i * 0.7, elapsed, i);
+            drawTonttu(tx, ty, t + i * 0.7, elapsed, idx++);
         }
-        // A few on landmarks too
-        for (let i = 0; i < HelsinkiDistricts.landmarks.length && i < 8; i++) {
+
+        // Spread across ALL landmarks (not just first 8)
+        for (let i = 0; i < HelsinkiDistricts.landmarks.length; i++) {
             const lm = HelsinkiDistricts.landmarks[i];
             const tx = lm.pos[0] + 3;
             const ty = lm.pos[1] - 10;
-            drawTonttu(tx, ty, t + i * 1.1 + 5, elapsed, i + 20);
+            drawTonttu(tx, ty, t + i * 1.1 + 5, elapsed, idx++);
+        }
+
+        // Also scatter some on random unowned properties across the city
+        const unowned = GameState.properties.filter(p => !p.owner);
+        const step = Math.max(1, Math.floor(unowned.length / 15)); // pick ~15 spread across the list
+        for (let i = 0; i < unowned.length; i += step) {
+            const p = unowned[i];
+            const tx = p.x + ((i / step) % 3 - 1) * 3;
+            const ty = p.y - 12;
+            drawTonttu(tx, ty, t + i * 0.5 + 10, elapsed, idx++);
         }
     }
 
@@ -3275,16 +3379,26 @@ const MapRenderer = (() => {
         ctx.restore();
     }
 
+    function isSwedishInvasionActive() {
+        return typeof GameState !== 'undefined' &&
+            GameState.activeEvents &&
+            GameState.activeEvents.some(e => e.id === 'swedish_invasion');
+    }
+
     function drawDistrictLabels(palette) {
         ctx.font = '7px "Press Start 2P"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
+        const useSwedish = isSwedishInvasionActive();
+
         for (const district of HelsinkiDistricts.districts) {
             const [cx, cy] = district.center;
             const isHovered = district === hoveredDistrict;
 
-            const label = district.name;
+            const label = useSwedish
+                ? (HelsinkiDistricts.SWEDISH_NAMES[district.id] || district.name)
+                : district.name;
 
             // Text outline for readability (no background box)
             ctx.strokeStyle = 'rgba(10, 10, 26, 0.9)';
@@ -3412,6 +3526,38 @@ const MapRenderer = (() => {
         "Did you know? Löyly means 'steam.' And also 'money printer.'",
         "Jätkäsaari used to be a harbour. Now it's a gold mine.",
         "Töölö is lovely this time of year. Any time of year, really.",
+        // --- New tips ---
+        "Condition drops faster than you think. Stay ahead of it.",
+        "The Scout staff member can spot deals you'd never find alone.",
+        "Landmarks can't be bought, but the properties near them? Fair game.",
+        "Spring is a great time to buy. Everyone else is waiting for summer.",
+        "Don't ignore cheap properties. Upgrade them and watch them bloom.",
+        "A fully upgraded property is a beautiful thing. Five stars!",
+        "The newspaper comes every January. Read it for market gossip.",
+        "Auctions are chaotic. That's where the real deals happen.",
+        "If a rival offers to sell, think carefully. They might know something.",
+        "Properties in bad condition earn less. Much less.",
+        "Keep an eye on the event ticker. Helsinki is full of surprises.",
+        "The interest rate adds up fast. Pay loans early if you can.",
+        "Seasonal events can make or break your quarterly revenue.",
+        "Eira and Kaivopuisto have the priciest land. Worth every euro.",
+        "Kallio is cheap now. Give it time.",
+        // --- More funny ---
+        "I've seen things you wouldn't believe. Moose on Mannerheimintie.",
+        "My top hat is purely decorative. Unlike your portfolio.",
+        "Risto is probably analyzing you right now. With an algorithm.",
+        "If you hear a Swedish anthem, don't panic. It'll pass.",
+        "I tried ice swimming once. I do not recommend it for the faint of heart.",
+        "The tram takes forever but the real estate along the route? Chef's kiss.",
+        "Every property has a story. Most of them involve leaky pipes.",
+        "I've been advising tycoons since... well, since you started.",
+        "Suomenlinna is nice to visit. Nicer to own property near.",
+        "Remember: Helsinki always wins. The question is whether you win too.",
+        "Some say I talk too much. Those people don't own enough property.",
+        "Did I mention the 'Can Afford' filter? Very useful for bargain hunters.",
+        "A wise man once said: 'Buy property.' That wise man was me.",
+        "Kluuvi properties cost a fortune. But so does everything at Stockmann.",
+        "They keep building in Jätkäsaari. The cranes have cranes.",
     ];
 
     const ADVISOR_CONTEXT_QUOTES = {
@@ -3419,27 +3565,41 @@ const MapRenderer = (() => {
             "Your wallet is looking thin. Maybe visit the bank?",
             "I can see the bottom of your piggy bank from here.",
             "A loan might be wise right now. Just saying.",
+            "This is what we in the business call 'financially tight.'",
+            "Even the ducks in Töölönlahti have more savings right now.",
+            "Consider selling a property. Cash flow is king.",
         ],
         richCash: [
             "Look at all that cash! Time to go shopping.",
             "Money in the bank earns nothing. Buy property!",
             "You could buy a small island with that. Oh wait, Kulosaari is available.",
+            "That's a lot of euros sitting idle. Make them work!",
+            "Cash is nice, but properties are nicer. Go spend it!",
+            "I can smell the money from here. Invest it before I do.",
         ],
         noProperties: [
             "Click a building on the map to start your empire!",
             "Every tycoon starts somewhere. Pick your first property!",
+            "The map is full of opportunities. Just click one!",
+            "Your portfolio is emptier than Kamppi Chapel. Fix that.",
         ],
         manyProperties: [
             "What an empire! Your rivals must be jealous.",
             "You own half of Helsinki. Why stop there?",
+            "At this rate, they'll rename the city after you.",
+            "Impressive portfolio! Don't forget to maintain it all.",
         ],
         badCondition: [
             "Your properties are falling apart! Repair them!",
             "I can hear the pipes groaning from here. Fix things!",
+            "Those buildings won't repair themselves. Well, maybe in the future.",
+            "Neglected properties lose revenue fast. Act now!",
         ],
         winning: [
             "You're almost at the finish line! Keep pushing!",
             "The crown of Helsinki is within reach!",
+            "So close! Don't take your foot off the gas!",
+            "Victory is near. I can taste it. Tastes like salmiakki.",
         ],
     };
 
@@ -3452,6 +3612,13 @@ const MapRenderer = (() => {
             "One more step toward world domination.",
             "The previous owner is crying right now.",
             "Location, location, location!",
+            "Another jewel in the crown!",
+            "Bold move. I respect that.",
+            "The empire grows!",
+            "You've got an eye for property. I approve.",
+            "That one's going to pay for itself. Trust me.",
+            "If I had a euro for every good purchase you've made...",
+            "Splendid acquisition!",
         ],
         sell: [
             "Profit is profit!",
@@ -3460,6 +3627,12 @@ const MapRenderer = (() => {
             "I hope you won't regret that one.",
             "Goodbye, old friend.",
             "A true tycoon knows when to sell.",
+            "Sell high, buy low. Classic.",
+            "That cash will look nice in your account.",
+            "Strategic divestment. Very sophisticated.",
+            "One less property to maintain!",
+            "The market thanks you for your liquidity.",
+            "Sometimes the best investment is uninvesting.",
         ],
         upgrade: [
             "Bigger is better!",
@@ -3468,6 +3641,12 @@ const MapRenderer = (() => {
             "The tenants will love it.",
             "Shiny and new. Well, shinier.",
             "Level up! ...Sorry, wrong game.",
+            "Every upgrade pays for itself eventually.",
+            "Now that's what I call value-add!",
+            "The building practically glows with potential.",
+            "Revenue goes up, problems go down. Mostly.",
+            "Your tenants just got happier. And richer for you.",
+            "Another star on the building. Keep going!",
         ],
         repair: [
             "Good as new!",
@@ -3476,6 +3655,12 @@ const MapRenderer = (() => {
             "A stitch in time saves nine.",
             "Your tenants can sleep in peace now.",
             "No more leaky roofs!",
+            "Prevention is cheaper than disaster. Well done.",
+            "The building sighs with relief.",
+            "That's what responsible ownership looks like.",
+            "Patched up and ready to earn!",
+            "Your maintenance person would be proud.",
+            "Crisis averted. Back to making money.",
         ],
     };
 
@@ -3545,11 +3730,11 @@ const MapRenderer = (() => {
     function drawAdvisor(palette) {
         updateAdvisorQuote();
 
-        const boxW = 190;
-        const boxH = 170;
+        const boxW = 238;
+        const boxH = 212;
         const boxX = canvas.width - boxW - 8;
         const boxY = 8;
-        const p = 1.5; // pixel scale
+        const p = 1.875; // pixel scale (1.5 * 1.25)
 
         // Panel background
         ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
@@ -3559,15 +3744,15 @@ const MapRenderer = (() => {
         ctx.strokeRect(boxX, boxY, boxW, boxH);
 
         // Draw the tycoon sprite (bottom-center of left portion)
-        const spriteX = boxX + 38;
-        const spriteY = boxY + boxH - 10;
+        const spriteX = boxX + 48;
+        const spriteY = boxY + boxH - 12;
         drawTycoonSprite(spriteX, spriteY, p, palette);
 
         // Speech bubble (right side)
-        const bubbleX = boxX + 74;
-        const bubbleY = boxY + 6;
-        const bubbleW = boxW - 80;
-        const bubbleH = boxH - 14;
+        const bubbleX = boxX + 92;
+        const bubbleY = boxY + 8;
+        const bubbleW = boxW - 100;
+        const bubbleH = boxH - 18;
 
         ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
         ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
@@ -3579,18 +3764,18 @@ const MapRenderer = (() => {
         ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
         ctx.beginPath();
         ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
-        ctx.lineTo(bubbleX - 5, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX - 7, bubbleY + bubbleH * 0.5);
         ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
         ctx.fill();
         ctx.strokeStyle = '#ffcc00';
         ctx.beginPath();
         ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
-        ctx.lineTo(bubbleX - 5, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX - 7, bubbleY + bubbleH * 0.5);
         ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
         ctx.stroke();
 
         // Word-wrap the quote text
-        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.font = '8px "Press Start 2P", monospace';
         ctx.fillStyle = '#e0e0ff';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
@@ -3609,10 +3794,10 @@ const MapRenderer = (() => {
         }
         if (currentLine) lines.push(currentLine);
 
-        const lineH = 10;
-        const textStartY = bubbleY + Math.max(4, (bubbleH - lines.length * lineH) / 2);
+        const lineH = 12;
+        const textStartY = bubbleY + Math.max(5, (bubbleH - lines.length * lineH) / 2);
         for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], bubbleX + 4, textStartY + i * lineH);
+            ctx.fillText(lines[i], bubbleX + 5, textStartY + i * lineH);
         }
     }
 
@@ -4025,6 +4210,183 @@ const MapRenderer = (() => {
         c.fillRect(22, 26, 4, 1);
     }
 
+    // === PLAYER PORTRAITS ===
+
+    function drawPlayerPortraitOnCanvas(canvasEl, gender) {
+        const c = canvasEl.getContext('2d');
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.imageSmoothingEnabled = false;
+        const s = w / 48;
+        c.save();
+        c.scale(s, s);
+        if (gender === 'female') drawPlayerFemalePortrait(c);
+        else drawPlayerMalePortrait(c);
+        c.restore();
+    }
+
+    function drawPlayerMalePortrait(c) {
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+        // Green suit jacket
+        c.fillStyle = '#224422';
+        c.fillRect(10, 33, 28, 15);
+        // Lapels
+        c.fillStyle = '#2a5a2a';
+        c.fillRect(14, 33, 4, 8);
+        c.fillRect(30, 33, 4, 8);
+        // White shirt
+        c.fillStyle = '#aaccaa';
+        c.fillRect(18, 31, 12, 8);
+        // Green tie
+        c.fillStyle = '#338833';
+        c.fillRect(23, 33, 3, 8);
+        // € tie pin
+        c.fillStyle = '#ffdd44';
+        c.fillRect(24, 35, 1, 1);
+        // Pocket square
+        c.fillStyle = '#44ff44';
+        c.fillRect(12, 35, 3, 2);
+        // Neck
+        c.fillStyle = '#d0a888';
+        c.fillRect(20, 28, 8, 5);
+        // Face
+        c.fillStyle = '#d0a888';
+        c.fillRect(15, 10, 18, 20);
+        c.fillRect(17, 28, 14, 2);
+        // Jaw line (slightly wider face)
+        c.fillStyle = '#c89878';
+        c.fillRect(15, 26, 1, 3);
+        c.fillRect(32, 26, 1, 3);
+        // Hair (dark brown, short styled)
+        c.fillStyle = '#443322';
+        c.fillRect(14, 5, 20, 7);
+        c.fillRect(13, 7, 2, 8);
+        c.fillRect(34, 7, 1, 6);
+        // Hair highlight
+        c.fillStyle = '#554433';
+        c.fillRect(16, 6, 8, 2);
+        // Eyebrows
+        c.fillStyle = '#443322';
+        c.fillRect(18, 15, 4, 1);
+        c.fillRect(26, 15, 4, 1);
+        // Eyes
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 4, 3);
+        c.fillRect(26, 17, 4, 3);
+        c.fillStyle = '#336633';
+        c.fillRect(20, 17, 2, 3);
+        c.fillRect(28, 17, 2, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 18, 1, 2);
+        c.fillRect(28, 18, 1, 2);
+        // Nose
+        c.fillStyle = '#c09878';
+        c.fillRect(23, 20, 3, 4);
+        // Confident smile
+        c.fillStyle = '#b06050';
+        c.fillRect(20, 25, 8, 1);
+        c.fillRect(21, 26, 6, 1);
+        // € symbol on pocket
+        c.fillStyle = '#44ff44';
+        c.font = '6px monospace';
+        c.fillText('€', 12, 41);
+    }
+
+    function drawPlayerFemalePortrait(c) {
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+        // Dark green blazer
+        c.fillStyle = '#1a3a2a';
+        c.fillRect(10, 33, 28, 15);
+        // Blazer lapels
+        c.fillStyle = '#225533';
+        c.fillRect(14, 33, 4, 8);
+        c.fillRect(30, 33, 4, 8);
+        // Emerald blouse
+        c.fillStyle = '#55aa77';
+        c.fillRect(17, 31, 14, 8);
+        // Necklace (gold)
+        c.fillStyle = '#ffcc44';
+        c.fillRect(19, 31, 2, 1);
+        c.fillRect(21, 32, 1, 1);
+        c.fillRect(26, 32, 1, 1);
+        c.fillRect(27, 31, 2, 1);
+        // Gold pendant
+        c.fillStyle = '#ffdd44';
+        c.fillRect(23, 33, 2, 2);
+        // Neck
+        c.fillStyle = '#d8b098';
+        c.fillRect(20, 27, 8, 5);
+        // Face (slightly softer shape)
+        c.fillStyle = '#d8b098';
+        c.fillRect(15, 10, 18, 20);
+        c.fillRect(17, 28, 14, 2);
+        // Softer chin
+        c.fillStyle = '#d8b098';
+        c.fillRect(16, 27, 16, 2);
+        // Hair (auburn, longer with volume)
+        c.fillStyle = '#8a3322';
+        c.fillRect(13, 4, 22, 8);
+        c.fillRect(12, 7, 3, 18);
+        c.fillRect(33, 7, 3, 18);
+        // Side hair frames face
+        c.fillRect(12, 25, 3, 8);
+        c.fillRect(33, 25, 3, 8);
+        // Hair highlight
+        c.fillStyle = '#aa4433';
+        c.fillRect(15, 5, 6, 2);
+        c.fillRect(26, 5, 6, 2);
+        // Top volume
+        c.fillStyle = '#8a3322';
+        c.fillRect(14, 3, 20, 3);
+        // Eyebrows (thinner, arched upward — friendly)
+        c.fillStyle = '#7a3322';
+        c.fillRect(19, 15, 3, 1);
+        c.fillRect(18, 16, 1, 1);
+        c.fillRect(28, 15, 3, 1);
+        c.fillRect(31, 16, 1, 1);
+        // Eyes (slightly larger, with lashes)
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 5, 3);
+        c.fillRect(26, 17, 5, 3);
+        c.fillStyle = '#337744';
+        c.fillRect(20, 17, 3, 3);
+        c.fillRect(28, 17, 3, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(21, 18, 1, 2);
+        c.fillRect(29, 18, 1, 2);
+        // Eye shine
+        c.fillStyle = '#ffffff';
+        c.fillRect(20, 17, 1, 1);
+        c.fillRect(28, 17, 1, 1);
+        // Eyelashes (lighter, less heavy)
+        c.fillStyle = '#553333';
+        c.fillRect(18, 16, 5, 1);
+        c.fillRect(26, 16, 5, 1);
+        // Nose (smaller)
+        c.fillStyle = '#c8a088';
+        c.fillRect(23, 20, 2, 3);
+        // Warm smile (wider, upturned)
+        c.fillStyle = '#cc6666';
+        c.fillRect(20, 25, 8, 1);
+        c.fillRect(21, 26, 6, 1);
+        // Upper lip highlight
+        c.fillStyle = '#dd7777';
+        c.fillRect(22, 24, 4, 1);
+        // Subtle blush
+        c.fillStyle = 'rgba(220, 140, 140, 0.15)';
+        c.fillRect(16, 22, 4, 3);
+        c.fillRect(28, 22, 4, 3);
+        // € brooch on blazer
+        c.fillStyle = '#44ff44';
+        c.font = '6px monospace';
+        c.fillText('€', 12, 41);
+    }
+
     // === ANIMATION TICK ===
     // Continuously running animation for seagulls, ferry, weather
     let animTime = 0;
@@ -4256,6 +4618,539 @@ const MapRenderer = (() => {
         triggerWeather(season);
     }
 
+    // === NEWSPAPER ILLUSTRATION SPRITES ===
+    // Static versions of easter egg sprites drawn to arbitrary canvas contexts
+
+    function drawNewsIllustration(canvasEl, illustrationId) {
+        const c = canvasEl.getContext('2d');
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.imageSmoothingEnabled = false;
+
+        switch (illustrationId) {
+        case 'alien': drawNewsUFO(c, w, h); break;
+        case 'tonttu': drawNewsTonttu(c, w, h); break;
+        case 'moose': drawNewsMoose(c, w, h); break;
+        case 'nokia': drawNewsNokia(c, w, h); break;
+        case 'northern_lights': drawNewsNorthernLights(c, w, h); break;
+        case 'rubber_duck': drawNewsRubberDuck(c, w, h); break;
+        case 'angry_bird': drawNewsAngryBird(c, w, h); break;
+        case 'polar_bear': drawNewsPolarBear(c, w, h); break;
+        case 'swedish': drawNewsSwedishFlag(c, w, h); break;
+        }
+    }
+
+    function drawNewsUFO(c, w, h) {
+        const cx = w / 2, cy = h / 2 + 4;
+        const s = w / 80;
+
+        // Starry background
+        c.fillStyle = '#0a0a2a';
+        c.fillRect(0, 0, w, h);
+        for (let i = 0; i < 12; i++) {
+            c.fillStyle = `rgba(255,255,200,${0.3 + Math.random() * 0.5})`;
+            c.fillRect(((i * 37 + 11) % w), ((i * 23 + 7) % (h * 0.6)), 1.5 * s, 1.5 * s);
+        }
+
+        // Tractor beam
+        c.fillStyle = 'rgba(100,255,170,0.12)';
+        c.beginPath();
+        c.moveTo(cx - 4 * s, cy + 3 * s);
+        c.lineTo(cx - 14 * s, h);
+        c.lineTo(cx + 14 * s, h);
+        c.lineTo(cx + 4 * s, cy + 3 * s);
+        c.closePath();
+        c.fill();
+
+        // Bottom dome
+        c.fillStyle = '#556677';
+        c.beginPath();
+        c.ellipse(cx, cy + 2 * s, 10 * s, 3.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Main saucer
+        c.fillStyle = '#99aabb';
+        c.beginPath();
+        c.ellipse(cx, cy, 12 * s, 4 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Rim highlight
+        c.fillStyle = '#bbccdd';
+        c.beginPath();
+        c.ellipse(cx, cy - 1 * s, 12 * s, 2.5 * s, 0, Math.PI, 0);
+        c.fill();
+        // Cockpit dome
+        c.fillStyle = '#66ffaa';
+        c.beginPath();
+        c.ellipse(cx, cy - 2 * s, 5 * s, 4 * s, 0, Math.PI, 0);
+        c.fill();
+        c.fillStyle = '#aaffcc';
+        c.beginPath();
+        c.ellipse(cx - 1 * s, cy - 4 * s, 2.5 * s, 2 * s, 0, Math.PI, 0);
+        c.fill();
+        // Rim lights
+        const colors = ['#ff4444', '#ffcc00', '#ff4444', '#ffcc00', '#ff4444', '#ffcc00'];
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            c.fillStyle = colors[i];
+            c.fillRect(cx + Math.cos(angle) * 11 * s - s, cy + Math.sin(angle) * 3 * s - s, 2 * s, 2 * s);
+        }
+    }
+
+    function drawNewsTonttu(c, w, h) {
+        const s = w / 60;
+        // Snowy rooftop scene
+        c.fillStyle = '#2a3050';
+        c.fillRect(0, 0, w, h);
+        // Rooftops
+        c.fillStyle = '#5a4a3a';
+        c.fillRect(0, h * 0.65, w * 0.35, h * 0.35);
+        c.fillRect(w * 0.4, h * 0.55, w * 0.3, h * 0.45);
+        c.fillRect(w * 0.75, h * 0.6, w * 0.25, h * 0.4);
+        // Snow on roofs
+        c.fillStyle = '#ddeeff';
+        c.fillRect(0, h * 0.63, w * 0.35, 3 * s);
+        c.fillRect(w * 0.4, h * 0.53, w * 0.3, 3 * s);
+        c.fillRect(w * 0.75, h * 0.58, w * 0.25, 3 * s);
+
+        // Draw 3 tonttus on rooftops
+        const positions = [[w * 0.17, h * 0.6], [w * 0.55, h * 0.5], [w * 0.87, h * 0.55]];
+        for (const [tx, ty] of positions) {
+            // Body
+            c.fillStyle = '#666677';
+            c.fillRect(tx - 2 * s, ty - 1 * s, 4 * s, 5 * s);
+            // Head
+            c.fillStyle = '#ddbb88';
+            c.beginPath();
+            c.arc(tx, ty - 3 * s, 2.5 * s, 0, Math.PI * 2);
+            c.fill();
+            // Red hat
+            c.fillStyle = '#cc2222';
+            c.beginPath();
+            c.moveTo(tx - 3 * s, ty - 4.5 * s);
+            c.lineTo(tx, ty - 10 * s);
+            c.lineTo(tx + 3 * s, ty - 4.5 * s);
+            c.closePath();
+            c.fill();
+            // Hat brim
+            c.fillStyle = '#ffffff';
+            c.fillRect(tx - 3.2 * s, ty - 5 * s, 6.4 * s, 1.5 * s);
+            // Eyes
+            c.fillStyle = '#111111';
+            c.fillRect(tx - 1.2 * s, ty - 3.5 * s, 1 * s, 1 * s);
+            c.fillRect(tx + 0.5 * s, ty - 3.5 * s, 1 * s, 1 * s);
+            // White beard
+            c.fillStyle = '#eeeeee';
+            c.beginPath();
+            c.moveTo(tx - 1.5 * s, ty - 1.5 * s);
+            c.lineTo(tx, ty + 1 * s);
+            c.lineTo(tx + 1.5 * s, ty - 1.5 * s);
+            c.closePath();
+            c.fill();
+        }
+    }
+
+    function drawNewsMoose(c, w, h) {
+        const cx = w / 2, s = w / 80;
+        // Road scene
+        c.fillStyle = '#88aa66';
+        c.fillRect(0, 0, w, h);
+        c.fillStyle = '#555555';
+        c.fillRect(0, h * 0.45, w, h * 0.3);
+        c.fillStyle = '#eeee44';
+        for (let i = 0; i < 6; i++) {
+            c.fillRect(w * 0.05 + i * w * 0.17, h * 0.58, w * 0.08, 2 * s);
+        }
+
+        // Draw moose in center
+        const mx = cx, my = h * 0.42;
+        // Body
+        c.fillStyle = '#5a3a1a';
+        c.beginPath();
+        c.ellipse(mx, my, 10 * s, 6 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Legs
+        c.fillStyle = '#4a2a0a';
+        c.fillRect(mx - 7 * s, my + 4 * s, 3 * s, 8 * s);
+        c.fillRect(mx - 2 * s, my + 5 * s, 3 * s, 7 * s);
+        c.fillRect(mx + 3 * s, my + 5 * s, 3 * s, 7 * s);
+        c.fillRect(mx + 7 * s, my + 4 * s, 3 * s, 8 * s);
+        // Neck & Head
+        c.fillStyle = '#5a3a1a';
+        c.fillRect(mx + 8 * s, my - 8 * s, 4 * s, 10 * s);
+        c.beginPath();
+        c.ellipse(mx + 12 * s, my - 10 * s, 5 * s, 3.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Snout
+        c.fillStyle = '#7a5a3a';
+        c.beginPath();
+        c.ellipse(mx + 16 * s, my - 9 * s, 3 * s, 2.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Antlers
+        c.fillStyle = '#8a7a5a';
+        c.fillRect(mx + 9 * s, my - 14 * s, 2 * s, 5 * s);
+        c.fillRect(mx + 7 * s, my - 17 * s, 7 * s, 2 * s);
+        c.fillRect(mx + 12 * s, my - 14 * s, 2 * s, 5 * s);
+        c.fillRect(mx + 10 * s, my - 19 * s, 7 * s, 2 * s);
+        // Eye
+        c.fillStyle = '#111111';
+        c.beginPath();
+        c.arc(mx + 13 * s, my - 10.5 * s, 1 * s, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    function drawNewsNokia(c, w, h) {
+        const cx = w / 2, cy = h / 2, s = w / 80;
+        // Blue corporate background
+        c.fillStyle = '#001848';
+        c.fillRect(0, 0, w, h);
+
+        // Nokia 3310 shape
+        const px = cx - 8 * s, py = cy - 16 * s;
+        const pw = 16 * s, ph = 32 * s;
+        // Phone body
+        c.fillStyle = '#334488';
+        c.fillRect(px, py, pw, ph);
+        c.fillStyle = '#2a3a6a';
+        c.fillRect(px + 1 * s, py + 1 * s, pw - 2 * s, ph - 2 * s);
+        // Screen
+        c.fillStyle = '#88aa66';
+        c.fillRect(px + 3 * s, py + 4 * s, pw - 6 * s, 10 * s);
+        // Screen text (NOKIA)
+        c.fillStyle = '#334422';
+        c.fillRect(px + 4.5 * s, py + 7 * s, 1.5 * s, 3 * s); // N
+        c.fillRect(px + 5.5 * s, py + 7 * s, 0.5 * s, 0.5 * s);
+        c.fillRect(px + 6.5 * s, py + 7 * s, 1.5 * s, 3 * s);
+        // Keypad dots
+        c.fillStyle = '#556699';
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 3; col++) {
+                c.fillRect(px + 3.5 * s + col * 3.5 * s, py + 17 * s + row * 3.5 * s, 2.5 * s, 2 * s);
+            }
+        }
+        // Sparkle / excitement lines
+        c.strokeStyle = '#ffcc00';
+        c.lineWidth = 1.5 * s;
+        c.beginPath(); c.moveTo(px - 5 * s, py + 5 * s); c.lineTo(px - 10 * s, py + 2 * s); c.stroke();
+        c.beginPath(); c.moveTo(px - 4 * s, py + 10 * s); c.lineTo(px - 10 * s, py + 12 * s); c.stroke();
+        c.beginPath(); c.moveTo(px + pw + 5 * s, py + 5 * s); c.lineTo(px + pw + 10 * s, py + 2 * s); c.stroke();
+        c.beginPath(); c.moveTo(px + pw + 4 * s, py + 10 * s); c.lineTo(px + pw + 10 * s, py + 12 * s); c.stroke();
+    }
+
+    function drawNewsNorthernLights(c, w, h) {
+        // Dark sky with aurora
+        c.fillStyle = '#0a0a2a';
+        c.fillRect(0, 0, w, h);
+        // Stars
+        for (let i = 0; i < 15; i++) {
+            c.fillStyle = `rgba(255,255,220,${0.3 + Math.random() * 0.5})`;
+            const sx = ((i * 31 + 13) % w);
+            const sy = ((i * 17 + 5) % (h * 0.4));
+            c.fillRect(sx, sy, 1.5, 1.5);
+        }
+        // Aurora bands
+        const colors = [
+            'rgba(0,255,100,0.25)', 'rgba(0,200,150,0.2)',
+            'rgba(100,0,255,0.15)', 'rgba(0,255,200,0.2)',
+        ];
+        for (let band = 0; band < 4; band++) {
+            c.fillStyle = colors[band];
+            c.beginPath();
+            c.moveTo(0, h * 0.1 + band * h * 0.08);
+            for (let x = 0; x <= w; x += w / 8) {
+                const wave = Math.sin(x / w * Math.PI * 2 + band * 1.5) * h * 0.08;
+                c.lineTo(x, h * 0.15 + band * h * 0.08 + wave);
+            }
+            c.lineTo(w, h * 0.35 + band * h * 0.05);
+            c.lineTo(0, h * 0.35 + band * h * 0.05);
+            c.closePath();
+            c.fill();
+        }
+        // City silhouette
+        c.fillStyle = '#111122';
+        c.fillRect(0, h * 0.75, w, h * 0.25);
+        // Buildings
+        const bw = w / 10;
+        const heights = [0.6, 0.55, 0.65, 0.5, 0.7, 0.58, 0.62, 0.52, 0.68, 0.55];
+        for (let i = 0; i < 10; i++) {
+            c.fillRect(i * bw, h * heights[i], bw - 1, h);
+        }
+        // Church spire
+        c.beginPath();
+        c.moveTo(w * 0.45, h * 0.5);
+        c.lineTo(w * 0.48, h * 0.35);
+        c.lineTo(w * 0.51, h * 0.5);
+        c.closePath();
+        c.fill();
+        // Window lights
+        c.fillStyle = '#ffcc44';
+        for (let i = 0; i < 8; i++) {
+            const wx = ((i * 43 + 17) % (w - 10)) + 5;
+            const wy = h * 0.7 + ((i * 19 + 3) % (h * 0.15));
+            c.fillRect(wx, wy, 3, 3);
+        }
+    }
+
+    function drawNewsRubberDuck(c, w, h) {
+        const cx = w / 2, cy = h / 2 + h * 0.1, s = w / 70;
+        // Water background
+        c.fillStyle = '#2255aa';
+        c.fillRect(0, 0, w, h);
+        // Water ripples
+        c.strokeStyle = 'rgba(255,255,255,0.12)';
+        c.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+            c.beginPath();
+            c.ellipse(cx, cy + 6 * s, (16 + i * 6) * s, (5 + i * 2) * s, 0, 0, Math.PI * 2);
+            c.stroke();
+        }
+        // Body
+        c.fillStyle = '#ffdd00';
+        c.beginPath();
+        c.ellipse(cx, cy, 12 * s, 9 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Body highlight
+        c.fillStyle = '#ffee55';
+        c.beginPath();
+        c.ellipse(cx - 2 * s, cy - 3 * s, 6 * s, 4 * s, -0.3, 0, Math.PI * 2);
+        c.fill();
+        // Head
+        c.fillStyle = '#ffdd00';
+        c.beginPath();
+        c.arc(cx + 10 * s, cy - 10 * s, 8 * s, 0, Math.PI * 2);
+        c.fill();
+        // Head highlight
+        c.fillStyle = '#ffee55';
+        c.beginPath();
+        c.arc(cx + 9 * s, cy - 12 * s, 4 * s, 0, Math.PI * 2);
+        c.fill();
+        // Beak
+        c.fillStyle = '#ff8800';
+        c.beginPath();
+        c.moveTo(cx + 16 * s, cy - 10 * s);
+        c.lineTo(cx + 23 * s, cy - 9 * s);
+        c.lineTo(cx + 16 * s, cy - 7 * s);
+        c.closePath();
+        c.fill();
+        // Eye
+        c.fillStyle = '#111111';
+        c.beginPath();
+        c.arc(cx + 13 * s, cy - 12 * s, 1.5 * s, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#ffffff';
+        c.beginPath();
+        c.arc(cx + 13.5 * s, cy - 12.5 * s, 0.6 * s, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    function drawNewsPolarBear(c, w, h) {
+        const s = w / 70;
+        // Snowy landscape
+        c.fillStyle = '#c8d8e8';
+        c.fillRect(0, 0, w, h);
+        // Snow ground
+        c.fillStyle = '#e8eef4';
+        c.fillRect(0, h * 0.6, w, h * 0.4);
+        // Snow mounds
+        c.fillStyle = '#f0f4f8';
+        c.beginPath();
+        c.ellipse(w * 0.2, h * 0.62, w * 0.2, h * 0.06, 0, 0, Math.PI * 2);
+        c.fill();
+        c.beginPath();
+        c.ellipse(w * 0.75, h * 0.63, w * 0.18, h * 0.05, 0, 0, Math.PI * 2);
+        c.fill();
+
+        // Polar bear (centered)
+        const bx = w * 0.5, by = h * 0.52;
+        // Body
+        c.fillStyle = '#f0ece8';
+        c.beginPath();
+        c.ellipse(bx, by, 10 * s, 6.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Rear haunch
+        c.beginPath();
+        c.ellipse(bx - 6 * s, by + 1 * s, 5 * s, 5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Shoulder hump
+        c.beginPath();
+        c.ellipse(bx + 3 * s, by - 3 * s, 5 * s, 4 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Legs
+        c.fillStyle = '#e8e4df';
+        c.fillRect(bx + 1.5 * s, by + 4 * s, 4 * s, 7 * s);
+        c.fillRect(bx + 6 * s, by + 3 * s, 4 * s, 8 * s);
+        c.fillRect(bx - 8 * s, by + 3 * s, 4 * s, 7 * s);
+        c.fillRect(bx - 4 * s, by + 4 * s, 4 * s, 7 * s);
+        // Paws
+        c.fillStyle = '#ddd8d2';
+        for (const px of [bx + 3.5 * s, bx + 8 * s, bx - 6 * s, bx - 2 * s]) {
+            c.beginPath();
+            c.ellipse(px, by + 11 * s, 3 * s, 1.5 * s, 0, 0, Math.PI * 2);
+            c.fill();
+        }
+        // Neck
+        c.fillStyle = '#f0ece8';
+        c.fillRect(bx + 6 * s, by - 6 * s, 5 * s, 6 * s);
+        // Head
+        c.beginPath();
+        c.ellipse(bx + 11 * s, by - 7 * s, 5.5 * s, 4.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Snout
+        c.fillStyle = '#e8e4df';
+        c.beginPath();
+        c.ellipse(bx + 16 * s, by - 6 * s, 3 * s, 2.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Ears
+        c.fillStyle = '#e0dcd6';
+        c.beginPath(); c.arc(bx + 9 * s, by - 11 * s, 2 * s, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(bx + 13 * s, by - 11 * s, 2 * s, 0, Math.PI * 2); c.fill();
+        // Eye
+        c.fillStyle = '#111111';
+        c.beginPath(); c.arc(bx + 12.5 * s, by - 8 * s, 1 * s, 0, Math.PI * 2); c.fill();
+        // Nose
+        c.beginPath(); c.arc(bx + 18 * s, by - 6.5 * s, 1.2 * s, 0, Math.PI * 2); c.fill();
+    }
+
+    function drawNewsAngryBird(c, w, h) {
+        const cx = w / 2, cy = h / 2 + 2, s = w / 70;
+        // Sky background
+        c.fillStyle = '#5588cc';
+        c.fillRect(0, 0, w, h);
+        // Clouds
+        c.fillStyle = 'rgba(255,255,255,0.3)';
+        c.beginPath(); c.arc(w * 0.2, h * 0.25, 8 * s, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(w * 0.8, h * 0.15, 6 * s, 0, Math.PI * 2); c.fill();
+
+        // Body
+        c.fillStyle = '#cc2222';
+        c.beginPath();
+        c.arc(cx, cy, 14 * s, 0, Math.PI * 2);
+        c.fill();
+        // Belly
+        c.fillStyle = '#ffe8c8';
+        c.beginPath();
+        c.ellipse(cx, cy + 5 * s, 8 * s, 7 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#fff2dd';
+        c.beginPath();
+        c.ellipse(cx, cy + 4 * s, 5 * s, 4.5 * s, 0, 0, Math.PI * 2);
+        c.fill();
+        // Tail feathers
+        c.fillStyle = '#222222';
+        c.beginPath();
+        c.moveTo(cx - 3 * s, cy - 12 * s);
+        c.lineTo(cx - 7 * s, cy - 20 * s);
+        c.lineTo(cx - 3 * s, cy - 18 * s);
+        c.lineTo(cx, cy - 22 * s);
+        c.lineTo(cx + 3 * s, cy - 18 * s);
+        c.lineTo(cx + 7 * s, cy - 20 * s);
+        c.lineTo(cx + 3 * s, cy - 12 * s);
+        c.closePath();
+        c.fill();
+        // Head tuft
+        c.fillStyle = '#cc2222';
+        c.beginPath();
+        c.moveTo(cx - 1 * s, cy - 13 * s);
+        c.lineTo(cx - 3 * s, cy - 19 * s);
+        c.lineTo(cx + 1 * s, cy - 14 * s);
+        c.closePath();
+        c.fill();
+        c.beginPath();
+        c.moveTo(cx + 1 * s, cy - 13 * s);
+        c.lineTo(cx + 3 * s, cy - 18 * s);
+        c.lineTo(cx + 4 * s, cy - 13 * s);
+        c.closePath();
+        c.fill();
+        // Eyebrows
+        c.fillStyle = '#222222';
+        c.save();
+        c.translate(cx - 4 * s, cy - 6 * s);
+        c.rotate(-0.4);
+        c.fillRect(-5 * s, -1.2 * s, 8 * s, 2.5 * s);
+        c.restore();
+        c.save();
+        c.translate(cx + 4 * s, cy - 6 * s);
+        c.rotate(0.4);
+        c.fillRect(-3 * s, -1.2 * s, 8 * s, 2.5 * s);
+        c.restore();
+        // Eyes
+        c.fillStyle = '#ffffff';
+        c.beginPath(); c.arc(cx - 3.5 * s, cy - 3 * s, 3.5 * s, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(cx + 3.5 * s, cy - 3 * s, 3.5 * s, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#111111';
+        c.beginPath(); c.arc(cx - 2 * s, cy - 3 * s, 2 * s, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(cx + 2 * s, cy - 3 * s, 2 * s, 0, Math.PI * 2); c.fill();
+        // Beak
+        c.fillStyle = '#ff8800';
+        c.beginPath();
+        c.moveTo(cx - 3 * s, cy + 1 * s);
+        c.lineTo(cx, cy + 6 * s);
+        c.lineTo(cx + 3 * s, cy + 1 * s);
+        c.closePath();
+        c.fill();
+        c.fillStyle = '#cc6600';
+        c.beginPath();
+        c.moveTo(cx - 3 * s, cy + 2.5 * s);
+        c.lineTo(cx, cy + 6 * s);
+        c.lineTo(cx + 3 * s, cy + 2.5 * s);
+        c.closePath();
+        c.fill();
+    }
+
+    function drawNewsSwedishFlag(c, w, h) {
+        const s = w / 80;
+        // Sky blue background
+        c.fillStyle = '#88bbdd';
+        c.fillRect(0, 0, w, h);
+        // Ground
+        c.fillStyle = '#667766';
+        c.fillRect(0, h * 0.75, w, h * 0.25);
+
+        // Flagpole
+        const poleX = w * 0.35;
+        c.fillStyle = '#555';
+        c.fillRect(poleX - 1.5 * s, h * 0.15, 3 * s, h * 0.65);
+        // Pole finial
+        c.fillStyle = '#FECC00';
+        c.beginPath();
+        c.arc(poleX, h * 0.14, 3 * s, 0, Math.PI * 2);
+        c.fill();
+
+        // Swedish flag on pole
+        const fx = poleX + 1.5 * s;
+        const fy = h * 0.18;
+        const fw = w * 0.45;
+        const fh = h * 0.35;
+        // Blue
+        c.fillStyle = '#006AA7';
+        c.fillRect(fx, fy, fw, fh);
+        // Yellow cross
+        c.fillStyle = '#FECC00';
+        c.fillRect(fx, fy + fh * 0.4, fw, fh * 0.2);
+        c.fillRect(fx + fw * 0.25, fy, fw * 0.15, fh);
+        // Border
+        c.strokeStyle = '#333';
+        c.lineWidth = s;
+        c.strokeRect(fx, fy, fw, fh);
+
+        // Finnish flag on ground (fallen over)
+        const gfx = w * 0.55;
+        const gfy = h * 0.68;
+        c.save();
+        c.translate(gfx, gfy);
+        c.rotate(0.3);
+        const gfw = w * 0.3;
+        const gfh = h * 0.2;
+        c.fillStyle = '#fff';
+        c.fillRect(0, 0, gfw, gfh);
+        c.fillStyle = '#003580';
+        c.fillRect(0, gfh * 0.4, gfw, gfh * 0.2);
+        c.fillRect(gfw * 0.3, 0, gfw * 0.15, gfh);
+        c.strokeStyle = '#999';
+        c.lineWidth = s * 0.5;
+        c.strokeRect(0, 0, gfw, gfh);
+        c.restore();
+    }
+
     return {
         init: function(canvasEl) {
             init(canvasEl);
@@ -4268,6 +5163,8 @@ const MapRenderer = (() => {
         mapToScreen,
         triggerAdvisorAction,
         drawRivalPortrait,
+        drawPlayerPortrait: drawPlayerPortraitOnCanvas,
+        drawNewsIllustration,
         forcePolarBears,
         camera,
         get hoveredDistrict() { return hoveredDistrict; },
