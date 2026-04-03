@@ -39,6 +39,7 @@ const UI = (() => {
         setupStatsPanel();
         setupStaffPanel();
         setupMenuPanel();
+        loadUIScale();
         setupCheats();
         setupHotkeys();
         setupOfferAndUndo();
@@ -499,6 +500,16 @@ Good luck — become the Helsingin Herra!`,
                         Game.auctionPlayerDropout();
                     }
                 }
+                // Close achievements on escape
+                document.getElementById('achievements-panel').classList.add('hidden');
+                // Close tutorial on escape
+                if (!document.getElementById('tutorial-overlay').classList.contains('hidden')) {
+                    document.getElementById('tutorial-overlay').classList.add('hidden');
+                }
+                // Close victory on escape
+                if (!document.getElementById('victory-overlay').classList.contains('hidden')) {
+                    document.getElementById('victory-overlay').classList.add('hidden');
+                }
             }
         });
     }
@@ -519,7 +530,7 @@ Good luck — become the Helsingin Herra!`,
         const season = Seasons.getCurrentSeason(gameState.month);
         document.getElementById('hud-month').textContent = Seasons.getMonthName(gameState.month);
         document.getElementById('hud-year').textContent = gameState.year;
-        document.getElementById('hud-money').textContent = '€' + formatMoney(gameState.money);
+        document.getElementById('hud-money').textContent = 'Cash: €' + formatMoney(gameState.money);
         document.getElementById('hud-properties').textContent = 'Properties: ' + gameState.properties.filter(p => p.owner === 'player').length;
         document.getElementById('hud-turn').textContent = 'Turn ' + gameState.turn;
 
@@ -555,8 +566,9 @@ Good luck — become the Helsingin Herra!`,
         const playerProps = gameState.properties.filter(p => p.owner === 'player').length;
         const playerNetWorth = Economy.calculateNetWorth(gameState);
 
-        // Build entries: player first, then rivals sorted by net worth descending
+        // Build entries: label, then player, then rivals sorted by net worth descending
         let html = '';
+        html += `<span class="sb-label">Net Worth:</span>`;
         html += `<div class="sb-entry sb-player">`;
         html += `<span class="sb-dot" style="background:#ffcc00"></span>`;
         html += `<span class="sb-name">${GameState.playerName}</span>`;
@@ -899,7 +911,7 @@ Good luck — become the Helsingin Herra!`,
             html += '<div class="stats-divider"></div>';
             const rivals = [...GameState.rivals].sort((a, b) => b.netWorth - a.netWorth);
             for (const rival of rivals) {
-                html += `<div class="stats-row rival"><span>${rival.shortName}</span><span>€${formatMoney(rival.netWorth)} (${rival.propertiesOwned}p)</span></div>`;
+                html += `<div class="stats-row rival"><span>${rival.name}</span><span>€${formatMoney(rival.netWorth)} (${rival.propertiesOwned}p)</span></div>`;
             }
         }
 
@@ -959,8 +971,38 @@ Good luck — become the Helsingin Herra!`,
         document.getElementById('menu-delete').disabled = !manualInfo;
     }
 
+    function applyUIScale(scale) {
+        document.documentElement.style.setProperty('--ui-scale', scale);
+        // Update active button state
+        document.querySelectorAll('.menu-scale-btn').forEach(btn => {
+            btn.classList.toggle('active', parseFloat(btn.dataset.scale) === scale);
+        });
+        // Persist
+        try { localStorage.setItem('helsinkiTycoon_uiScale', scale); } catch {}
+        // Re-render map to update advisor
+        if (typeof MapRenderer !== 'undefined') {
+            MapRenderer.resize();
+            MapRenderer.render();
+        }
+    }
+
+    function loadUIScale() {
+        try {
+            const saved = localStorage.getItem('helsinkiTycoon_uiScale');
+            applyUIScale(saved ? parseFloat(saved) : 1);
+        } catch {}
+    }
+
     function setupMenuPanel() {
         document.getElementById('menu-close').addEventListener('click', hideMenuPanel);
+
+        // UI Scale buttons
+        document.querySelectorAll('.menu-scale-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                Sound.playClick();
+                applyUIScale(parseFloat(btn.dataset.scale));
+            });
+        });
 
         document.getElementById('menu-save').addEventListener('click', () => {
             Sound.playClick();
@@ -1106,18 +1148,21 @@ Good luck — become the Helsingin Herra!`,
         document.getElementById('cheat-10k').addEventListener('click', () => {
             GameState.money += 10000;
             updateHUD(GameState);
+            Sound.playBuy();
             setNewsText('Cheat: +€10K');
         });
 
         document.getElementById('cheat-100k').addEventListener('click', () => {
             GameState.money += 100000;
             updateHUD(GameState);
+            Sound.playBuy();
             setNewsText('Cheat: +€100K');
         });
 
         document.getElementById('cheat-1m').addEventListener('click', () => {
             GameState.money += 1000000;
             updateHUD(GameState);
+            Sound.playBuy();
             setNewsText('Cheat: +€1M');
         });
 
@@ -1806,11 +1851,16 @@ Good luck — become the Helsingin Herra!`,
         countEl.textContent = `${Achievements.getUnlockedCount()} / ${Achievements.getTotalCount()}`;
 
         let html = '';
+        let currentCategory = '';
         for (const a of all) {
+            if (a.category && a.category !== currentCategory) {
+                currentCategory = a.category;
+                html += `<div class="achievement-category">${currentCategory}</div>`;
+            }
             const cls = a.unlocked ? 'achievement-item unlocked' : 'achievement-item locked';
             const icon = a.unlocked ? a.icon : '🔒';
             const name = a.unlocked ? a.name : '???';
-            const desc = a.unlocked ? a.desc : 'Keep playing to discover this achievement';
+            const desc = a.unlocked ? a.desc : '???';
             html += `<div class="${cls}">`;
             html += `<span class="achievement-icon">${icon}</span>`;
             html += `<div class="achievement-info">`;
@@ -2217,6 +2267,11 @@ Good luck — become the Helsingin Herra!`,
         }
 
         buttonsEl.style.display = 'flex';
+        // Re-enable buttons (may be left disabled from a previous auction)
+        const raiseBtnEl = document.getElementById('auction-raise');
+        const dropoutBtnEl = document.getElementById('auction-dropout');
+        if (raiseBtnEl) raiseBtnEl.disabled = false;
+        if (dropoutBtnEl) dropoutBtnEl.disabled = false;
         resultEl.classList.add('hidden');
         overlay.classList.remove('hidden');
     }
@@ -2319,10 +2374,24 @@ Good luck — become the Helsingin Herra!`,
         if (playerWon) {
             bidLeader.textContent = 'SOLD TO YOU!';
             bidLeader.style.color = '#44ff44';
+            const playerCard = document.getElementById('auction-player-card');
+            if (playerCard) {
+                playerCard.className = 'auction-participant winner';
+                playerCard.querySelector('.auction-participant-status').textContent = 'WINNER';
+            }
         } else if (auction.leader) {
             const winner = auction.bidders.find(b => b.rival.id === auction.leader);
             bidLeader.textContent = winner ? `SOLD TO ${winner.rival.shortName.toUpperCase()}` : 'UNSOLD';
             bidLeader.style.color = winner ? winner.rival.color : '#888';
+            // Highlight winner's card (may have been marked OUT during animation)
+            if (winner) {
+                const winnerCard = document.getElementById(`auction-rival-${winner.rival.id}`);
+                if (winnerCard) {
+                    winnerCard.className = 'auction-participant winner';
+                    const statusEl = winnerCard.querySelector('.auction-participant-status');
+                    if (statusEl) statusEl.textContent = 'WINNER';
+                }
+            }
         }
     }
 

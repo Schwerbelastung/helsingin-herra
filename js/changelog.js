@@ -1,5 +1,53 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.16.3 — Map Details (2026-04-03)
+const CHANGELOG_MD = `## v0.17.1 — Bugfixes (2026-04-03)
+
+### Fixed
+- **Portfolio panel scaling** — "My Props" window now scales with UI scale
+- **Consecutive bidding wars** — buttons no longer stuck after back-to-back auctions
+- **Panel overflow at high UI scales** — all panels stay within the viewport at any zoom
+- **ESC closes more dialogs** — achievements, tutorial, and victory screens
+- **Auction starting bid** — lowered to 65% (natural) / 60% (cheat) of market value
+- **Cheat auction pricing** — no longer picks absurdly expensive properties
+- **Cheat money sound** — money cheats now play a cash register sound
+
+---
+
+## v0.17.0 — UI Scaling & Quality of Life (2026-04-03)
+
+### Added
+- **UI scaling** — 5 zoom levels (1x–2x) in the Menu; persists across sessions
+- **Hide/show advisor** — hide the monopoly man with humorous departure/return quotes (10 each); persists across sessions
+- **Scoreboard & HUD labels** — "Net Worth:" on scoreboard, "Cash:" on HUD
+- **Full rival names in Stats** — statistics panel shows full names
+- **Random rival selection** — rivals randomised when fewer than 3 AIs
+- **Early-game protection** — no offers or bidding wars in the first 6 months
+
+### Fixed
+- **"Can Afford & Available" filter** — now updates after upgrades/repairs
+- **Auction winner highlighting** — works when auction ends before final round
+- **Cheat bidding war** — always triggers (bypasses cooldowns)
+- **Newspaper scaling** — capped at 1.25x to stay readable
+
+---
+
+## v0.16.4 — Auctions & Achievements (2026-04-03)
+
+### Added
+- **Strange Events achievements** — 8 new achievements tracking easter egg encounters, in a dedicated section
+- **Achievement categories** — achievements now grouped under section headers
+
+### Changed
+- **Bidding wars** — more frequent (7% chance, was 3%), with 6-month cooldown and max one per year
+- **Rival auction loans** — AI rivals can now take loans to compete in bidding wars
+- **Multi-rival preference** — auctions now favour properties multiple rivals want
+
+### Visual
+- **Lauttasaari** — reshaped to L-shaped silhouette with concave southwest bay and Vattuniemi peninsula
+- **Valkosaari** — nudged west to clear ferry paths
+
+---
+
+## v0.16.3 — Map Details (2026-04-03)
 
 ### Visual
 - **Seurasaari** — island now renders in forest green (seasonal) instead of grey

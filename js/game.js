@@ -31,6 +31,8 @@ const GameState = {
     lastSpecialEventId: null, // ID of the last special event that fired (prevent back-to-back repeats)
     usedSpecialArticleIndices: {}, // tracks which article variant was last used per special event
     lastOfferTurn: -10, // turn when last rival offer was shown (cooldown: 2 turns)
+    lastAuctionTurn: -10, // turn when last auction occurred (cooldown: 6 turns)
+    auctionThisYear: false, // only one auction per calendar year
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
@@ -60,6 +62,8 @@ const Game = (() => {
         GameState.lastSpecialEventId = null;
         GameState.usedSpecialArticleIndices = {};
         GameState.lastOfferTurn = -10;
+        GameState.lastAuctionTurn = -10;
+        GameState.auctionThisYear = false;
 
         // Difficulty settings
         const diffSettings = {
@@ -228,6 +232,7 @@ const Game = (() => {
                 GameState.specialEventMultiplier = Math.min(4.0, GameState.specialEventMultiplier * 2);
             }
             GameState.specialEventThisYear = false;
+            GameState.auctionThisYear = false;
         } else if (GameState.month === 2) {
             // March — auto-dismiss if still showing
             UI.hideNewspaperPrompt();
@@ -280,10 +285,12 @@ const Game = (() => {
         const undoBtn = document.getElementById('btn-undo');
         if (undoBtn) undoBtn.disabled = true;
 
-        // 15. Check for auction or rival offer (not both same turn)
-        if (!GameState.gameOver && GameState.rivals.length > 0) {
+        // 15. Check for auction or rival offer (not both same turn; none in first 6 months)
+        if (!GameState.gameOver && GameState.rivals.length > 0 && GameState.turn >= 6) {
             const auction = Rivals.generateAuction(GameState);
             if (auction) {
+                GameState.lastAuctionTurn = GameState.turn;
+                GameState.auctionThisYear = true;
                 startAuction(auction);
             } else if (GameState.turn - GameState.lastOfferTurn >= 2) {
                 const offer = Rivals.generateOffer(GameState);
@@ -617,19 +624,46 @@ const Game = (() => {
     // === CHEAT TRIGGERS ===
     function cheatBiddingWar() {
         if (GameState.rivals.length === 0) { UI.setNewsText('No rivals to bid against!'); return; }
-        // Force-generate an auction (ignore the 3% chance)
         const unowned = GameState.properties.filter(p => p.owner === null && !p.easterEgg);
         if (unowned.length === 0) { UI.setNewsText('No properties available for auction!'); return; }
-        // Temporarily override Math.random to guarantee auction generation
-        const origRandom = Math.random;
-        Math.random = () => 0; // always passes the 3% check and maximizes rival interest
-        const auction = Rivals.generateAuction(GameState);
-        Math.random = origRandom;
-        if (auction) {
-            startAuction(auction);
-        } else {
-            UI.setNewsText('Could not generate auction — rivals may not be interested in remaining properties.');
-        }
+
+        // Calculate the max anyone (player or rivals) could afford
+        const playerCredit = Economy.getAvailableCredit(GameState);
+        const playerBudget = GameState.money + playerCredit;
+        const rivalBudgets = GameState.rivals.map(rival => {
+            const ownedValue = GameState.properties
+                .filter(p => p.owner === rival.id)
+                .reduce((s, p) => s + p.price, 0);
+            return rival.money + Math.floor(ownedValue * 0.5);
+        });
+        const maxBudget = Math.max(playerBudget, ...rivalBudgets);
+        // Allow properties up to ~120% of the richest participant's budget (barely too expensive is ok)
+        const priceLimit = Math.floor(maxBudget * 1.2);
+
+        const affordable = unowned.filter(p => p.price <= priceLimit);
+        if (affordable.length === 0) { UI.setNewsText('No affordable properties for auction!'); return; }
+
+        // Force-build an auction: pick a random affordable property, include ALL rivals as bidders
+        const prop = affordable[Math.floor(Math.random() * affordable.length)];
+        const startBid = Math.floor(prop.price * 0.60);
+        const increment = Math.floor(prop.price * 0.08);
+        const bidders = GameState.rivals.map(rival => {
+            const ownedValue = GameState.properties
+                .filter(p => p.owner === rival.id)
+                .reduce((s, p) => s + p.price, 0);
+            const budget = rival.money + Math.floor(ownedValue * 0.5);
+            const maxBid = Math.max(startBid, Math.floor(budget * 0.8));
+            return { rival, maxBid, active: true, lastBid: 0 };
+        });
+        const auction = {
+            property: prop, startBid, increment,
+            currentBid: startBid, round: 0, maxRounds: 5,
+            bidders, playerIn: true, playerBid: 0,
+            leader: null, finished: false,
+        };
+        GameState.lastAuctionTurn = GameState.turn;
+        GameState.auctionThisYear = true;
+        startAuction(auction);
     }
 
     function cheatRivalOffer() {
@@ -825,6 +859,7 @@ const Game = (() => {
         const revStr = UI.formatMoneyPrecise(revGain);
         UI.setNewsText(`Upgraded ${property.name} to level ${property.upgradeLevel}! Revenue +€${revStr}/mo`);
         UI.addLogAction(`Upgraded ${property.name} to Lv.${property.upgradeLevel} (revenue +€${revStr}/mo)`);
+        MapRenderer.render();
     }
 
     function repairProperty(property) {
@@ -849,6 +884,7 @@ const Game = (() => {
         UI.showPropertyPanel(property);
         UI.setNewsText(`Repaired ${property.name} to perfect condition!`);
         UI.addLogAction(`Repaired ${property.name}`);
+        MapRenderer.render();
     }
 
     // === SAVE / LOAD ===
@@ -924,6 +960,8 @@ const Game = (() => {
             lastSpecialEventId: GameState.lastSpecialEventId,
             usedSpecialArticleIndices: GameState.usedSpecialArticleIndices,
             lastOfferTurn: GameState.lastOfferTurn,
+            lastAuctionTurn: GameState.lastAuctionTurn,
+            auctionThisYear: GameState.auctionThisYear,
         };
     }
 
@@ -973,6 +1011,8 @@ const Game = (() => {
             GameState.lastSpecialEventId = data.lastSpecialEventId || null;
             GameState.usedSpecialArticleIndices = data.usedSpecialArticleIndices || {};
             GameState.lastOfferTurn = data.lastOfferTurn != null ? data.lastOfferTurn : -10;
+            GameState.lastAuctionTurn = data.lastAuctionTurn != null ? data.lastAuctionTurn : -10;
+            GameState.auctionThisYear = data.auctionThisYear || false;
             GameState.financeHistory = data.financeHistory || [];
 
             // Update visuals

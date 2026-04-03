@@ -1,5 +1,65 @@
 # Helsingin Herra - Changelog
 
+## v0.17.1 — Bugfixes (2026-04-03)
+
+### Fixed
+- **Portfolio panel scaling** — "My Props" window now scales with UI scale setting
+- **Consecutive bidding wars** — buttons no longer get stuck disabled when starting a second auction
+- **Panel overflow at high UI scales** — all zoomed panels (achievements, tutorial, victory, log, stats, menu, newspaper) now cap their height relative to the zoom level so they stay within the viewport
+- **ESC closes more dialogs** — ESC now also closes the achievements, tutorial, and victory screens
+- **Auction starting bid** — natural auctions start at 65% of market value (was 85%); cheat auctions start at 60%
+- **Cheat auction property selection** — no longer picks properties wildly out of everyone's price range; caps at ~120% of the richest participant's budget
+- **Cheat money sound** — adding money via cheat panel now plays the cash register sound
+
+---
+
+## v0.17.0 — UI Scaling & Quality of Life (2026-04-03)
+
+### Added
+- **UI scaling** — 5 zoom levels (1x, 1.25x, 1.5x, 1.75x, 2x) accessible from the Menu; persists across sessions via localStorage
+- **Hide/show advisor** — "Hide" button above the monopoly man box; advisor slides off-screen with a humorous departure quote, "Show" button appears in the top-right corner to bring him back with a witty return comment (10 departure + 10 return quotes); preference persists across sessions
+- **Scoreboard label** — "Net Worth:" prefix on scoreboard entries
+- **HUD cash label** — "Cash:" prefix on the HUD money display
+- **Full rival names in Stats** — statistics panel now shows full names (including last names) instead of short names
+- **Random rival selection** — when starting with fewer than 3 AIs, rivals are now randomly selected instead of always the same order
+- **Early-game protection** — incoming offers and bidding wars are blocked during the first 6 months
+
+### Fixed
+- **"Can Afford & Available" filter** — now updates correctly after upgrades and repairs (was missing map re-render calls)
+- **Auction winner highlighting** — winner is now correctly highlighted even when the auction ends before the final round
+- **Cheat bidding war** — completely rewritten to bypass cooldown/affordability checks; always triggers successfully
+- **Newspaper scaling** — capped at 1.25x zoom to remain readable at higher UI scales
+- **Newspaper prompt position** — reduced upward movement at higher scales to prevent overlap with bottom menu bar
+
+### Visual
+- **UI scale support** — HUD, scoreboard, action bar, news ticker, all panels, offer/auction/tutorial/cheat/achievement/victory overlays all respect the UI scale setting
+- **Canvas advisor scaling** — advisor sprite, speech bubble, and text scale with the UI scale setting
+- **Achievement toast scaling** — achievement unlock notifications scale with UI
+
+---
+
+## v0.16.4 — Auctions & Achievements (2026-04-03)
+
+### Added
+- **Strange Events achievements** — 8 new achievements (one per easter egg event) in a dedicated "Strange Events" section at the bottom of the achievement list; players can now see how many easter eggs they've encountered and which they've missed
+- **Achievement categories** — all achievements are now grouped under section headers (Getting Started, Wealth, Campaign, Strange Events, etc.)
+
+### Changed
+- **Bidding war chance** — increased from 3% to 7% per turn
+- **Bidding war cooldown** — minimum 6 months between auctions; maximum one per calendar year
+- **Rival auction loans** — AI rivals can now take loans to participate in bidding wars (budget = cash + 50% of owned property value), making multi-opponent wars more common
+- **Multi-rival preference** — auction property selection now favours properties that multiple rivals want
+
+### Visual
+- **Lauttasaari** — completely reshaped to match real geography: L-shaped silhouette with concave southwest bay and southward-pointing Vattuniemi peninsula
+- **Valkosaari** — nudged west to avoid overlapping ferry paths
+
+### Fixed
+- **Lauttasaari Gym** — no longer placed at the water's edge
+- **Lauttasaari Beach** — repositioned to sit within the island
+
+---
+
 ## v0.16.3 — Map Details (2026-04-03)
 
 ### Visual

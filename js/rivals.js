@@ -49,7 +49,10 @@ const Rivals = (() => {
         const mod = difficultyMods[difficulty] || difficultyMods.normal;
         const numRivals = Math.max(0, Math.min(RIVAL_PROFILES.length, count ?? RIVAL_PROFILES.length));
 
-        return RIVAL_PROFILES.slice(0, numRivals).map(profile => {
+        // Shuffle profiles so fewer-than-max games get random rivals
+        const shuffled = [...RIVAL_PROFILES].sort(() => Math.random() - 0.5);
+
+        return shuffled.slice(0, numRivals).map(profile => {
             const money = Math.floor(playerStartingMoney * profile.startingCapitalMultiplier * mod.capitalMod);
             return {
                 ...profile,
@@ -180,7 +183,6 @@ const Rivals = (() => {
 
     function scorePropertyForRival(rival, prop) {
         let score = 0;
-        if (prop.price > rival.money) return -1;
         if (rival.preferredTypes.includes(prop.type)) score += 30;
         if (rival.preferredDistricts.includes(prop.district)) score += 20;
         score += (prop.revenue / prop.price) * 1000;
@@ -188,10 +190,14 @@ const Rivals = (() => {
     }
 
     function generateAuction(gameState) {
-        // 3% chance per turn
-        if (Math.random() > 0.03) return null;
+        // Cooldowns: 6-month gap and max one per calendar year
+        if (gameState.turn - gameState.lastAuctionTurn < 6) return null;
+        if (gameState.auctionThisYear) return null;
 
-        const activeRivals = gameState.rivals.filter(r => r.money > 0);
+        // 7% chance per turn
+        if (Math.random() > 0.07) return null;
+
+        const activeRivals = gameState.rivals.filter(r => true); // all rivals can participate (loans allowed)
         if (activeRivals.length === 0) return null;
 
         const unowned = gameState.properties.filter(p => p.owner === null && !p.easterEgg);
@@ -216,32 +222,42 @@ const Rivals = (() => {
 
         if (candidates.length === 0) return null;
 
+        // Prefer properties with multi-rival interest for exciting auctions
+        const multiRival = candidates.filter(c => c.interestedRivals.length >= 2);
+        const pool = multiRival.length > 0 ? multiRival : candidates;
+
         // Weighted random pick — properties with more rival interest are more likely
-        const totalWeight = candidates.reduce((s, c) => s + c.totalInterest, 0);
+        const totalWeight = pool.reduce((s, c) => s + c.totalInterest, 0);
         let roll = Math.random() * totalWeight;
-        let chosen = candidates[0];
-        for (const c of candidates) {
+        let chosen = pool[0];
+        for (const c of pool) {
             roll -= c.totalInterest;
             if (roll <= 0) { chosen = c; break; }
         }
 
-        // Starting bid = 85% of market value
-        const startBid = Math.floor(chosen.prop.price * 0.85);
+        // Starting bid = 65% of market value
+        const startBid = Math.floor(chosen.prop.price * 0.65);
         // Bid increment = 8% of base price
         const increment = Math.floor(chosen.prop.price * 0.08);
 
         // Determine each rival's max willingness to pay
+        // Rivals can take loans: budget = cash + up to 50% of their net worth in credit
         const bidders = chosen.interestedRivals.map(({ rival, score }) => {
-            // Max bid scales with aggressiveness and how much they want it
             const desire = Math.min(1, score / 50);
-            const maxBid = Math.floor(chosen.prop.price * (1 + rival.aggressiveness * 0.4 * desire));
+            const maxWilling = Math.floor(chosen.prop.price * (1 + rival.aggressiveness * 0.4 * desire));
+            // Loan budget: rival's current cash + 50% of their owned property value
+            const ownedValue = (gameState.properties || [])
+                .filter(p => p.owner === rival.id)
+                .reduce((s, p) => s + p.price, 0);
+            const loanCapacity = Math.floor(ownedValue * 0.5);
+            const budget = rival.money + loanCapacity;
             return {
                 rival,
-                maxBid: Math.min(maxBid, Math.floor(rival.money * 0.8)), // won't spend >80% of cash
+                maxBid: Math.min(maxWilling, Math.floor(budget * 0.8)),
                 active: true,
                 lastBid: 0,
             };
-        }).filter(b => b.maxBid >= startBid); // only rivals who can afford opening bid
+        }).filter(b => b.maxBid >= startBid);
 
         if (bidders.length === 0) return null;
 
@@ -276,7 +292,7 @@ const Rivals = (() => {
             else if (ratio < 1.0) stayChance = 0.45;
             else stayChance = 0.1; // over their max, very unlikely to stay
 
-            if (Math.random() < stayChance && nextBid <= b.rival.money * 0.8) {
+            if (Math.random() < stayChance && nextBid <= b.maxBid) {
                 b.lastBid = nextBid;
                 results.push({ rival: b.rival, action: 'raise', bid: nextBid });
             } else {

@@ -88,7 +88,7 @@ const Properties = (() => {
         { name: 'Kallio Pizza', type: 'restaurant', district: 'kallio', price: 120000, revenue: 7200, description: 'Popular neighborhood pizzeria', lat: 60.184, lon: 24.949 },
         { name: 'Punavuori Barber', type: 'retail', district: 'punavuori', price: 80000, revenue: 4800, description: 'Hipster barbershop on Iso Roobertinkatu', lat: 60.162, lon: 24.924 },
         { name: 'Kallio Vinyl Bar', type: 'restaurant', district: 'kallio', price: 150000, revenue: 9000, description: 'Trendy vinyl record bar', lat: 60.183, lon: 24.951 },
-        { name: 'Lauttasaari Gym', type: 'retail', district: 'lauttasaari', price: 180000, revenue: 9000, description: 'Neighborhood fitness studio', lat: 60.160, lon: 24.874 },
+        { name: 'Lauttasaari Gym', type: 'retail', district: 'lauttasaari', price: 180000, revenue: 9000, description: 'Neighborhood fitness studio', lat: 60.163, lon: 24.874 },
         { name: 'Lauttasaari Pizzeria', type: 'restaurant', district: 'lauttasaari', price: 200000, revenue: 10500, description: 'Popular island pizzeria on Lauttasaarentie', lat: 60.164, lon: 24.885 },
         { name: 'Lauttasaari S-Market', type: 'retail', district: 'lauttasaari', price: 350000, revenue: 15000, description: 'Grocery store serving the island', lat: 60.158, lon: 24.888 },
         { name: 'Kamppi Laundromat', type: 'retail', district: 'kamppi', price: 70000, revenue: 4200, description: 'Self-service laundromat', lat: 60.167, lon: 24.926 },

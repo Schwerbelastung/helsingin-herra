@@ -144,7 +144,26 @@ const MapRenderer = (() => {
         if (Math.abs(dx) > 5 || Math.abs(dy) > 5) return;
 
         const rect = canvas.getBoundingClientRect();
-        const mapPos = screenToMap(e.clientX - rect.left, e.clientY - rect.top);
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+
+        // Check advisor Hide/Show buttons (screen-space, not map-space)
+        if (advisorHideBtnBounds) {
+            const b = advisorHideBtnBounds;
+            if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+                hideAdvisor();
+                return;
+            }
+        }
+        if (advisorShowBtnBounds) {
+            const b = advisorShowBtnBounds;
+            if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+                showAdvisor();
+                return;
+            }
+        }
+
+        const mapPos = screenToMap(cx, cy);
 
         // Check properties first
         if (typeof GameState !== 'undefined' && GameState.properties) {
@@ -3852,6 +3871,38 @@ const MapRenderer = (() => {
     let advisorLastTurn = -1;
     let advisorActionOverride = null;
 
+    // Advisor hide/show state
+    let advisorHidden = localStorage.getItem('ht_advisorHidden') === 'true';
+    let advisorSlideOffset = advisorHidden ? 1 : 0; // 0 = fully visible, 1 = fully off-screen
+    let advisorDepartureQuote = null;
+    let advisorDepartureTimer = 0;
+
+    const ADVISOR_DEPARTURE_QUOTES = [
+        "Good luck beating the game without my advice!",
+        "Fine! I'll just count my money in silence...",
+        "You'll regret this when the market crashes!",
+        "I see how it is. Even my monocle is offended.",
+        "Off I go! Don't come crying when rents drop!",
+        "Dismissed?! I've advised KINGS of real estate!",
+        "My mustache and I will not forget this insult.",
+        "Very well. I'll be polishing my top hat if you need me.",
+        "Hiding ME? The audacity! The AUDACITY!",
+        "I'm not mad, I'm just... deeply, profoundly disappointed.",
+    ];
+
+    const ADVISOR_RETURN_QUOTES = [
+        "I knew you still needed my help!",
+        "Ah, back to your senses I see!",
+        "Did you miss the monocle? Everyone misses the monocle.",
+        "The market waited for no one while I was gone!",
+        "Finally! Do you know how BORING it is off-screen?",
+        "I forgive you. This time.",
+        "Smart move. Properties don't buy themselves!",
+        "The tycoon is BACK, baby!",
+        "Miss me? Of course you did. Everyone does.",
+        "Let's pretend that never happened, shall we?",
+    ];
+
     function triggerAdvisorAction(action) {
         // ~50% chance to comment on an action
         if (Math.random() > 0.5) return;
@@ -3911,14 +3962,88 @@ const MapRenderer = (() => {
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
+    function hideAdvisor() {
+        advisorHidden = true;
+        localStorage.setItem('ht_advisorHidden', 'true');
+        advisorDepartureQuote = ADVISOR_DEPARTURE_QUOTES[Math.floor(Math.random() * ADVISOR_DEPARTURE_QUOTES.length)];
+        advisorDepartureTimer = 2500; // show quote for 2.5 seconds before sliding
+    }
+
+    function showAdvisor() {
+        advisorHidden = false;
+        localStorage.setItem('ht_advisorHidden', 'false');
+        advisorDepartureQuote = ADVISOR_RETURN_QUOTES[Math.floor(Math.random() * ADVISOR_RETURN_QUOTES.length)];
+        advisorDepartureTimer = 2500;
+    }
+
+    // Cached advisor button bounds for click detection
+    let advisorHideBtnBounds = null;
+    let advisorShowBtnBounds = null;
+
     function drawAdvisor(palette) {
         updateAdvisorQuote();
 
-        const boxW = 238;
-        const boxH = 212;
-        const boxX = canvas.width - boxW - 8;
-        const boxY = 8;
-        const p = 1.875; // pixel scale (1.5 * 1.25)
+        const uiScale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+        const boxW = Math.floor(238 * uiScale);
+        const boxH = Math.floor(212 * uiScale);
+        const btnH = Math.floor(20 * uiScale);
+        const btnFontSize = Math.max(7, Math.floor(7 * uiScale));
+
+        // Animate slide offset
+        const slideTarget = advisorHidden && advisorDepartureTimer <= 0 ? 1 : 0;
+        const slideSpeed = 0.04;
+        if (advisorSlideOffset < slideTarget) {
+            advisorSlideOffset = Math.min(slideTarget, advisorSlideOffset + slideSpeed);
+        } else if (advisorSlideOffset > slideTarget) {
+            advisorSlideOffset = Math.max(slideTarget, advisorSlideOffset - slideSpeed);
+        }
+
+        // When fully hidden, draw "Show" button in top-right corner
+        if (advisorSlideOffset >= 1) {
+            const showBtnW = Math.floor(50 * uiScale);
+            const showBtnH = btnH;
+            const showBtnX = canvas.width - showBtnW - 8;
+            const showBtnY = 8;
+            advisorShowBtnBounds = { x: showBtnX, y: showBtnY, w: showBtnW, h: showBtnH };
+            advisorHideBtnBounds = null;
+
+            ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
+            ctx.fillRect(showBtnX, showBtnY, showBtnW, showBtnH);
+            ctx.strokeStyle = '#ffcc00';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(showBtnX, showBtnY, showBtnW, showBtnH);
+            ctx.font = `${btnFontSize}px "Press Start 2P", monospace`;
+            ctx.fillStyle = '#ffcc00';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Show', showBtnX + showBtnW / 2, showBtnY + showBtnH / 2);
+            return;
+        }
+
+        advisorShowBtnBounds = null;
+
+        // Slide the advisor box off to the right
+        const slidePixels = Math.floor(advisorSlideOffset * (boxW + 16));
+        const boxX = canvas.width - boxW - 8 + slidePixels;
+        const boxY = 8 + btnH + 2;
+        const p = 1.875 * uiScale;
+
+        // "Hide" button above the advisor box (top-left of box)
+        const hideBtnW = Math.floor(50 * uiScale);
+        const hideBtnX = boxX;
+        const hideBtnY = 8;
+        advisorHideBtnBounds = { x: hideBtnX, y: hideBtnY, w: hideBtnW, h: btnH };
+
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
+        ctx.fillRect(hideBtnX, hideBtnY, hideBtnW, btnH);
+        ctx.strokeStyle = '#3a3a5c';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(hideBtnX, hideBtnY, hideBtnW, btnH);
+        ctx.font = `${btnFontSize}px "Press Start 2P", monospace`;
+        ctx.fillStyle = '#aaaacc';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Hide', hideBtnX + hideBtnW / 2, hideBtnY + btnH / 2);
 
         // Panel background
         ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
@@ -3928,15 +4053,21 @@ const MapRenderer = (() => {
         ctx.strokeRect(boxX, boxY, boxW, boxH);
 
         // Draw the tycoon sprite (bottom-center of left portion)
-        const spriteX = boxX + 48;
-        const spriteY = boxY + boxH - 12;
+        const spriteX = boxX + Math.floor(48 * uiScale);
+        const spriteY = boxY + boxH - Math.floor(12 * uiScale);
         drawTycoonSprite(spriteX, spriteY, p, palette);
 
+        // Determine what text to show
+        let displayQuote = advisorQuote;
+        if (advisorDepartureQuote && advisorDepartureTimer > 0) {
+            displayQuote = advisorDepartureQuote;
+        }
+
         // Speech bubble (right side)
-        const bubbleX = boxX + 92;
-        const bubbleY = boxY + 8;
-        const bubbleW = boxW - 100;
-        const bubbleH = boxH - 18;
+        const bubbleX = boxX + Math.floor(92 * uiScale);
+        const bubbleY = boxY + Math.floor(8 * uiScale);
+        const bubbleW = boxW - Math.floor(100 * uiScale);
+        const bubbleH = boxH - Math.floor(18 * uiScale);
 
         ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
         ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
@@ -3948,23 +4079,24 @@ const MapRenderer = (() => {
         ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
         ctx.beginPath();
         ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
-        ctx.lineTo(bubbleX - 7, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX - Math.floor(7 * uiScale), bubbleY + bubbleH * 0.5);
         ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
         ctx.fill();
         ctx.strokeStyle = '#ffcc00';
         ctx.beginPath();
         ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
-        ctx.lineTo(bubbleX - 7, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX - Math.floor(7 * uiScale), bubbleY + bubbleH * 0.5);
         ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
         ctx.stroke();
 
         // Word-wrap the quote text
-        ctx.font = '8px "Press Start 2P", monospace';
+        const fontSize = Math.max(8, Math.floor(8 * uiScale));
+        ctx.font = `${fontSize}px "Press Start 2P", monospace`;
         ctx.fillStyle = '#e0e0ff';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        const words = advisorQuote.split(' ');
-        const maxLineW = bubbleW - 8;
+        const words = displayQuote.split(' ');
+        const maxLineW = bubbleW - Math.floor(8 * uiScale);
         const lines = [];
         let currentLine = '';
         for (const word of words) {
@@ -3978,10 +4110,11 @@ const MapRenderer = (() => {
         }
         if (currentLine) lines.push(currentLine);
 
-        const lineH = 12;
-        const textStartY = bubbleY + Math.max(5, (bubbleH - lines.length * lineH) / 2);
+        const lineH = Math.floor(12 * uiScale);
+        const pad = Math.floor(5 * uiScale);
+        const textStartY = bubbleY + Math.max(pad, (bubbleH - lines.length * lineH) / 2);
         for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], bubbleX + 5, textStartY + i * lineH);
+            ctx.fillText(lines[i], bubbleX + pad, textStartY + i * lineH);
         }
     }
 
@@ -4634,6 +4767,15 @@ const MapRenderer = (() => {
                 }
             }
 
+            // Update advisor departure timer
+            if (advisorDepartureTimer > 0) {
+                advisorDepartureTimer -= dt;
+                if (advisorDepartureTimer <= 0) {
+                    advisorDepartureTimer = 0;
+                    advisorDepartureQuote = null;
+                }
+            }
+
             // Update weather
             let needsRender = false;
             if (weatherActive) {
@@ -4648,7 +4790,11 @@ const MapRenderer = (() => {
                 }
             }
 
-            // Re-render at throttled rate (or always during weather for smooth particles)
+            // Advisor slide animation needs renders
+            const slideTarget = advisorHidden && advisorDepartureTimer <= 0 ? 1 : 0;
+            if (advisorSlideOffset !== slideTarget || advisorDepartureTimer > 0) needsRender = true;
+
+            // Re-render at throttled rate (or always during weather/advisor animation)
             if (!transitionFrom && (now - lastRenderTime > RENDER_INTERVAL || needsRender)) {
                 lastRenderTime = now;
                 render();

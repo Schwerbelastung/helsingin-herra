@@ -205,39 +205,37 @@ const HelsinkiDistricts = (() => {
     // LAUTTASAARI ISLAND — separated from mainland by strait
     // =========================================================
     const lauttasaariIsland = geoToMap([
-        // North shore (faces strait)
-        [60.168, 24.880],
-        [60.167, 24.884],
-        [60.166, 24.888],
-        [60.165, 24.892],
-        // Northeast — closest to mainland (bridge at ~24.893)
+        // Northwest corner
+        [60.167, 24.863],
+        // North shore — flat and wide
+        [60.168, 24.870],
+        [60.168, 24.878],
+        [60.168, 24.886],
+        // Northeast corner — toward bridge
+        [60.167, 24.891],
+        [60.165, 24.893],
         [60.163, 24.895],
-        [60.162, 24.896],
-        // East shore
-        [60.160, 24.896],
-        [60.158, 24.895],
-        [60.156, 24.893],
-        // Southeast
-        [60.154, 24.890],
-        [60.153, 24.887],
-        // South shore
-        [60.152, 24.884],
-        [60.152, 24.880],
-        [60.153, 24.876],
-        // Southwest
-        [60.154, 24.873],
-        [60.155, 24.870],
-        // West shore
-        [60.157, 24.868],
-        [60.159, 24.866],
-        // Northwest
-        [60.161, 24.866],
-        [60.163, 24.867],
-        [60.165, 24.869],
-        // North
-        [60.167, 24.872],
-        [60.168, 24.876],
-        [60.168, 24.880],
+        // East wall — drops south, staying east
+        [60.161, 24.893],
+        [60.159, 24.892],
+        [60.157, 24.891],
+        // Vattuniemi — points straight south
+        [60.155, 24.890],
+        [60.153, 24.889],
+        [60.151, 24.887],
+        [60.149, 24.884],
+        // South tip — turns west
+        [60.149, 24.879],
+        // Southwest bay — deep concave cut inward
+        [60.152, 24.879],
+        [60.156, 24.879],
+        [60.160, 24.876],
+        // West wall — short, straight up from the inner corner
+        [60.161, 24.870],
+        [60.162, 24.864],
+        [60.165, 24.862],
+        // Close — back to northwest corner
+        [60.167, 24.863],
     ]);
 
     // =========================================================
@@ -653,7 +651,7 @@ const HelsinkiDistricts = (() => {
             id: 'lauttasaari',
             name: 'Lauttasaari',
             polygon: lauttasaariIsland,
-            center: geoToMap([[60.160, 24.882]])[0],
+            center: geoToMap([[60.160, 24.876]])[0],
             color: '#4a7a5a',
             description: 'Residential island with beach, good transport links',
             prestige: 3,
@@ -1228,7 +1226,7 @@ const HelsinkiDistricts = (() => {
         { name: 'Kaivopuisto Observatory', pos: geoToMap([[60.1550, 24.9490]])[0], district: 'kaivopuisto' },
         { name: 'Tähtitorninmäki Observatory', pos: geoToMap([[60.1625, 24.9490]])[0], district: 'kaivopuisto' },
         { name: 'Seurasaari Open-Air Museum', pos: geoToMap([[60.1825, 24.9000]])[0], district: null },
-        { name: 'Lauttasaari Beach', pos: geoToMap([[60.1530, 24.880]])[0], district: 'lauttasaari' },
+        { name: 'Lauttasaari Beach', pos: geoToMap([[60.157, 24.878]])[0], district: 'lauttasaari' },
         { name: 'Munkkiniemi DiscGolf Range', pos: geoToMap([[60.1970, 24.9120]])[0], district: 'toolo' },
         { name: 'Kiasma', pos: geoToMap([[60.1730, 24.9360]])[0], district: 'kamppi' },
         { name: 'Helsinki Wheel', pos: geoToMap([[60.167, 24.962]])[0], district: 'katajanokka' },
@@ -1393,11 +1391,11 @@ const HelsinkiDistricts = (() => {
         {
             name: 'Valkosaari',
             polygon: geoToMap([
-                [60.162, 24.958],
+                [60.162, 24.955],
+                [60.163, 24.954],
+                [60.164, 24.955],
                 [60.163, 24.957],
-                [60.164, 24.958],
-                [60.163, 24.960],
-                [60.162, 24.958],
+                [60.162, 24.955],
             ]),
         },
         {
@@ -1510,19 +1508,15 @@ const HelsinkiDistricts = (() => {
 
     // Southern forest tip of Lauttasaari
     const lauttasaariForest = geoToMap([
-        [60.157, 24.869],   // NW (west shore)
-        [60.157, 24.873],   // N centre-west
-        [60.156, 24.878],   // N centre-east
-        [60.155, 24.883],   // NE
-        [60.154, 24.887],   // E
-        [60.153, 24.887],   // SE corner
-        [60.152, 24.884],   // S
-        [60.152, 24.880],   // S
-        [60.153, 24.876],   // SW
-        [60.154, 24.873],   // W
-        [60.155, 24.870],   // W lower
-        [60.157, 24.868],   // W tip
-        [60.157, 24.869],   // close
+        [60.158, 24.880],   // NW
+        [60.156, 24.886],   // N
+        [60.154, 24.889],   // NE
+        [60.152, 24.888],   // E (Vattuniemi)
+        [60.149, 24.884],   // SE tip
+        [60.149, 24.879],   // S
+        [60.152, 24.879],   // SW (follows concave bay)
+        [60.156, 24.879],   // W (inner corner)
+        [60.158, 24.880],   // close
     ]);
 
     return {
