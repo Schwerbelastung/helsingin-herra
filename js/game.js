@@ -29,6 +29,8 @@ const GameState = {
     specialEventThisYear: false, // tracks if any special event fired this calendar year
     specialEventOccurrences: {}, // tracks how many times each special event has fired (max 3, 1 for Nokia)
     lastSpecialEventId: null, // ID of the last special event that fired (prevent back-to-back repeats)
+    usedSpecialArticleIndices: {}, // tracks which article variant was last used per special event
+    lastOfferTurn: -10, // turn when last rival offer was shown (cooldown: 2 turns)
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
@@ -56,6 +58,8 @@ const Game = (() => {
         GameState.specialEventThisYear = false;
         GameState.specialEventOccurrences = {};
         GameState.lastSpecialEventId = null;
+        GameState.usedSpecialArticleIndices = {};
+        GameState.lastOfferTurn = -10;
 
         // Difficulty settings
         const diffSettings = {
@@ -155,9 +159,12 @@ const Game = (() => {
                 GameState.lastSpecialEventId = event.id;
             }
 
-            // Play event sound
+            // Play event sound and show Swedish newspaper
             if (event.id === 'swedish_invasion') {
                 Sound.playSwedishAnthem();
+                // Show HBL special edition
+                const hblPaper = Newspaper.generateSwedishPaper(GameState);
+                UI.showNewspaperPrompt(null, hblPaper);
             } else if (event.special) {
                 Sound.playEventSpecial();
             } else if (event.positive) {
@@ -206,7 +213,10 @@ const Game = (() => {
             // January — generate year-in-review for the year that just ended
             const reviewYear = GameState.year - 1;
             const paper = Newspaper.generateYearlyPaper(GameState, GameState.yearlyLog, reviewYear);
-            UI.showNewspaperPrompt(paper);
+            // If Swedish invasion is active, also generate HBL
+            const swedishActive = GameState.activeEvents.some(e => e.id === 'swedish_invasion');
+            const hblPaper = swedishActive ? Newspaper.generateSwedishPaper(GameState) : null;
+            UI.showNewspaperPrompt(paper, hblPaper);
             // Clear yearly log for new year
             GameState.yearlyLog = GameState.yearlyLog.filter(e => e.year >= GameState.year);
             // Adjust special event probability for the new year
@@ -275,10 +285,11 @@ const Game = (() => {
             const auction = Rivals.generateAuction(GameState);
             if (auction) {
                 startAuction(auction);
-            } else {
+            } else if (GameState.turn - GameState.lastOfferTurn >= 2) {
                 const offer = Rivals.generateOffer(GameState);
                 if (offer) {
                     pendingOffer = offer;
+                    GameState.lastOfferTurn = GameState.turn;
                     UI.showOfferDialog(offer);
                 }
             }
@@ -393,31 +404,25 @@ const Game = (() => {
         const a = activeAuction;
         const nextBid = a.currentBid + a.increment;
 
-        if (GameState.money < nextBid) {
-            UI.setNewsText(GameState.playerName + " can't afford to raise!");
+        // Allow bidding with loans: can afford if cash + available credit covers it
+        const availableCredit = Economy.getAvailableCredit(GameState);
+        const totalBuyingPower = GameState.money + availableCredit;
+        if (totalBuyingPower < nextBid) {
+            UI.setNewsText(GameState.playerName + " can't afford to raise — not even with a loan!");
             return;
         }
+
+        // Disable buttons during rival animation
+        const raiseBtn = document.getElementById('auction-raise');
+        const dropoutBtn = document.getElementById('auction-dropout');
+        if (raiseBtn) raiseBtn.disabled = true;
+        if (dropoutBtn) dropoutBtn.disabled = true;
 
         Sound.playAuctionBid();
         a.playerBid = nextBid;
         a.currentBid = nextBid;
         a.leader = 'player';
         a.round++;
-
-        if (a.round >= a.maxRounds) {
-            // Process final rival responses then end
-            const results = Rivals.processAuctionRound(a);
-            // Check if a rival outbid us in the final round
-            for (const r of results) {
-                if (r.action === 'raise' && r.bid > a.currentBid) {
-                    a.currentBid = r.bid;
-                    a.leader = r.rival.id;
-                }
-            }
-            UI.updateAuctionRound(a, results);
-            setTimeout(() => finishAuction(), 1200);
-            return;
-        }
 
         // Rivals respond
         const results = Rivals.processAuctionRound(a);
@@ -437,25 +442,40 @@ const Game = (() => {
             a.leader = highestRivalBidder.id;
         }
 
-        // Check if all rivals dropped
-        const activeRivals = a.bidders.filter(b => b.active);
-        if (activeRivals.length === 0) {
-            UI.updateAuctionRivals(a, results);
-            setTimeout(() => finishAuction(), 800);
-            return;
-        }
+        // Update round info (but NOT rival cards — those animate one by one)
+        const roundNum = document.getElementById('auction-round-num');
+        const bidAmount = document.getElementById('auction-bid-amount');
+        const bidLeader = document.getElementById('auction-bid-leader');
+        if (roundNum) roundNum.textContent = a.round + 1;
 
-        // Play rival sounds with delays for drama
-        let delay = 300;
-        for (const r of results) {
-            setTimeout(() => {
-                if (r.action === 'raise') Sound.playAuctionRivalBid();
-                else Sound.playAuctionDropout();
-            }, delay);
-            delay += 400;
-        }
+        // Animate rival results one at a time
+        UI.animateRivalResults(results, () => {
+            // After all rivals have acted, update final state
+            bidAmount.textContent = `€${UI.formatMoney(a.currentBid)}`;
+            if (a.leader === 'player') {
+                bidLeader.textContent = GameState.playerName + ' is leading!';
+                bidLeader.style.color = '#44ff44';
+            } else {
+                const leader = a.bidders.find(b => b.rival.id === a.leader);
+                bidLeader.textContent = leader ? `${leader.rival.shortName} is leading` : '';
+                bidLeader.style.color = leader ? leader.rival.color : '';
+            }
 
-        UI.updateAuctionRound(a, results);
+            const nextRaiseBid = a.currentBid + a.increment;
+            if (raiseBtn) {
+                const needsLoan = nextRaiseBid > GameState.money;
+                raiseBtn.textContent = `RAISE €${UI.formatMoney(nextRaiseBid)}${needsLoan ? ' (LOAN)' : ''}`;
+            }
+
+            const activeRivals = a.bidders.filter(b => b.active);
+            if (a.round >= a.maxRounds || activeRivals.length === 0) {
+                setTimeout(() => finishAuction(), 800);
+            } else {
+                // Re-enable buttons
+                if (raiseBtn) raiseBtn.disabled = false;
+                if (dropoutBtn) dropoutBtn.disabled = false;
+            }
+        }, 900);
     }
 
     function auctionPlayerDropout() {
@@ -464,10 +484,29 @@ const Game = (() => {
         a.playerIn = false;
         Sound.playClick();
 
-        // Simulate remaining rounds without player
-        while (a.round < a.maxRounds) {
+        // Disable buttons immediately to prevent double-clicks
+        const raiseBtn = document.getElementById('auction-raise');
+        const dropoutBtn = document.getElementById('auction-dropout');
+        if (raiseBtn) raiseBtn.disabled = true;
+        if (dropoutBtn) dropoutBtn.disabled = true;
+
+        // Mark player card as dropped
+        const playerCard = document.getElementById('auction-player-card');
+        if (playerCard) {
+            playerCard.className = 'auction-participant dropped';
+            playerCard.querySelector('.auction-participant-status').textContent = 'OUT';
+        }
+
+        // Animate remaining rounds one at a time, with per-rival stagger
+        function animateNextRound() {
+            if (a.round >= a.maxRounds) {
+                resolveDropoutWinner();
+                return;
+            }
+
             a.round++;
             const results = Rivals.processAuctionRound(a);
+
             // Update current bid to highest active rival
             for (const r of results) {
                 if (r.action === 'raise' && r.bid > a.currentBid) {
@@ -475,19 +514,51 @@ const Game = (() => {
                     a.leader = r.rival.id;
                 }
             }
-            a.currentBid += a.increment;
+
+            // Update round number
+            const roundNum = document.getElementById('auction-round-num');
+            if (roundNum) roundNum.textContent = a.round + 1;
+
+            // Animate rival results one at a time, then proceed
+            UI.animateRivalResults(results, () => {
+                // Update bid display after all rivals acted
+                const bidAmount = document.getElementById('auction-bid-amount');
+                const bidLeader = document.getElementById('auction-bid-leader');
+                if (bidAmount) bidAmount.textContent = `€${UI.formatMoney(a.currentBid)}`;
+                if (a.leader) {
+                    const leader = a.bidders.find(b => b.rival.id === a.leader);
+                    if (bidLeader && leader) {
+                        bidLeader.textContent = `${leader.rival.shortName} is leading`;
+                        bidLeader.style.color = leader.rival.color;
+                    }
+                }
+
+                // Check if auction should end (0 or 1 active rival)
+                const activeRivals = a.bidders.filter(b => b.active);
+                if (activeRivals.length <= 1) {
+                    setTimeout(() => resolveDropoutWinner(), 600);
+                    return;
+                }
+
+                // Bump bid for next round
+                a.currentBid += a.increment;
+
+                // Continue to next round after pause
+                setTimeout(animateNextRound, 500);
+            }, 900);
+        }
+
+        function resolveDropoutWinner() {
             const activeRivals = a.bidders.filter(b => b.active);
-            if (activeRivals.length <= 1) break;
+            if (activeRivals.length > 0) {
+                a.leader = activeRivals[0].rival.id;
+                a.currentBid = activeRivals[0].lastBid || a.currentBid;
+            }
+            finishAuction();
         }
 
-        // Determine winner among remaining rivals
-        const activeRivals = a.bidders.filter(b => b.active);
-        if (activeRivals.length > 0) {
-            a.leader = activeRivals[0].rival.id;
-            a.currentBid = activeRivals[0].lastBid || a.currentBid;
-        }
-
-        finishAuction();
+        // Start animating after a brief pause
+        setTimeout(animateNextRound, 800);
     }
 
     function finishAuction() {
@@ -498,14 +569,20 @@ const Game = (() => {
         Sound.stopAuctionMusic();
 
         if (a.leader === 'player' && a.playerIn) {
-            // Player wins!
+            // Player wins — auto-loan if needed
+            let loanMsg = '';
+            if (GameState.money < a.currentBid) {
+                const shortfall = a.currentBid - GameState.money;
+                Economy.takeLoan(GameState, shortfall);
+                loanMsg = ` (took €${UI.formatMoney(shortfall)} loan to cover the bid)`;
+            }
             GameState.money -= a.currentBid;
             a.property.owner = 'player';
             Sound.playAuctionWin();
-            UI.showAuctionResult(a, true, `${GameState.playerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
-            UI.setNewsText(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
-            UI.addLogAction(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
-            logYearlyEvent('auction', `${GameState.playerName} won a heated bidding war for ${a.property.name}, paying €${UI.formatMoney(a.currentBid)}`, { winnerId: 'player' });
+            UI.showAuctionResult(a, true, `${GameState.playerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!${loanMsg}`);
+            UI.setNewsText(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}!${loanMsg}`);
+            UI.addLogAction(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}${loanMsg}`);
+            logYearlyEvent('auction', `${GameState.playerName} won a heated bidding war for ${a.property.name}, paying €${UI.formatMoney(a.currentBid)}${loanMsg}`, { winnerId: 'player' });
         } else if (a.leader) {
             // A rival wins
             const winner = a.bidders.find(b => b.rival.id === a.leader);
@@ -642,7 +719,18 @@ const Game = (() => {
         }
 
         GameState.activeEvents.push(event);
-        Sound.playEventSpecial();
+
+        // Log for newspaper year-in-review
+        logYearlyEvent(event.special ? 'special_event' : 'event', event.name);
+
+        // Play appropriate sound and trigger event-specific UI
+        if (pick === 'swedish_invasion') {
+            Sound.playSwedishAnthem();
+            const hblPaper = Newspaper.generateSwedishPaper(GameState);
+            UI.showNewspaperPrompt(null, hblPaper);
+        } else {
+            Sound.playEventSpecial();
+        }
         UI.showEventNotification(event);
         if (pick === 'nokia_comeback') {
             UI.showNokiaAnnouncement();
@@ -769,7 +857,7 @@ const Game = (() => {
 
     function buildSaveData() {
         return {
-            version: '0.15.2',
+            version: '0.16.3',
             savedAt: Date.now(),
             money: GameState.money,
             month: GameState.month,
@@ -834,6 +922,8 @@ const Game = (() => {
             specialEventThisYear: GameState.specialEventThisYear,
             specialEventOccurrences: GameState.specialEventOccurrences,
             lastSpecialEventId: GameState.lastSpecialEventId,
+            usedSpecialArticleIndices: GameState.usedSpecialArticleIndices,
+            lastOfferTurn: GameState.lastOfferTurn,
         };
     }
 
@@ -881,6 +971,8 @@ const Game = (() => {
             GameState.specialEventThisYear = data.specialEventThisYear || false;
             GameState.specialEventOccurrences = data.specialEventOccurrences || {};
             GameState.lastSpecialEventId = data.lastSpecialEventId || null;
+            GameState.usedSpecialArticleIndices = data.usedSpecialArticleIndices || {};
+            GameState.lastOfferTurn = data.lastOfferTurn != null ? data.lastOfferTurn : -10;
             GameState.financeHistory = data.financeHistory || [];
 
             // Update visuals

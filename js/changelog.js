@@ -1,5 +1,68 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.15.2 — Quality of Life (2026-04-03)
+const CHANGELOG_MD = `## v0.16.3 — Map Details (2026-04-03)
+
+### Visual
+- **Seurasaari** — island now renders in forest green (seasonal) instead of grey
+- **Lauttasaari** — southern wooded tip rendered in forest green
+- **Helsinki Wheel** — now a proper landmark with hover glow and tooltip
+
+### Changed
+- **Easter egg grace period** — special events cannot trigger in the first 6 months of a new game
+- **Easter egg cooldown** — at least 2 months between special events (was already in place)
+- **Name confirmation prompt** — leaving the name blank now asks if you want to play as "The Tycoon of Helsinki" or enter your own name
+
+---
+
+## v0.16.2 — Map & Sprites (2026-04-03)
+
+### Visual
+- **Finlandia Hall sprite** — white modernist building with stepped roofline and angular glass facade
+- **Oodi Library sprite** — swooping copper/brown curved roof with glass-paneled facade
+- **Jätkäsaari & Hernesaari** — reshaped for accuracy; wider water channel between them
+- **Eira** — shifted northeast, no longer overlaps Hernesaari
+- **Kluuvi** — north edge pulled south, no longer overlaps Töölönlahti
+
+---
+
+## v0.16.1 — More Content (2026-04-03)
+
+### Added
+- **Doubled all filler stories** — 301 general stories, 44 Nalle / 44 Hjallis / 48 Risto rival stories
+- **Rival activity story variants** — 10 titles × 8 intros × 7 closings for the annual rival round-up
+
+---
+
+## v0.16.0 — Bidding Wars & Hufvudstadsbladet (2026-04-03)
+
+### Added
+- **Hufvudstadsbladet** — a second newspaper may appear under rare circumstances, published entirely in Swedish with its own headlines and local stories
+- **Auction auto-loan** — bid beyond your cash; loans taken automatically if you win
+- **6 bidding war headline variants** for year-in-review newspapers
+- **50 new filler stories** (150 total) + more rival stories
+
+### Changed
+- **Slower auction animations** — rival bids appear one at a time with dramatic pacing
+- **Buttons disabled during rival animation** to prevent double-clicks
+- **Animated roller coaster** at Linnanmäki (spring/summer), bigger sprites for stadium, disc golf, roller coaster
+- **Disc golf** repositioned north of Munkkiniemi label; **Seurasaari** landmark nudged SE
+
+---
+
+## v0.15.3 — Auction Overhaul (2026-04-03)
+
+### Changed
+- **Auction max rounds increased** — bidding wars now last up to 5 rounds (was 3), ending early when only 1 bidder remains
+- **Animated auction dropout** — when the player steps out, remaining rounds play out with animated rival bids and UI updates
+- **Rival offer cooldown** — at least 2 turns between rival purchase offers
+- **Cross-game filler story tracking** — newspaper stories feel fresh across playthroughs (75% must cycle before repeats)
+
+### Fixed
+- **Hakaniemi district** — polygon no longer overlaps with the sea to the south/southwest
+- **Jätkäsaari district** — trimmed top-right corner extending into the sea
+
+---
+
+## v0.15.2 — Quality of Life (2026-04-03)
 
 ### Added
 - **"Can Afford & Available" filter** — toggle in filter panel to show only purchaseable properties within budget
@@ -11,14 +74,10 @@ const CHANGELOG_MD = `## v0.15.2 — Quality of Life (2026-04-03)
 
 ---
 
-## v0.15.1 — Swedish Invasion (2026-04-03)
+## v0.15.1 — Something Unexpected (2026-04-03)
 
 ### Added
-- **SWEDISH INVASION!** easter egg — Sweden symbolically reclaims Helsinki for 3 turns
-  - All district labels switch to their official Swedish names
-  - Swedish flag with animation appears at top of screen
-  - Swedish national anthem fanfare
-  - Newspaper illustration and article coverage
+- **New rare event** — something unusual can happen that temporarily transforms the entire city, with its own music, newspaper coverage, and visual effects
 - **Per-event occurrence cap** — each special event can fire at most 3 times per playthrough
 
 ---
@@ -45,7 +104,7 @@ const CHANGELOG_MD = `## v0.15.2 — Quality of Life (2026-04-03)
 - **Newspaper illustrations** — special event headlines include pixel art sprites
 - **Rival portraits in newspaper** — tycoon stories show their portrait
 - **Rival-specific filler stories** — 15 personality-driven stories (5 per rival)
-- **Polar bear newspaper coverage** — sightings appear in year-in-review
+- **Special event newspaper coverage** — certain rare events are now logged in year-in-review papers
 - **3 additional sailboats** in the northwestern waters
 
 ### Changed
@@ -70,7 +129,7 @@ const CHANGELOG_MD = `## v0.15.2 — Quality of Life (2026-04-03)
 ### Changed
 - "You" replaced with player name throughout the game
 - Monopoly man advisor scaled up 1.25×
-- Tonttu invasion spreads across all landmarks and unowned properties city-wide
+- One rare seasonal event now spreads more widely across the map
 
 ---
 

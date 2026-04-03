@@ -483,15 +483,19 @@ const MapRenderer = (() => {
         // Small decorative islands
         if (HelsinkiDistricts.islands) {
             for (const island of HelsinkiDistricts.islands) {
+                const islandColor = island.forest ? palette.park : palette.landAlt;
                 // Tiny shadow
                 ctx.fillStyle = palette.coastEdge;
                 ctx.save();
                 ctx.translate(1, 1);
                 fillPolygon(island.polygon);
                 ctx.restore();
-                drawFilledPolygon(island.polygon, palette.landAlt, palette.coastEdge, 0.5);
+                drawFilledPolygon(island.polygon, islandColor, palette.coastEdge, 0.5);
             }
         }
+
+        // Lauttasaari southern forest tip
+        drawFilledPolygon(HelsinkiDistricts.lauttasaariForest, palette.park, palette.coastEdge, 0.5);
     }
 
     function drawInternalWater(palette) {
@@ -587,23 +591,29 @@ const MapRenderer = (() => {
 
             // Custom sprites for specific landmarks
             if (lm.name === 'Linnanmäki') {
-                drawRollercoasterSprite(x, y, palette);
+                drawScaledSprite(x, y, 1.5, () => drawRollercoasterSprite(0, 0, palette));
             } else if (lm.name.includes('Beach')) {
                 drawBeachSprite(x, y, palette);
             } else if (lm.name === 'Allas Sea Pool') {
                 drawSeaPoolSprite(x, y, palette);
             } else if (lm.name === 'Olympic Stadium') {
-                drawStadiumSprite(x, y, palette);
+                drawScaledSprite(x, y, 1.25, () => drawStadiumSprite(0, 0, palette));
             } else if (lm.name === 'Sibelius Monument') {
                 drawSibeliusSprite(x, y, palette);
             } else if (lm.name.includes('DiscGolf')) {
-                drawDiscGolfSprite(x, y, palette);
+                drawScaledSprite(x, y, 1.25, () => drawDiscGolfSprite(0, 0, palette));
             } else if (lm.name.includes('Observatory')) {
                 drawObservatorySprite(x, y, palette);
             } else if (lm.name.includes('Open-Air Museum')) {
                 drawOpenAirMuseumSprite(x, y, palette);
             } else if (lm.name === 'Kiasma') {
                 drawKiasmaSprite(x, y, palette);
+            } else if (lm.name === 'Helsinki Wheel') {
+                drawHelsinkiWheel(x, y, palette);
+            } else if (lm.name === 'Finlandia Hall') {
+                drawFinlandiaHallSprite(x, y, palette);
+            } else if (lm.name === 'Oodi Library') {
+                drawOodiLibrarySprite(x, y, palette);
             } else {
                 // Default shapes
                 const isChurch = lm.name.includes('Cathedral') || lm.name.includes('Church');
@@ -658,6 +668,14 @@ const MapRenderer = (() => {
 
     // === CUSTOM LANDMARK SPRITES ===
 
+    function drawScaledSprite(x, y, scale, drawFn) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        drawFn();
+        ctx.restore();
+    }
+
     function drawRollercoasterSprite(x, y, palette) {
         // Roller coaster track — arched rails
         ctx.strokeStyle = '#aa4444';
@@ -680,13 +698,40 @@ const MapRenderer = (() => {
         ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 4);
         ctx.moveTo(x + 5, y + 2); ctx.lineTo(x + 5, y - 7);
         ctx.stroke();
-        // Cart on the first hill
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillRect(x - 8, y - 12, 4, 3);
-        // Wheels
-        ctx.fillStyle = '#333';
-        ctx.fillRect(x - 8, y - 9, 1, 1);
-        ctx.fillRect(x - 5, y - 9, 1, 1);
+
+        // Animated cart — moves along the track in summer, static in winter
+        const isSummer = currentSeason === 'summer' || currentSeason === 'spring';
+        if (isSummer) {
+            // t oscillates 0→1→0 over ~3 seconds
+            const t = (Math.sin(Date.now() / 1500) + 1) / 2;
+            // Cart travels along both hills: interpolate position
+            // First hill: t=0..0.5, Second hill: t=0.5..1
+            let cartX, cartY;
+            if (t < 0.5) {
+                // First hill (quadratic bezier from (-12,+2) via (-6,-14) to (0,-4))
+                const u = t * 2;
+                cartX = x + (1 - u) * (1 - u) * (-12) + 2 * (1 - u) * u * (-6) + u * u * 0;
+                cartY = y + (1 - u) * (1 - u) * 2 + 2 * (1 - u) * u * (-14) + u * u * (-4);
+            } else {
+                // Second hill (quadratic bezier from (0,-4) via (5,-10) to (10,-2))
+                const u = (t - 0.5) * 2;
+                cartX = x + (1 - u) * (1 - u) * 0 + 2 * (1 - u) * u * 5 + u * u * 10;
+                cartY = y + (1 - u) * (1 - u) * (-4) + 2 * (1 - u) * u * (-10) + u * u * (-2);
+            }
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillRect(cartX - 2, cartY - 3, 4, 3);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(cartX - 2, cartY, 1, 1);
+            ctx.fillRect(cartX + 1, cartY, 1, 1);
+        } else {
+            // Static cart parked at base
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillRect(x - 8, y - 1, 4, 3);
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x - 8, y + 2, 1, 1);
+            ctx.fillRect(x - 5, y + 2, 1, 1);
+        }
+
         // Ground platform
         ctx.fillStyle = '#665544';
         ctx.fillRect(x - 13, y + 2, 24, 2);
@@ -1661,6 +1706,143 @@ const MapRenderer = (() => {
         }
     }
 
+    function drawFinlandiaHallSprite(x, y, palette) {
+        // Finlandia Hall — Alvar Aalto's white modernist concert hall
+        // Stepped asymmetric roofline, white marble, rows of windows
+
+        // Main building body (wide, low)
+        ctx.fillStyle = '#e8e4e0';
+        ctx.fillRect(x - 10, y - 4, 20, 8);
+
+        // Stepped roofline — taller center-right section
+        ctx.fillStyle = '#eeebe8';
+        ctx.fillRect(x - 2, y - 9, 8, 5);     // tall tower section
+        ctx.fillRect(x - 6, y - 7, 4, 3);      // mid-left step
+        ctx.fillRect(x + 6, y - 6, 4, 2);      // right step
+
+        // Angular roof peak on tower
+        ctx.fillStyle = '#f0ede8';
+        ctx.beginPath();
+        ctx.moveTo(x - 2, y - 9);
+        ctx.lineTo(x + 1, y - 12);
+        ctx.lineTo(x + 6, y - 9);
+        ctx.closePath();
+        ctx.fill();
+
+        // Metallic blue-gray angled facade on right side
+        ctx.fillStyle = '#8da8b8';
+        ctx.beginPath();
+        ctx.moveTo(x + 6, y - 9);
+        ctx.lineTo(x + 10, y - 6);
+        ctx.lineTo(x + 10, y - 4);
+        ctx.lineTo(x + 6, y - 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Window rows on main body
+        ctx.fillStyle = '#9ab0c0';
+        for (let wx = -8; wx <= 7; wx += 3) {
+            ctx.fillRect(x + wx, y - 2, 2, 1.5);
+        }
+        // Window rows on tower
+        for (let wx = -1; wx <= 4; wx += 3) {
+            ctx.fillRect(x + wx, y - 7, 2, 1.5);
+        }
+
+        // Entrance (dark, center-left)
+        ctx.fillStyle = '#445566';
+        ctx.fillRect(x - 4, y + 1, 3, 3);
+
+        // Ground line / base plinth
+        ctx.fillStyle = '#ccc8c4';
+        ctx.fillRect(x - 10, y + 4, 20, 1);
+
+        // Snow on rooftops
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 6, y - 8, 4, 1);
+            ctx.fillRect(x - 2, y - 10, 8, 1);
+            ctx.fillRect(x + 6, y - 7, 4, 1);
+            // Snow on angular peak
+            ctx.beginPath();
+            ctx.moveTo(x - 1, y - 9.5);
+            ctx.lineTo(x + 1, y - 12.5);
+            ctx.lineTo(x + 5, y - 9.5);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    function drawOodiLibrarySprite(x, y, palette) {
+        // Oodi — Helsinki Central Library with distinctive curved/swooping roof
+        // Roof rises at both ends, dips in the middle; warm wood/copper tones
+
+        // Base / ground floor (concrete gray)
+        ctx.fillStyle = '#c0bdb8';
+        ctx.fillRect(x - 11, y + 1, 22, 4);
+
+        // Glass middle section (visible under the roof dip)
+        ctx.fillStyle = '#88aabb';
+        ctx.fillRect(x - 9, y - 3, 18, 5);
+        // Glass panel lines
+        ctx.strokeStyle = '#99bbcc';
+        ctx.lineWidth = 0.4;
+        for (let gx = -9; gx <= 9; gx += 3) {
+            ctx.beginPath();
+            ctx.moveTo(x + gx, y - 3);
+            ctx.lineTo(x + gx, y + 2);
+            ctx.stroke();
+        }
+
+        // Swooping roof — warm copper/brown, curves up at both ends
+        ctx.fillStyle = '#b08040';
+        ctx.beginPath();
+        ctx.moveTo(x - 12, y - 8);        // left end (rises up)
+        ctx.quadraticCurveTo(x - 6, y - 3, x, y - 4);   // dips toward center
+        ctx.quadraticCurveTo(x + 6, y - 5, x + 12, y - 10); // rises right
+        ctx.lineTo(x + 12, y - 7);        // roof thickness right
+        ctx.quadraticCurveTo(x + 6, y - 2, x, y - 1);
+        ctx.quadraticCurveTo(x - 6, y - 0, x - 12, y - 5);  // roof underside
+        ctx.closePath();
+        ctx.fill();
+
+        // Roof highlight — lighter copper strip along top edge
+        ctx.strokeStyle = '#c89850';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x - 12, y - 8);
+        ctx.quadraticCurveTo(x - 6, y - 3, x, y - 4);
+        ctx.quadraticCurveTo(x + 6, y - 5, x + 12, y - 10);
+        ctx.stroke();
+
+        // Darker wood accent band along roof edge
+        ctx.strokeStyle = '#8a6030';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 12, y - 5);
+        ctx.quadraticCurveTo(x - 6, y - 0, x, y - 1);
+        ctx.quadraticCurveTo(x + 6, y - 2, x + 12, y - 7);
+        ctx.stroke();
+
+        // Entrance area (dark, center-left)
+        ctx.fillStyle = '#445566';
+        ctx.fillRect(x - 3, y + 2, 4, 3);
+
+        // Snow on the curved roof
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y - 8.5);
+            ctx.quadraticCurveTo(x - 6, y - 3.5, x, y - 4.5);
+            ctx.quadraticCurveTo(x + 6, y - 5.5, x + 12, y - 10.5);
+            ctx.lineTo(x + 12, y - 10);
+            ctx.quadraticCurveTo(x + 6, y - 5, x, y - 4);
+            ctx.quadraticCurveTo(x - 6, y - 3, x - 12, y - 8);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
     function drawHelsinkiWheel(x, y, palette) {
         const r = 10;
         // Support structure
@@ -2387,7 +2569,6 @@ const MapRenderer = (() => {
     // Land decoration positions
     const landDecoPositions = {
         tram: HelsinkiDistricts.geoToMap([[60.172, 24.934]])[0],          // on Mannerheimintie near Kiasma
-        helsinkiWheel: HelsinkiDistricts.geoToMap([[60.167, 24.962]])[0], // Katajanokka harbour
         christmasTree: HelsinkiDistricts.geoToMap([[60.1693, 24.9515]])[0], // Senate Square
         marketTents: [                                                     // Market Square (Kauppatori)
             HelsinkiDistricts.geoToMap([[60.168, 24.950]])[0],
@@ -2418,9 +2599,6 @@ const MapRenderer = (() => {
         // Tram
         drawTram(landDecoPositions.tram[0], landDecoPositions.tram[1], palette);
 
-
-        // Helsinki Wheel
-        drawHelsinkiWheel(landDecoPositions.helsinkiWheel[0], landDecoPositions.helsinkiWheel[1], palette);
 
         // Christmas tree on Senate Square — winter only
         if (palette.snow) {
@@ -3410,8 +3588,8 @@ const MapRenderer = (() => {
             ctx.fillText(label, cx, cy);
         }
 
-        // Island labels (smaller, dimmer) + decorative sprites
-        ctx.font = '5px "Press Start 2P"';
+        // Island labels + decorative sprites
+        ctx.font = '6px "Press Start 2P"';
         if (HelsinkiDistricts.islands) {
             for (const island of HelsinkiDistricts.islands) {
                 if (!island.label) continue;
@@ -3430,14 +3608,18 @@ const MapRenderer = (() => {
                     drawKorkeasaariDeco(cx, cy, palette);
                 }
 
-                ctx.font = '5px "Press Start 2P"';
+                const islandLabel = useSwedish
+                    ? (HelsinkiDistricts.SWEDISH_NAMES[island.name] || island.name)
+                    : island.name;
+
+                ctx.font = '6px "Press Start 2P"';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.strokeStyle = 'rgba(10, 10, 26, 0.8)';
                 ctx.lineWidth = 2;
-                ctx.strokeText(island.name, cx, cy);
+                ctx.strokeText(islandLabel, cx, cy);
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fillText(island.name, cx, cy);
+                ctx.fillText(islandLabel, cx, cy);
             }
         }
 
@@ -3445,20 +3627,22 @@ const MapRenderer = (() => {
         ctx.font = '7px "Press Start 2P"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        const toolonlahtiLabel = useSwedish ? 'Tölöviken' : 'Töölönlahti';
         const toolonlahtiCenter = HelsinkiDistricts.geoToMap([[60.180, 24.937]])[0];
         ctx.strokeStyle = 'rgba(10, 10, 26, 0.7)';
         ctx.lineWidth = 2;
-        ctx.strokeText('Töölönlahti', toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
+        ctx.strokeText(toolonlahtiLabel, toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
         ctx.fillStyle = 'rgba(180, 210, 230, 0.6)';
-        ctx.fillText('Töölönlahti', toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
+        ctx.fillText(toolonlahtiLabel, toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
 
         // Munkkiniemi area label (not a district, just a geographic label)
+        const munkkiniemiLabel = useSwedish ? 'Munksnäs' : 'Munkkiniemi';
         const munkkiniemiPos = HelsinkiDistricts.geoToMap([[60.194, 24.912]])[0];
         ctx.strokeStyle = 'rgba(10, 10, 26, 0.7)';
         ctx.lineWidth = 2;
-        ctx.strokeText('Munkkiniemi', munkkiniemiPos[0], munkkiniemiPos[1] - 10);
+        ctx.strokeText(munkkiniemiLabel, munkkiniemiPos[0], munkkiniemiPos[1] - 10);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-        ctx.fillText('Munkkiniemi', munkkiniemiPos[0], munkkiniemiPos[1] - 10);
+        ctx.fillText(munkkiniemiLabel, munkkiniemiPos[0], munkkiniemiPos[1] - 10);
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';

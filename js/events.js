@@ -287,6 +287,9 @@ const Events = (() => {
                 if (count >= 3) continue;
             }
 
+            // Special events: no easter eggs in the first 6 months
+            if (template.special && gameState.turn < 6) continue;
+
             // Special events: at least 2 months between procs
             if (template.special && (gameState.turn - gameState.lastSpecialEventTurn) < 3) continue;
 

@@ -371,7 +371,8 @@
         <!-- Newspaper prompt bar -->
         <div id="newspaper-prompt" class="hidden">
             <span id="newspaper-prompt-text">Helsingin Sanomat is available.</span>
-            <button class="newspaper-prompt-btn" id="newspaper-prompt-read">READ</button>
+            <button class="newspaper-prompt-btn" id="newspaper-prompt-read">READ HS</button>
+            <button class="newspaper-prompt-btn hidden" id="newspaper-prompt-hbl">READ HBL</button>
             <button class="newspaper-prompt-btn" id="newspaper-prompt-skip">SKIP</button>
         </div>
 
@@ -471,7 +472,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.15.2 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v0.16.3 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
@@ -491,6 +492,17 @@
             </div>
         </div>
     </div>
+
+        <!-- Name confirmation prompt (shown when player leaves name blank) -->
+        <div id="name-confirm-prompt" class="overlay hidden">
+            <div id="tutorial-prompt-box">
+                <div class="tutorial-prompt-text">Play as <em>"The Tycoon of Helsinki"</em>?</div>
+                <div class="tutorial-prompt-buttons">
+                    <button id="name-confirm-yes" class="start-btn">THAT'S ME</button>
+                    <button id="name-confirm-no" class="start-btn continue-btn">ENTER MY NAME</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Tutorial prompt (shown after clicking START) -->
         <div id="tutorial-prompt" class="overlay hidden">
@@ -519,20 +531,20 @@
             </div>
         </div>
 
-    <script src="js/districts.js?v=0152"></script>
-    <script src="js/properties.js?v=0152"></script>
-    <script src="js/economy.js?v=0152"></script>
-    <script src="js/events.js?v=0152"></script>
-    <script src="js/seasons.js?v=0152"></script>
-    <script src="js/rivals.js?v=0152"></script>
-    <script src="js/staff.js?v=0152"></script>
-    <script src="js/sound.js?v=0152"></script>
-    <script src="js/achievements.js?v=0152"></script>
-    <script src="js/newspaper.js?v=0152"></script>
-    <script src="js/changelog.js?v=0152"></script>
-    <script src="js/ui.js?v=0152"></script>
-    <script src="js/game.js?v=0152"></script>
-    <script src="js/map.js?v=0152"></script>
-    <script src="js/main.js?v=0152"></script>
+    <script src="js/districts.js?v=0163"></script>
+    <script src="js/properties.js?v=0163"></script>
+    <script src="js/economy.js?v=0163"></script>
+    <script src="js/events.js?v=0163"></script>
+    <script src="js/seasons.js?v=0163"></script>
+    <script src="js/rivals.js?v=0163"></script>
+    <script src="js/staff.js?v=0163"></script>
+    <script src="js/sound.js?v=0163"></script>
+    <script src="js/achievements.js?v=0163"></script>
+    <script src="js/newspaper.js?v=0163"></script>
+    <script src="js/changelog.js?v=0163"></script>
+    <script src="js/ui.js?v=0163"></script>
+    <script src="js/game.js?v=0163"></script>
+    <script src="js/map.js?v=0163"></script>
+    <script src="js/main.js?v=0163"></script>
 </body>
 </html>

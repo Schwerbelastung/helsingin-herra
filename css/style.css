@@ -889,6 +889,9 @@ html {
     cursor: pointer;
     letter-spacing: 1px;
 }
+.newspaper-prompt-btn.hidden {
+    display: none;
+}
 .newspaper-prompt-btn:hover {
     border-color: var(--text-accent);
     background: var(--btn-hover);

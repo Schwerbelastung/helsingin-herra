@@ -127,7 +127,7 @@ helsinki-tycoon/
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history, or click the **CHANGELOG** button on the in-game start screen.
 
-**Current version: v0.15.2**
+**Current version: v0.16.0**
 
 ---
 

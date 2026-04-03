@@ -72,9 +72,10 @@ const UI = (() => {
             Sound.init();
             Sound.playClick();
 
-            // Stash selections for after the prompt
+            // Stash selections for after the prompts
             const nameInput = document.getElementById('player-name-input');
-            const playerName = nameInput.value.trim() || nameInput.placeholder;
+            const enteredName = nameInput.value.trim();
+            const playerName = enteredName || nameInput.placeholder;
             pendingStart = {
                 playerName,
                 playerGender: document.querySelector('.option-btn.selected[data-gender]')?.dataset.gender || 'male',
@@ -85,7 +86,27 @@ const UI = (() => {
                 target: parseInt(document.querySelector('.option-btn.selected[data-target]')?.dataset.target || '50000000'),
             };
             document.getElementById('start-screen').classList.add('hidden');
+            // If name was left blank, ask for confirmation before proceeding
+            if (!enteredName) {
+                document.getElementById('name-confirm-prompt').classList.remove('hidden');
+            } else {
+                document.getElementById('tutorial-prompt').classList.remove('hidden');
+            }
+        });
+
+        // Name confirmation prompt buttons
+        document.getElementById('name-confirm-yes').addEventListener('click', () => {
+            Sound.playClick();
+            document.getElementById('name-confirm-prompt').classList.add('hidden');
             document.getElementById('tutorial-prompt').classList.remove('hidden');
+        });
+        document.getElementById('name-confirm-no').addEventListener('click', () => {
+            Sound.playClick();
+            document.getElementById('name-confirm-prompt').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            const nameInput = document.getElementById('player-name-input');
+            nameInput.focus();
+            nameInput.select();
         });
 
         // Tutorial prompt buttons
@@ -1855,29 +1876,62 @@ Good luck — become the Helsingin Herra!`,
     // === NEWSPAPER ===
 
     let pendingNewspaper = null; // stored paper data while prompt is showing
+    let pendingSwedishPaper = null; // HBL paper during Swedish invasion
+    let returnToPromptAfterClose = false; // whether to re-show prompt after closing a paper
 
-    function showNewspaperPrompt(paper) {
+    function showNewspaperPrompt(paper, swedishPaper) {
         pendingNewspaper = paper;
+        pendingSwedishPaper = swedishPaper || null;
+        returnToPromptAfterClose = !!(paper && swedishPaper); // return to prompt if both available
         const prompt = document.getElementById('newspaper-prompt');
         const textEl = document.getElementById('newspaper-prompt-text');
-        textEl.textContent = `Helsingin Sanomat — ${paper.date}`;
+        const hblBtn = document.getElementById('newspaper-prompt-hbl');
+        const readBtn = document.getElementById('newspaper-prompt-read');
+
+        if (paper && swedishPaper) {
+            // Both papers available
+            textEl.textContent = `Tidningar tillgängliga — ${paper.date}`;
+            readBtn.textContent = 'READ HS';
+            readBtn.classList.remove('hidden');
+            hblBtn.classList.remove('hidden');
+        } else if (swedishPaper && !paper) {
+            // Only HBL (Swedish invasion mid-year)
+            textEl.textContent = `Hufvudstadsbladet — Specialutgåva`;
+            readBtn.classList.add('hidden');
+            hblBtn.classList.remove('hidden');
+        } else {
+            // Only HS (normal)
+            textEl.textContent = `Helsingin Sanomat — ${paper.date}`;
+            readBtn.textContent = 'READ';
+            readBtn.classList.remove('hidden');
+            hblBtn.classList.add('hidden');
+        }
         prompt.classList.remove('hidden');
     }
 
     function hideNewspaperPrompt() {
         document.getElementById('newspaper-prompt').classList.add('hidden');
         pendingNewspaper = null;
+        pendingSwedishPaper = null;
+        returnToPromptAfterClose = false;
     }
 
     function showNewspaper(paper) {
         if (!paper) paper = pendingNewspaper;
         if (!paper) return;
-        hideNewspaperPrompt();
+        // Don't clear pending data if we want to return to prompt
+        if (!returnToPromptAfterClose) {
+            hideNewspaperPrompt();
+        } else {
+            document.getElementById('newspaper-prompt').classList.add('hidden');
+        }
 
         const overlay = document.getElementById('newspaper-overlay');
+        const mastheadEl = document.getElementById('newspaper-masthead');
         const dateEl = document.getElementById('newspaper-date');
         const storiesEl = document.getElementById('newspaper-stories');
 
+        mastheadEl.textContent = paper.isSwedish ? 'HUFVUDSTADSBLADET' : 'HELSINGIN SANOMAT';
         dateEl.textContent = paper.date;
 
         let html = '';
@@ -1929,6 +1983,10 @@ Good luck — become the Helsingin Herra!`,
 
     function closeNewspaper() {
         document.getElementById('newspaper-overlay').classList.add('hidden');
+        // If both papers were available, return to prompt so user can read the other
+        if (returnToPromptAfterClose && (pendingNewspaper || pendingSwedishPaper)) {
+            document.getElementById('newspaper-prompt').classList.remove('hidden');
+        }
     }
 
     // === NOKIA PRESS RELEASE ===
@@ -2115,7 +2173,9 @@ Good luck — become the Helsingin Herra!`,
         roundMax.textContent = auction.maxRounds;
         bidAmount.textContent = `€${formatMoney(auction.currentBid)}`;
         bidLeader.textContent = 'Opening bid';
-        raiseBtn.textContent = `RAISE €${formatMoney(auction.currentBid + auction.increment)}`;
+        const firstRaise = auction.currentBid + auction.increment;
+        const needsLoan = firstRaise > GameState.money;
+        raiseBtn.textContent = `RAISE €${formatMoney(firstRaise)}${needsLoan ? ' (LOAN)' : ''}`;
 
         // Build participant portraits
         participantsEl.innerHTML = '';
@@ -2193,17 +2253,44 @@ Good luck — become the Helsingin Herra!`,
 
     function updateAuctionRivals(auction, rivalResults) {
         for (const r of rivalResults) {
-            const card = document.getElementById(`auction-rival-${r.rival.id}`);
-            if (!card) continue;
-            const statusEl = card.querySelector('.auction-participant-status');
-            if (r.action === 'raise') {
-                statusEl.textContent = `€${formatMoney(r.bid)}`;
-                card.className = 'auction-participant active';
-            } else {
-                statusEl.textContent = 'OUT';
-                card.className = 'auction-participant dropped';
-            }
+            updateSingleAuctionRival(r);
         }
+    }
+
+    function updateSingleAuctionRival(r) {
+        const card = document.getElementById(`auction-rival-${r.rival.id}`);
+        if (!card) return;
+        const statusEl = card.querySelector('.auction-participant-status');
+        if (r.action === 'raise') {
+            statusEl.textContent = `€${formatMoney(r.bid)}`;
+            card.className = 'auction-participant active';
+            // Brief flash effect
+            card.style.outline = '2px solid ' + (r.rival.color || '#ffcc00');
+            setTimeout(() => { card.style.outline = ''; }, 600);
+        } else {
+            statusEl.textContent = 'OUT';
+            card.className = 'auction-participant dropped';
+        }
+    }
+
+    // Animate rival results one by one with delays, then call onComplete
+    function animateRivalResults(results, onComplete, baseDelay) {
+        const delay = baseDelay || 800;
+        let i = 0;
+        function showNext() {
+            if (i >= results.length) {
+                if (onComplete) setTimeout(onComplete, delay);
+                return;
+            }
+            const r = results[i];
+            updateSingleAuctionRival(r);
+            if (r.action === 'raise') Sound.playAuctionRivalBid();
+            else Sound.playAuctionDropout();
+            i++;
+            setTimeout(showNext, delay);
+        }
+        // Start first one after a pause
+        setTimeout(showNext, delay);
     }
 
     function showAuctionResult(auction, playerWon, text) {
@@ -2269,7 +2356,11 @@ Good luck — become the Helsingin Herra!`,
         });
         document.getElementById('newspaper-prompt-read').addEventListener('click', () => {
             Sound.playClick();
-            showNewspaper();
+            showNewspaper(pendingNewspaper);
+        });
+        document.getElementById('newspaper-prompt-hbl').addEventListener('click', () => {
+            Sound.playClick();
+            if (pendingSwedishPaper) showNewspaper(pendingSwedishPaper);
         });
         document.getElementById('newspaper-prompt-skip').addEventListener('click', () => {
             Sound.playClick();
@@ -2304,6 +2395,7 @@ Good luck — become the Helsingin Herra!`,
         showAuctionDialog,
         updateAuctionRound,
         updateAuctionRivals,
+        animateRivalResults,
         showAuctionResult,
         formatMoney,
         formatMoneyPrecise,

@@ -1,5 +1,79 @@
 # Helsingin Herra - Changelog
 
+## v0.16.3 — Map Details (2026-04-03)
+
+### Visual
+- **Seurasaari** — island now renders in forest green (seasonal park colour) instead of grey
+- **Lauttasaari** — southern tip rendered in forest green to reflect the wooded area
+- **Helsinki Wheel** — promoted from map decoration to proper landmark; now shows hover glow and tooltip
+
+### Changed
+- **Easter egg grace period** — special events cannot trigger during the first 6 months of a new game
+- **Easter egg cooldown** — confirmed: at least 2 months must pass between special events (was already in place)
+- **Name confirmation prompt** — if the player leaves the name field blank, a prompt asks whether to play as "The Tycoon of Helsinki" or go back and enter a custom name
+
+---
+
+## v0.16.2 — Map & Sprites (2026-04-03)
+
+### Visual
+- **Finlandia Hall sprite** — custom pixel art: white modernist building with stepped asymmetric roofline, angular blue-gray glass facade, and window rows
+- **Oodi Library sprite** — custom pixel art: distinctive swooping copper/brown curved roof that rises at both ends, glass-paneled facade, seasonal snow
+- **Jätkäsaari** — reshaped to a more angular rectangle; narrowed east side for wider water channel to Hernesaari
+- **Hernesaari** — widened east-to-west for a more accurate peninsula shape; west side pushed east to open the channel
+- **Eira** — shifted northeast to eliminate overlap with Hernesaari
+- **Kluuvi** — northern edge pulled south to stop overlap with Töölönlahti bay; district widened east-west to maintain coverage
+
+### Fixed
+- Buildings in Kluuvi no longer appear inside Töölönlahti water body
+
+---
+
+## v0.16.1 — More Content (2026-04-03)
+
+### Added
+- **Doubled all filler stories** — general newspaper fillers 150→301; rival filler stories: Nalle 22→44, Hjallis 22→44, Risto 24→48
+- **Rival activity story variants** — "Rival Investors Stay Active" now picks from 10 title variants, 8 intro variants, and 7 closing variants (competitive vs. measured tone), giving hundreds of possible combinations
+
+---
+
+## v0.16.0 — Bidding Wars & Hufvudstadsbladet (2026-04-03)
+
+### Added
+- **Hufvudstadsbladet** — a second Helsinki newspaper may appear under rare circumstances, published entirely in Swedish with its own headlines and district stories. When it does appear, you can read HS, HBL, or both
+- **Auction auto-loan system** — players can now bid beyond their cash balance in auctions; if they win, a bank loan is automatically taken for the shortfall. RAISE button shows "(LOAN)" indicator when bidding with borrowed money
+- **Bidding war headline variants** — 6 headline titles and 5 article text variants for auction year-in-review stories, randomly selected
+- **50 new general filler stories** (100→150) and ~22 rival filler stories per rival (15→22-24)
+
+### Changed
+- **Slower auction animations** — rival bids now appear one at a time with ~900ms delays, with a brief highlight flash on each bidder's card. Both player-raise and player-dropout flows use staggered per-rival animations for a more dramatic bidding experience
+- **Buttons disabled during auction animation** — RAISE and DROPOUT buttons are disabled while rivals are responding, preventing double-clicks
+
+### Visual
+- **Animated Linnanmäki roller coaster** — the yellow cart moves along the track rails during spring/summer, parks at the base in winter. Sprite scaled up 50%
+- **Olympic Stadium** — sprite scaled up 25%
+- **Disc golf sprite** — scaled up 25%, repositioned to directly north of the Munkkiniemi label
+- **Seurasaari landmark** — nudged slightly southeast for better placement
+
+### Fixed
+- **Duplicate Hjallis filler story** — removed duplicate "arm-wrestling" story, replaced with new unique story
+
+---
+
+## v0.15.3 — Auction Overhaul (2026-04-03)
+
+### Changed
+- **Auction max rounds increased** — bidding wars now last up to 5 rounds (was 3), ending early when only 1 bidder remains
+- **Animated auction dropout** — when the player steps out of a bidding war, remaining rounds play out with animated rival bids, sounds, and UI updates instead of resolving instantly
+- **Rival offer cooldown** — at least 2 turns must pass between rival purchase offers to prevent spam
+- **Cross-game filler story tracking** — newspaper filler stories (general and rival) now track recently shown stories across playthroughs via localStorage, so starting a new game won't show the same stories again until 75% of the pool has been cycled through
+
+### Fixed
+- **Hakaniemi district polygon** — pulled south/southwest vertices northward so the district no longer overlaps with Eläintarhanlahti bay
+- **Jätkäsaari district polygon** — trimmed top-right corner that was extending into the sea near the Clarion hotel area
+
+---
+
 ## v0.15.2 — Quality of Life (2026-04-03)
 
 ### Added
@@ -12,17 +86,11 @@
 
 ---
 
-## v0.15.1 — Swedish Invasion (2026-04-03)
+## v0.15.1 — Something Unexpected (2026-04-03)
 
 ### Added
-- **SWEDISH INVASION!** easter egg — Sweden symbolically reclaims Helsinki for 3 turns
-  - All 23 district labels switch to their official Swedish names (e.g. Kallio → Berghäll, Kamppi → Kampen)
-  - Swedish flag with gentle wave animation appears at top-center of screen
-  - "HELSINGFORS" label beneath the flag
-  - Swedish national anthem fanfare ("Du gamla, du fria" opening phrase)
-  - Pixel art newspaper illustration with Swedish flag raised over Helsinki
-  - Full newspaper article text for year-in-review coverage
-- **Per-event occurrence cap** — each special event can fire at most 3 times per playthrough (Nokia stays at 1)
+- **New rare event** — something unusual can happen that temporarily transforms the entire city map, complete with its own music, newspaper coverage, and visual effects. You'll know it when you see it.
+- **Per-event occurrence cap** — each special event can fire at most 3 times per playthrough (certain events stay at 1)
 
 ---
 
@@ -55,10 +123,10 @@
   - Minimal: sparse, piano-like triangle wave with deliberate silences
   - Cinematic: rich layered sound with bass drones, chord stacks, and high shimmers
 - **Max upgrade star** — fully upgraded (5/5) properties show a pulsing golden star on the map
-- **Newspaper illustrations** — special event headlines now include pixel art sprites (UFO, tonttu, moose, polar bear, rubber duck, angry bird, northern lights, Nokia 3310)
+- **Newspaper illustrations** — special event headlines now include unique pixel art illustrations
 - **Rival portraits in newspaper** — stories mentioning a specific tycoon show their pixel art portrait
-- **Rival-specific filler stories** — 15 personality-driven stories (5 per rival: Nalle's wine auctions, Hjallis's parties, Risto's AI keynotes)
-- **Polar bear newspaper coverage** — polar bear sightings are now logged and appear in year-in-review papers
+- **Rival-specific filler stories** — 15 personality-driven stories (5 per rival)
+- **Special event newspaper coverage** — certain rare events are now logged and appear in year-in-review papers
 - **3 additional sailboats** in the northwestern corner of the map
 
 ### Changed
@@ -84,7 +152,7 @@
 ### Changed
 - "You" replaced with player name throughout ticker messages, auction UI, and scoreboard
 - Monopoly man advisor scaled up 1.25× for better visibility
-- Tonttu invasion now spreads across all landmarks and unowned properties city-wide
+- One rare seasonal event now spreads more widely across the map
 
 ---
 

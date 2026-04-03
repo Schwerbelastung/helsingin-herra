@@ -101,7 +101,7 @@ const Properties = (() => {
         { name: 'Eira Massage Studio', type: 'retail', district: 'eira', price: 100000, revenue: 5400, description: 'Wellness studio near the park', lat: 60.156, lon: 24.928 },
 
         // === EASTER EGGS ===
-        { name: 'Schwerbelastung\'s Penthouse', type: 'residential', district: 'jatkasaari', price: 300000, revenue: 15000, description: 'A mysterious developer\'s luxury penthouse with a suspiciously good Wi-Fi setup', lat: 60.152, lon: 24.901, color: '#cc44ff', easterEgg: true },
+        { name: 'Schwerbelastung\'s Penthouse', type: 'residential', district: 'jatkasaari', price: 300000, revenue: 15000, description: 'A mysterious developer\'s luxury penthouse with a suspiciously good Wi-Fi setup', lat: 60.150, lon: 24.899, color: '#cc44ff', easterEgg: true },
         { name: 'Sharetribe Office', type: 'office', district: 'kaartinkaupunki', price: 500000, revenue: 24000, description: 'Marketplace platform company HQ in the heart of Helsinki', lat: 60.166, lon: 24.938, color: '#ff8800', easterEgg: true },
     ];
 

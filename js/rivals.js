@@ -251,7 +251,7 @@ const Rivals = (() => {
             increment,
             currentBid: startBid,
             round: 0,
-            maxRounds: 3,
+            maxRounds: 5,
             bidders,
             playerIn: true,
             playerBid: 0,
