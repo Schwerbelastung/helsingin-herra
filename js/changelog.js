@@ -1,5 +1,47 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
+const CHANGELOG_MD = `## v0.12.0 — Mysteries of Helsinki (2026-04-03)
+
+### Added
+- **8 rare special events** — strange and wonderful things may happen in Helsinki when you least expect them
+  - Some appear only in certain seasons or months
+  - Some affect the whole city, others target specific districts or property types
+  - Each has unique animated visuals and sound effects
+  - One features a press release dialog with a familiar face
+- **2-month cooldown** between special events — no more clustering
+- **One-time events** — certain surprises can only happen once per campaign
+- **Seasonal cheat protection** — trying to cheat a seasonal event out of season gives a cryptic hint
+- **Easter egg cheat button** — trigger a random special event from the cheat panel
+
+### Changed
+- Special event chances reduced ~30% — expect 0-1 per year instead of 1-2
+- Cheat ticker messages now hint at where to look without spoiling the surprise
+
+---
+
+## v0.11.0 — Bidding Wars (2026-04-03)
+
+### Added
+- **Bidding Wars** — 3% chance per turn that a property goes to auction
+  - Properties are weighted toward ones that AI rivals actually want, ensuring competitive bidding
+  - Works with any number of AI rivals (1-3)
+  - Interactive 3-round bidding: raise or drop out each round
+  - **Pixel art portraits** of all participating rivals shown with live status
+  - Player portrait with green suit and € symbol
+  - Rivals use smart bidding AI: budget-aware, strategy-driven, with probabilistic dropout
+  - Property stats (district, type, price, revenue, condition, level) displayed in the auction window
+  - Dramatic golden-bordered UI with pulsing lightning bolt headers
+- **Auction sound design**:
+  - Gavel strike + rising tension on auction start
+  - Ascending chime when you raise
+  - Menacing sawtooth tones when a rival raises
+  - Deflating descend when someone drops out
+  - Mini-fanfare on win, sad trombone on loss
+  - **Tense background music loop** during bidding — pulsing bass drone with rhythmic heartbeat pattern
+  - Normal ambient music pauses during auction and resumes after
+
+---
+
+## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 
 ### Added
 - **Kiasma** landmark with curved modern museum sprite
@@ -56,7 +98,7 @@ const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 
 ---
 
-## v0.9.3 — Decorations, Islands & Polar Bears (2026-04-03)
+## v0.9.3 — Decorations, Islands & Surprises (2026-04-03)
 
 ### Added
 - **Korkeasaari Zoo island** south of Mustikkamaa with zoo gate, lion, bear, and penguin
@@ -69,12 +111,12 @@ const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 - **Land decorations**: Helsinki tram, Mannerheim statue, Helsinki Wheel, market tents, sauna
 - **Christmas tree** on Senate Square (winter only)
 - **Bushes** along park edges, **moose** in the north
-- **Polar bear invasion** — 5% chance each winter with funny growl sound
+- **Rare winter surprise** — something unusual may appear along the coastline during winter...
 - **Lighthouse**, **Citymarket Ruoholahti**, **Lauttasaari Beach** and new properties
 
 ### Changed
 - Lauttasaari properties spread across the full island
-- Bigger, more detailed polar bear sprite; winter-only group spawn event
+- Improved winter surprise sprite and spawn behavior
 - Bushes now larger and darker green with highlights
 
 ### Fixed
@@ -156,7 +198,7 @@ const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 
 ---
 
-## v0.8.6 — Pixel Art Buildings & Alien Invasion Visuals (2026-04-02)
+## v0.8.6 — Pixel Art Buildings & Special Event Visuals (2026-04-02)
 
 ### Added
 - **Pixel art building sprites** — each property type now has a distinct building sprite
@@ -168,7 +210,7 @@ const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
   - Landmark: columned monument with star on top
 - **All buildings grow taller with upgrades** — visual feedback for investment
 - **Snow on rooftops** in winter
-- **Alien invasion visual effects** — UFOs, tractor beams, blinking lights, green atmosphere
+- **Special event visual effects** — rare events now have animated visuals on the map
 - **Easter egg properties**: Schwerbelastung's Penthouse, Sharetribe Office
 - **Seaside apartments** now only spawn in waterfront districts
 
@@ -230,9 +272,9 @@ const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 ### Fixed
 - **Market Crash now actually works** — global valueModifier was silently skipped because it only checked affectedDistricts; now applies to all properties when global
 - **Market Crash prices recover** — after 6 months, property values return to base price (previously the drop was permanent)
-- **Alien Invasion & Market Crash recovery** — tickEvents now handles global recovery, not just district-scoped events
-- **Event ticker shows recovery info** — Market Crash: "prices recover after"; Alien Invasion: "recovers to 150% of original"
-- **Event descriptions clarified** — Market Crash and Alien Invasion now explain duration and recovery in their text
+- **Special event & Market Crash recovery** — tickEvents now handles global recovery, not just district-scoped events
+- **Event ticker shows recovery info** — events with price impact now show recovery details
+- **Event descriptions clarified** — multi-month events now explain duration and recovery in their text
 
 ### Changed
 - **Pipe Burst scales with property condition** — avg condition ≥ 90% = immune; lower condition increases both chance and cost

@@ -2351,10 +2351,15 @@ const MapRenderer = (() => {
     // All bears spawn together with 5% chance per winter — it's an event!
     let polarBearsActive = false;
     function rollPolarBears() {
-        polarBearsActive = Math.random() < 0.05;
+        polarBearsActive = Math.random() < 0.035;
         if (polarBearsActive) {
             Sound.playPolarBears();
         }
+    }
+    function forcePolarBears() {
+        polarBearsActive = true;
+        Sound.playPolarBears();
+        render();
     }
 
     // Land decoration positions
@@ -2809,6 +2814,465 @@ const MapRenderer = (() => {
             ctx.fillStyle = on ? '#ff4444' : '#ffcc00';
             ctx.fillRect(lx - 0.5, ly - 0.5, 1.5, 1.5);
         }
+    }
+
+    // === EASTER EGG VISUALS ===
+
+    function drawEasterEggs(palette) {
+        if (typeof GameState === 'undefined') return;
+        // Reset animation timers when events not active
+        if (!GameState.activeEvents.some(e => e.id === 'tonttu_invasion')) tonttuStartTime = 0;
+        if (!GameState.activeEvents.some(e => e.id === 'angry_bird')) { angryBirdStartTime = 0; angryBirdSoundPlayed = false; }
+        for (const evt of GameState.activeEvents) {
+            if (evt.id === 'tonttu_invasion') drawTonttuInvasion(palette);
+            if (evt.id === 'moose_rush_hour') drawMooseRushHour(palette);
+            if (evt.id === 'rubber_duck') drawRubberDuck(palette);
+        }
+    }
+
+    function drawScreenEasterEggs() {
+        if (typeof GameState === 'undefined') return;
+        for (const evt of GameState.activeEvents) {
+            if (evt.id === 'northern_lights') drawNorthernLights();
+            if (evt.id === 'angry_bird') drawAngryBirdFlight();
+        }
+    }
+
+    // --- ANGRY BIRD ---
+    let angryBirdStartTime = 0;
+    let angryBirdSoundPlayed = false;
+
+    function drawAngryBirdFlight() {
+        if (!canvas) return;
+        if (!angryBirdStartTime) {
+            angryBirdStartTime = animTime;
+            angryBirdSoundPlayed = false;
+        }
+
+        const elapsed = (animTime - angryBirdStartTime) * 0.001; // seconds
+        const flightDuration = 2.5; // seconds to cross screen
+        const progress = Math.min(elapsed / flightDuration, 1);
+
+        // Play sound at start
+        if (!angryBirdSoundPlayed) {
+            angryBirdSoundPlayed = true;
+            Sound.playAngryBird();
+        }
+
+        if (progress >= 1) return; // flight done, stays in activeEvents for revenue but no more drawing
+
+        // Parabolic arc: left to right, peaking in upper third
+        const w = canvas.width;
+        const h = canvas.height;
+        const bx = -60 + (w + 120) * progress;
+        const arc = -4 * (progress - 0.5) * (progress - 0.5) + 1; // peaks at 0.5
+        const by = h * 0.7 - arc * h * 0.45; // starts low-left, arcs up, lands low-right
+        const rotation = (progress - 0.5) * 0.6; // slight spin
+
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.rotate(rotation);
+        drawAngryBirdSprite(0, 0);
+        ctx.restore();
+    }
+
+    function drawAngryBirdSprite(x, y) {
+        const s = 2.2; // scale — about 3x moose size
+
+        // Body (red, round)
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.arc(x, y, 14*s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Darker red underbelly shadow
+        ctx.fillStyle = '#aa1a1a';
+        ctx.beginPath();
+        ctx.arc(x, y + 4*s, 12*s, 0, Math.PI);
+        ctx.fill();
+
+        // Belly (cream/beige oval)
+        ctx.fillStyle = '#ffe8c8';
+        ctx.beginPath();
+        ctx.ellipse(x, y + 5*s, 8*s, 7*s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Belly inner highlight
+        ctx.fillStyle = '#fff2dd';
+        ctx.beginPath();
+        ctx.ellipse(x, y + 4*s, 5*s, 4.5*s, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tail feathers (dark, back-top)
+        ctx.fillStyle = '#222222';
+        ctx.beginPath();
+        ctx.moveTo(x - 3*s, y - 12*s);
+        ctx.lineTo(x - 8*s, y - 22*s);
+        ctx.lineTo(x - 4*s, y - 20*s);
+        ctx.lineTo(x, y - 24*s);
+        ctx.lineTo(x + 4*s, y - 20*s);
+        ctx.lineTo(x + 8*s, y - 22*s);
+        ctx.lineTo(x + 3*s, y - 12*s);
+        ctx.closePath();
+        ctx.fill();
+
+        // Head tuft (two feathers on top)
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.moveTo(x - 1*s, y - 13*s);
+        ctx.lineTo(x - 3*s, y - 20*s);
+        ctx.lineTo(x + 1*s, y - 14*s);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x + 1*s, y - 13*s);
+        ctx.lineTo(x + 3*s, y - 19*s);
+        ctx.lineTo(x + 4*s, y - 13*s);
+        ctx.closePath();
+        ctx.fill();
+
+        // Angry eyebrows (thick, V-shaped, iconic!)
+        ctx.fillStyle = '#222222';
+        ctx.save();
+        // Left eyebrow
+        ctx.translate(x - 4*s, y - 6*s);
+        ctx.rotate(-0.35);
+        ctx.fillRect(-6*s, -1.5*s, 8*s, 3*s);
+        ctx.restore();
+        ctx.save();
+        // Right eyebrow
+        ctx.translate(x + 4*s, y - 6*s);
+        ctx.rotate(0.35);
+        ctx.fillRect(-2*s, -1.5*s, 8*s, 3*s);
+        ctx.restore();
+
+        // Eyes (white circles with black pupils)
+        // Left eye
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x - 4*s, y - 2*s, 4*s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(x - 3*s, y - 1.5*s, 2*s, 0, Math.PI * 2);
+        ctx.fill();
+        // Right eye
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x + 4*s, y - 2*s, 4*s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(x + 3*s, y - 1.5*s, 2*s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye shine
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x - 4*s, y - 3*s, 1*s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + 2.5*s, y - 3*s, 1*s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak (yellow/orange diamond, pointing right)
+        ctx.fillStyle = '#ffaa00';
+        ctx.beginPath();
+        ctx.moveTo(x + 1*s, y + 1*s);
+        ctx.lineTo(x + 10*s, y + 4*s);
+        ctx.lineTo(x + 1*s, y + 7*s);
+        ctx.closePath();
+        ctx.fill();
+        // Upper beak
+        ctx.fillStyle = '#ffcc22';
+        ctx.beginPath();
+        ctx.moveTo(x + 1*s, y + 1*s);
+        ctx.lineTo(x + 10*s, y + 4*s);
+        ctx.lineTo(x + 1*s, y + 4*s);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // --- TONTTU INVASION ---
+    // Small red-capped gnomes sitting on building rooftops
+    let tonttuStartTime = 0;
+
+    function drawTonttuInvasion(palette) {
+        // Track when invasion started for bounce effect
+        if (!tonttuStartTime) tonttuStartTime = animTime;
+        const elapsed = (animTime - tonttuStartTime) * 0.001; // seconds since start
+
+        // Place tontut near player/rival properties
+        const props = GameState.properties.filter(p => p.owner);
+        const t = animTime * 0.001;
+        for (let i = 0; i < props.length && i < 20; i++) {
+            const p = props[i];
+            // Sit on top of the building sprite
+            const tx = p.x + (i % 3 - 1) * 3;
+            const ty = p.y - 12 - (i % 2) * 2;
+            drawTonttu(tx, ty, t + i * 0.7, elapsed, i);
+        }
+        // A few on landmarks too
+        for (let i = 0; i < HelsinkiDistricts.landmarks.length && i < 8; i++) {
+            const lm = HelsinkiDistricts.landmarks[i];
+            const tx = lm.pos[0] + 3;
+            const ty = lm.pos[1] - 10;
+            drawTonttu(tx, ty, t + i * 1.1 + 5, elapsed, i + 20);
+        }
+    }
+
+    function drawTonttu(x, y, t, elapsed, idx) {
+        // Big excited bouncing for first 4 seconds, then settle to gentle bob
+        const bouncePhase = Math.max(0, 1 - elapsed / 4); // 1→0 over 4s
+        const bigBounce = Math.abs(Math.sin((t + idx * 0.4) * 5)) * 6 * bouncePhase;
+        const gentleBob = Math.sin(t * 2) * 0.5;
+        const bob = gentleBob - bigBounce;
+        const ty = y + bob;
+        // Body (grey wool)
+        ctx.fillStyle = '#666677';
+        ctx.fillRect(x - 1.5, ty - 1, 3, 3);
+        // Head
+        ctx.fillStyle = '#ddbb88';
+        ctx.beginPath();
+        ctx.arc(x, ty - 2.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        // Red pointy hat
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.moveTo(x - 2, ty - 3);
+        ctx.lineTo(x, ty - 7 + Math.sin(t * 3) * 0.5);
+        ctx.lineTo(x + 2, ty - 3);
+        ctx.closePath();
+        ctx.fill();
+        // Hat brim
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 2.2, ty - 3.5, 4.4, 1);
+        // Eyes (tiny dots)
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(x - 1, ty - 2.8, 0.6, 0.6);
+        ctx.fillRect(x + 0.5, ty - 2.8, 0.6, 0.6);
+        // White beard
+        ctx.fillStyle = '#eeeeee';
+        ctx.beginPath();
+        ctx.moveTo(x - 1.2, ty - 1.5);
+        ctx.lineTo(x, ty + 0.5);
+        ctx.lineTo(x + 1.2, ty - 1.5);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // --- MOOSE RUSH HOUR ---
+    // Animated moose running along Mannerheimintie
+    function drawMooseRushHour(palette) {
+        const t = animTime * 0.001;
+        // Find Mannerheimintie road to get its path
+        const road = HelsinkiDistricts.roads.find(r => r.name === 'Mannerheimintie');
+        if (!road || !road.points || road.points.length < 2) return;
+
+        // 5 moose running along the road at different positions
+        for (let i = 0; i < 5; i++) {
+            const progress = ((t * 0.08 + i * 0.2) % 1.0);
+            // Interpolate along road points
+            const totalSegs = road.points.length - 1;
+            const segFloat = progress * totalSegs;
+            const segIdx = Math.min(Math.floor(segFloat), totalSegs - 1);
+            const segT = segFloat - segIdx;
+            const p1 = road.points[segIdx];
+            const p2 = road.points[segIdx + 1];
+            const mx = p1[0] + (p2[0] - p1[0]) * segT + (i % 2 - 0.5) * 6;
+            const my = p1[1] + (p2[1] - p1[1]) * segT;
+            drawRunningMoose(mx, my, t + i, palette);
+        }
+
+        // Dust cloud particles along the road
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = '#aa9966';
+        for (let i = 0; i < 15; i++) {
+            const progress = ((t * 0.08 + i * 0.07) % 1.0);
+            const totalSegs = road.points.length - 1;
+            const segFloat = progress * totalSegs;
+            const segIdx = Math.min(Math.floor(segFloat), totalSegs - 1);
+            const segT = segFloat - segIdx;
+            const p1 = road.points[segIdx];
+            const p2 = road.points[segIdx + 1];
+            const dx = p1[0] + (p2[0] - p1[0]) * segT + Math.sin(t + i) * 8;
+            const dy = p1[1] + (p2[1] - p1[1]) * segT + Math.cos(t + i) * 4;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 2 + Math.sin(i) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawRunningMoose(x, y, t, palette) {
+        // Animated running moose (legs move)
+        const stride = Math.sin(t * 6) * 2;
+        // Body (brown)
+        ctx.fillStyle = '#664422';
+        ctx.beginPath();
+        ctx.ellipse(x, y - 4, 6, 3.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Legs (animated)
+        ctx.fillStyle = '#553311';
+        ctx.fillRect(x - 4, y - 1 + stride, 1.5, 4);
+        ctx.fillRect(x - 1.5, y - 1 - stride, 1.5, 4);
+        ctx.fillRect(x + 1, y - 1 + stride * 0.8, 1.5, 4);
+        ctx.fillRect(x + 3.5, y - 1 - stride * 0.8, 1.5, 4);
+        // Neck
+        ctx.fillStyle = '#664422';
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y - 5);
+        ctx.lineTo(x + 7, y - 10);
+        ctx.lineTo(x + 5, y - 10);
+        ctx.lineTo(x + 3, y - 6);
+        ctx.closePath();
+        ctx.fill();
+        // Head
+        ctx.fillStyle = '#553311';
+        ctx.beginPath();
+        ctx.ellipse(x + 7, y - 11, 3, 2, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        // Antlers
+        ctx.strokeStyle = '#776644';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x + 6, y - 12);
+        ctx.lineTo(x + 4, y - 16);
+        ctx.lineTo(x + 2, y - 15);
+        ctx.moveTo(x + 4, y - 16);
+        ctx.lineTo(x + 5, y - 18);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 8, y - 12);
+        ctx.lineTo(x + 10, y - 16);
+        ctx.lineTo(x + 12, y - 15);
+        ctx.moveTo(x + 10, y - 16);
+        ctx.lineTo(x + 9, y - 18);
+        ctx.stroke();
+        // Eye
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(x + 8, y - 11.5, 0.8, 0.8);
+    }
+
+    // --- GIANT RUBBER DUCK ---
+    function drawRubberDuck(palette) {
+        // Position in South Harbour
+        const pos = HelsinkiDistricts.geoToMap([[60.165, 24.958]])[0];
+        const x = pos[0], y = pos[1];
+        const t = animTime * 0.001;
+        const bob = Math.sin(t * 1.5) * 2;
+        const tilt = Math.sin(t * 0.8) * 0.05;
+
+        ctx.save();
+        ctx.translate(x, y + bob);
+        ctx.rotate(tilt);
+
+        // Water ripples around duck
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 3; i++) {
+            const r = 14 + i * 5 + Math.sin(t + i) * 2;
+            ctx.globalAlpha = 0.15 - i * 0.04;
+            ctx.beginPath();
+            ctx.ellipse(0, 4, r, r * 0.3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // Body (big yellow oval)
+        ctx.fillStyle = '#ffdd00';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Body highlight
+        ctx.fillStyle = '#ffee55';
+        ctx.beginPath();
+        ctx.ellipse(-2, -2, 5, 3, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Head (smaller circle)
+        ctx.fillStyle = '#ffdd00';
+        ctx.beginPath();
+        ctx.arc(8, -8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        // Head highlight
+        ctx.fillStyle = '#ffee55';
+        ctx.beginPath();
+        ctx.arc(7, -9.5, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak (orange)
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath();
+        ctx.moveTo(12, -8);
+        ctx.lineTo(17, -7);
+        ctx.lineTo(12, -5.5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Eye
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(10, -9.5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        // Eye shine
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(10.5, -10, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // --- NORTHERN LIGHTS ---
+    function drawNorthernLights() {
+        if (!canvas) return;
+        const t = animTime * 0.0005;
+        const w = canvas.width;
+
+        ctx.save();
+        // Draw aurora bands across the top of the screen
+        for (let band = 0; band < 5; band++) {
+            const baseY = 20 + band * 25;
+            const hue = band * 30; // green to teal to blue-green
+            ctx.globalAlpha = 0.08 + Math.sin(t * 2 + band * 0.7) * 0.04;
+
+            ctx.beginPath();
+            ctx.moveTo(0, baseY);
+            for (let x = 0; x <= w; x += 8) {
+                const wave = Math.sin(x * 0.008 + t * 3 + band * 1.2) * 15
+                           + Math.sin(x * 0.015 + t * 1.5 + band) * 8;
+                ctx.lineTo(x, baseY + wave);
+            }
+            // Close to form a filled band
+            for (let x = w; x >= 0; x -= 8) {
+                const wave = Math.sin(x * 0.008 + t * 3 + band * 1.2) * 15
+                           + Math.sin(x * 0.015 + t * 1.5 + band) * 8;
+                ctx.lineTo(x, baseY + wave + 30 + Math.sin(t + band) * 5);
+            }
+            ctx.closePath();
+
+            // Green-teal gradient
+            const r = Math.floor(20 + band * 10);
+            const g = Math.floor(200 - band * 15);
+            const b = Math.floor(80 + band * 30);
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fill();
+        }
+
+        // Shimmer particles
+        ctx.globalAlpha = 0.3;
+        for (let i = 0; i < 20; i++) {
+            const px = (Math.sin(t * 1.3 + i * 3.7) * 0.5 + 0.5) * w;
+            const py = 20 + Math.sin(t * 0.8 + i * 2.1) * 50 + 40;
+            const size = 1 + Math.sin(t * 4 + i) * 0.5;
+            ctx.fillStyle = i % 3 === 0 ? '#88ffaa' : (i % 3 === 1 ? '#55ddaa' : '#aaffcc');
+            ctx.beginPath();
+            ctx.arc(px, py, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
     }
 
     function drawDistrictLabels(palette) {
@@ -3750,12 +4214,16 @@ const MapRenderer = (() => {
         drawLandmarks(palette);
         drawProperties(palette);
         drawAlienInvasion(palette);
+        drawEasterEggs(palette);
         drawDistrictLabels(palette);
         drawHoverTooltips(palette);
 
         ctx.restore();
 
         drawAdvisor(palette);
+
+        // Screen-space effects (northern lights, Nokia 3310)
+        drawScreenEasterEggs();
 
         // Weather effects (screen space)
         drawWeatherEffects();
@@ -3800,6 +4268,7 @@ const MapRenderer = (() => {
         mapToScreen,
         triggerAdvisorAction,
         drawRivalPortrait,
+        forcePolarBears,
         camera,
         get hoveredDistrict() { return hoveredDistrict; },
         get hoveredProperty() { return hoveredProperty; },

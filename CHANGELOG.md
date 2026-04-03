@@ -1,5 +1,41 @@
 # Helsingin Herra - Changelog
 
+## v0.12.0 — Mysteries of Helsinki (2026-04-03)
+
+### Added
+- **8 rare special events** — strange and wonderful things may happen in Helsinki when you least expect them
+  - Some appear only in certain seasons or months
+  - Some affect the whole city, others target specific districts or property types
+  - Each has unique animated visuals and sound effects
+  - One features a press release dialog with a familiar face
+- **2-month cooldown** between special events — no more clustering
+- **One-time events** — certain surprises can only happen once per campaign
+- **Seasonal cheat protection** — trying to cheat a seasonal event out of season gives a cryptic hint instead
+- **Easter egg cheat button** — trigger a random special event from the cheat panel (Ctrl+Shift+C)
+
+### Changed
+- Special event chances reduced ~30% — expect 0-1 per year instead of 1-2
+- Cheat ticker messages now hint at where to look without spoiling the surprise
+
+---
+
+## v0.11.0 — Bidding Wars (2026-04-03)
+
+### Added
+- **Bidding Wars** — 3% chance per turn that a property goes to auction
+  - Properties are weighted toward ones that AI rivals actually want, ensuring competitive bidding
+  - Works with any number of AI rivals (1-3)
+  - Interactive 3-round bidding: raise or drop out each round
+  - Pixel art portraits of all participating rivals shown with live status
+  - Player portrait with green suit and € symbol
+  - Rivals use smart bidding AI: budget-aware, strategy-driven, with probabilistic dropout
+  - Property stats displayed in the auction window
+  - Dramatic golden-bordered UI with pulsing lightning bolt headers
+- **Auction sound design**: gavel strike, bid chimes, rival raises, dropout sounds, win/lose fanfares
+- **Tense auction background music** — pulsing bass drone with rhythmic heartbeat pattern
+
+---
+
 ## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
 
 ### Added
@@ -57,7 +93,7 @@
 
 ---
 
-## v0.9.3 — Decorations, Islands & Polar Bears (2026-04-03)
+## v0.9.3 — Decorations, Islands & Surprises (2026-04-03)
 
 ### Added
 - **Korkeasaari Zoo island** south of Mustikkamaa — with zoo gate, lion, brown bear, and penguin sprites
@@ -71,7 +107,7 @@
 - **Christmas tree** on Senate Square (winter only, with ornaments and star)
 - **Bushes** along Esplanadi, Kaivopuisto, and Sinebrychoff park edges
 - **Moose** in the northern green area
-- **Polar bear invasion** — 5% chance each winter, all bears spawn across the map with growl + slide whistle sound
+- **Rare winter surprise** — something unusual may appear along the coastline during winter...
 - **Lighthouse** on tiny island NW of Suomenlinna
 - **Citymarket Ruoholahti** — new retail property
 - **Lauttasaari Beach** landmark on the south coast
@@ -80,8 +116,7 @@
 ### Changed
 - **Lauttasaari property spread** — procedural properties now scatter across the full district polygon, not just the center
 - **Bushes** are now larger and visually distinct darker green with highlights
-- **Polar bear sprite** — redesigned larger with proper bear anatomy (shoulder hump, elongated snout, thick paws)
-- **Polar bears** are now winter-only and spawn as a group event (5% per winter) instead of individual spawns
+- Improved winter surprise sprite and spawn behavior
 - **Korkeasaari zoo** layout — gate shifted north, animals shifted south for better spacing
 
 ### Fixed
@@ -106,7 +141,7 @@
   - **Economy**: Leverage, Debt Free, Cash Flow (€100K/mo), Money Printer (€1M/mo)
   - **Staff**: Team Player (first hire), Full House (all 4)
   - **Campaign**: Warm-Up (Easy win), Contender (Normal), Master Tycoon (Hard), Speed Runner (≤60 turns)
-  - **Fun**: Close Encounter (alien invasion), Easter Egg Hunter, Dedicated (50 turns), Marathon Runner (100 turns)
+  - **Fun**: Close Encounter, Easter Egg Hunter, Dedicated (50 turns), Marathon Runner (100 turns)
 - **Achievement notification toast** — slides in at the top of the screen when an achievement is unlocked
 - **Achievements panel** — press **A** or click the Achievements button to see all achievements, unlocked and locked
 - Locked achievements show as "???" until discovered
@@ -200,7 +235,7 @@
 - **Coastline significantly reworked** for better accuracy compared to real Helsinki geography
 - **Hietalahti water body** updated to fill the gap between mainland and Jätkäsaari island
 - **Villa-only filtering** for exclusive island districts (Kaskisaari, Kuusisaari, Kulosaari)
-- **Easter egg properties** excluded from AI rival purchases (`easterEgg: true` flag)
+- **Special properties** excluded from AI rival purchases (`easterEgg: true` flag)
 - **Sharetribe Office** moved to middle of Kaartinkaupunki district
 
 ### Fixed
@@ -211,7 +246,7 @@
 
 ---
 
-## v0.8.6 — Pixel Art Buildings & Alien Invasion Visuals (2026-04-02)
+## v0.8.6 — Pixel Art Buildings & Special Event Visuals (2026-04-02)
 
 ### Added
 - **Pixel art building sprites** — each property type now has a distinct building sprite instead of colored squares
@@ -223,12 +258,7 @@
   - Landmark: columned monument with star on top
 - **All buildings grow taller with upgrades** — visual feedback for property investment
 - **Snow on rooftops** in winter season
-- **Alien invasion visual effects** — when an alien invasion event is active:
-  - 3 UFOs hover over the affected district in formation with bobbing animation
-  - Green tractor beams project down from each UFO
-  - Blinking red/yellow lights around saucer rims
-  - Eerie green atmospheric tint pulses across the map
-  - Floating green scan particles
+- **Special event visual effects** — rare events now have animated visuals on the map
 - **Easter egg properties**:
   - Schwerbelastung's Penthouse (Jätkäsaari, €300K) — purple color
   - Sharetribe Office (Kaartinkaupunki, €500K) — orange color
@@ -308,9 +338,9 @@
 ### Fixed
 - **Market Crash now actually works** — global `valueModifier` was silently skipped because it only checked `affectedDistricts`; now applies to all properties when `global: true`
 - **Market Crash prices recover** — after 6 months, property values return to base price (previously the drop was permanent)
-- **Alien Invasion & Market Crash recovery** — `tickEvents` now handles global recovery, not just district-scoped events
-- **Event ticker shows recovery info** — Market Crash: "prices recover after"; Alien Invasion: "recovers to 150% of original"
-- **Event descriptions clarified** — Market Crash and Alien Invasion now explain duration and recovery in their text
+- **Special event & Market Crash recovery** — `tickEvents` now handles global recovery, not just district-scoped events
+- **Event ticker shows recovery info** — events with price impact now show recovery details
+- **Event descriptions clarified** — multi-month events now explain duration and recovery in their text
 
 ### Changed
 - **Pipe Burst scales with property condition** — avg condition ≥ 90% = immune; lower condition increases both chance and cost
@@ -500,7 +530,7 @@
 - **Event sound effects**:
   - Positive events: bright ascending chime
   - Negative events: ominous descending + low rumble
-  - Alien invasion: sci-fi frequency sweep + eerie tones
+  - Special events: unique sound effects
   - Rival purchases: subtle low alert
 - **Victory fanfare** (triumphant major scale) and **bankruptcy sound** (sad descent)
 - **Music and SFX toggle buttons** in the top HUD bar — independent on/off control
@@ -543,7 +573,7 @@
   - 0 rivals = peaceful sandbox, no competition for properties
 
 ### Fixed
-- **€NaN bug** — events without a `revenueModifier` (Market Crash, Harsh Winter, Alien Invasion) caused revenue calculation to produce NaN, corrupting the money counter
+- **€NaN bug** — events without a `revenueModifier` caused revenue calculation to produce NaN, corrupting the money counter
 
 ---
 
@@ -633,7 +663,7 @@ All core systems implemented in a single session. Game is fully playable.
 - **Events**: 16 events with real economic effects
   - Positive: Flow Festival, Slush, Pride, Christmas Market, Vappu, Design Week, Helsinki Festival, Lux Helsinki
   - Negative: Recession, construction, pipe burst, tenant dispute, harsh winter, market crash
-  - Special: Alien Invasion (~2% chance/year)
+  - Special: rare surprises (play to find out!)
 - **AI Rivals**: 3 personality-driven competitors
   - Björn "Nalle" Wahlroos — premium property hunter
   - Harry "Hjallis" Harkimo — entertainment focus
@@ -653,9 +683,6 @@ All core systems implemented in a single session. Game is fully playable.
 ## Planned Future Versions
 
 ### v1.0.0 — Release
-- [ ] Bidding wars with rivals
 - [ ] Balance tuning
-- [ ] Achievement system
 - [ ] Mobile/touch support
-- [ ] Animated transitions between seasons
 - [ ] Richer property tooltips

@@ -453,6 +453,176 @@ html {
     padding-top: 6px;
 }
 
+/* === Auction / Bidding War === */
+#auction-overlay {
+    z-index: 260;
+    background: rgba(5, 2, 15, 0.92);
+}
+#auction-content {
+    background: linear-gradient(180deg, #1a1a2e 0%, #12122a 100%);
+    border: 3px solid #ffcc00;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.25), inset 0 0 30px rgba(255, 204, 0, 0.05);
+    padding: 24px 32px 20px;
+    max-width: 540px;
+    width: 92%;
+    text-align: center;
+}
+#auction-header {
+    font-size: 16px;
+    color: #ffcc00;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+    text-shadow: 0 0 12px rgba(255, 204, 0, 0.5);
+}
+.auction-flash {
+    display: inline-block;
+    animation: auctionPulse 0.8s ease-in-out infinite alternate;
+    color: #ffaa00;
+}
+@keyframes auctionPulse {
+    from { opacity: 0.4; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1.15); }
+}
+#auction-round {
+    font-size: 8px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+}
+#auction-round span { color: var(--text-accent); }
+
+#auction-body {
+    text-align: left;
+    margin-bottom: 18px;
+}
+
+#auction-property {
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.03);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+#auction-prop-name {
+    font-size: 11px;
+    color: #ffcc00;
+    margin-bottom: 6px;
+}
+#auction-prop-stats {
+    font-size: 7px;
+    color: var(--text-secondary);
+    line-height: 2;
+}
+#auction-prop-stats span {
+    color: var(--text-primary);
+}
+
+#auction-bid-display {
+    text-align: center;
+    padding: 12px 0;
+    margin-bottom: 14px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+#auction-bid-label {
+    font-size: 7px;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+#auction-bid-amount {
+    font-size: 18px;
+    color: var(--text-money);
+    text-shadow: 0 0 10px rgba(68, 255, 68, 0.3);
+    margin-bottom: 4px;
+}
+#auction-bid-leader {
+    font-size: 7px;
+    color: var(--text-secondary);
+}
+
+#auction-participants {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+.auction-participant {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 70px;
+}
+.auction-participant canvas {
+    border: 2px solid var(--border-color);
+    image-rendering: pixelated;
+    background: #111122;
+}
+.auction-participant.active canvas {
+    border-color: #ffcc00;
+    box-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
+}
+.auction-participant.dropped canvas {
+    opacity: 0.3;
+    border-color: #333;
+}
+.auction-participant-name {
+    font-size: 7px;
+    color: var(--text-primary);
+}
+.auction-participant.dropped .auction-participant-name {
+    color: #555;
+    text-decoration: line-through;
+}
+.auction-participant-status {
+    font-size: 6px;
+    color: var(--text-money);
+    min-height: 10px;
+}
+.auction-participant.dropped .auction-participant-status {
+    color: var(--text-danger);
+}
+
+#auction-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+.auction-btn {
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    padding: 10px 24px;
+    border: 2px solid #ffcc00;
+    background: var(--btn-bg);
+    color: #ffcc00;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+}
+.auction-btn:hover {
+    background: rgba(255, 204, 0, 0.12);
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.2);
+}
+.auction-btn-danger {
+    border-color: #ff4444;
+    color: #ff4444;
+}
+.auction-btn-danger:hover {
+    background: rgba(255, 68, 68, 0.1);
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
+}
+
+#auction-result {
+    padding-top: 12px;
+}
+#auction-result.hidden { display: none; }
+#auction-result-text {
+    font-size: 10px;
+    line-height: 2;
+    margin-bottom: 14px;
+}
+
 /* === Rival Offer Dialog === */
 #offer-overlay {
     z-index: 250;
@@ -536,6 +706,85 @@ html {
 }
 #offer-decline:hover {
     background: rgba(255, 68, 68, 0.1);
+}
+
+/* === Nokia Press Release === */
+#nokia-overlay {
+    z-index: 260;
+    background: rgba(0, 20, 60, 0.92);
+}
+#nokia-content {
+    background: #0a0a1a;
+    border: 3px solid #0055cc;
+    padding: 28px 32px;
+    max-width: 520px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0, 85, 204, 0.3), inset 0 0 20px rgba(0, 85, 204, 0.05);
+}
+#nokia-header {
+    font-size: 9px;
+    color: #6688aa;
+    letter-spacing: 4px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #223355;
+    padding-bottom: 10px;
+}
+#nokia-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    text-align: left;
+    margin-bottom: 22px;
+}
+#nokia-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+#nokia-portrait {
+    border: 2px solid #0055cc;
+    background: #111122;
+    image-rendering: pixelated;
+}
+#nokia-phone {
+    image-rendering: pixelated;
+}
+#nokia-details {
+    flex: 1;
+}
+#nokia-source {
+    font-size: 7px;
+    color: #557799;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+#nokia-headline {
+    font-size: 11px;
+    color: #0088ff;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+#nokia-text {
+    font-size: 8px;
+    color: #aabbcc;
+    line-height: 1.9;
+}
+.nokia-btn {
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    padding: 10px 28px;
+    border: 2px solid #0055cc;
+    background: rgba(0, 85, 204, 0.15);
+    color: #0088ff;
+    cursor: pointer;
+    letter-spacing: 2px;
+}
+.nokia-btn:hover {
+    background: rgba(0, 85, 204, 0.3);
+    border-color: #0088ff;
 }
 
 /* === Victory Screen === */

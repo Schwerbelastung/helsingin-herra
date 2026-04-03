@@ -18,6 +18,8 @@ const GameState = {
     loanInterestRate: 0.05, // 5% annual
     winTarget: 50000000,
     gameOver: false,
+    nokiaHasOccurred: false, // Nokia Comeback can only trigger once per campaign
+    lastSpecialEventTurn: -3, // turn when last special event triggered (cooldown: 2 months)
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
@@ -34,6 +36,8 @@ const Game = (() => {
         GameState.mode = mode;
         GameState.staff = [];
         GameState.financeHistory = [];
+        GameState.nokiaHasOccurred = false;
+        GameState.lastSpecialEventTurn = -3;
 
         // Difficulty settings
         const diffSettings = {
@@ -99,6 +103,17 @@ const Game = (() => {
         const newEvents = Events.checkEvents(GameState);
         for (const event of newEvents) {
             GameState.activeEvents.push(event);
+
+            // Nokia Comeback: show press release dialog, mark as occurred
+            if (event.id === 'nokia_comeback') {
+                GameState.nokiaHasOccurred = true;
+                UI.showNokiaAnnouncement();
+            }
+
+            // Track special event cooldown
+            if (event.special) {
+                GameState.lastSpecialEventTurn = GameState.turn;
+            }
 
             // Play event sound
             if (event.special) {
@@ -190,12 +205,17 @@ const Game = (() => {
         const undoBtn = document.getElementById('btn-undo');
         if (undoBtn) undoBtn.disabled = true;
 
-        // 15. Check for rival offer
+        // 15. Check for auction or rival offer (not both same turn)
         if (!GameState.gameOver && GameState.rivals.length > 0) {
-            const offer = Rivals.generateOffer(GameState);
-            if (offer) {
-                pendingOffer = offer;
-                UI.showOfferDialog(offer);
+            const auction = Rivals.generateAuction(GameState);
+            if (auction) {
+                startAuction(auction);
+            } else {
+                const offer = Rivals.generateOffer(GameState);
+                if (offer) {
+                    pendingOffer = offer;
+                    UI.showOfferDialog(offer);
+                }
             }
         }
 
@@ -288,6 +308,280 @@ const Game = (() => {
         document.getElementById('offer-overlay').classList.add('hidden');
         Sound.playClick();
         UI.setNewsText(`You declined ${name}'s offer.`);
+    }
+
+    // === AUCTION / BIDDING WAR ===
+    let activeAuction = null;
+
+    function startAuction(auction) {
+        activeAuction = auction;
+        // Pause normal music, start auction music
+        Sound.stopMusic();
+        Sound.playAuctionStart();
+        setTimeout(() => Sound.startAuctionMusic(), 800);
+        // Show the auction UI
+        UI.showAuctionDialog(auction);
+    }
+
+    function auctionPlayerRaise() {
+        if (!activeAuction || activeAuction.finished) return;
+        const a = activeAuction;
+        const nextBid = a.currentBid + a.increment;
+
+        if (GameState.money < nextBid) {
+            UI.setNewsText("You can't afford to raise!");
+            return;
+        }
+
+        Sound.playAuctionBid();
+        a.playerBid = nextBid;
+        a.currentBid = nextBid;
+        a.leader = 'player';
+        a.round++;
+
+        if (a.round >= a.maxRounds) {
+            // Process final rival responses then end
+            const results = Rivals.processAuctionRound(a);
+            // Check if a rival outbid us in the final round
+            for (const r of results) {
+                if (r.action === 'raise' && r.bid > a.currentBid) {
+                    a.currentBid = r.bid;
+                    a.leader = r.rival.id;
+                }
+            }
+            UI.updateAuctionRound(a, results);
+            setTimeout(() => finishAuction(), 1200);
+            return;
+        }
+
+        // Rivals respond
+        const results = Rivals.processAuctionRound(a);
+
+        // Check if any rival raised above us
+        let highestRivalBid = 0;
+        let highestRivalBidder = null;
+        for (const r of results) {
+            if (r.action === 'raise' && r.bid > highestRivalBid) {
+                highestRivalBid = r.bid;
+                highestRivalBidder = r.rival;
+            }
+        }
+
+        if (highestRivalBid > a.currentBid) {
+            a.currentBid = highestRivalBid;
+            a.leader = highestRivalBidder.id;
+        }
+
+        // Check if all rivals dropped
+        const activeRivals = a.bidders.filter(b => b.active);
+        if (activeRivals.length === 0) {
+            UI.updateAuctionRivals(a, results);
+            setTimeout(() => finishAuction(), 800);
+            return;
+        }
+
+        // Play rival sounds with delays for drama
+        let delay = 300;
+        for (const r of results) {
+            setTimeout(() => {
+                if (r.action === 'raise') Sound.playAuctionRivalBid();
+                else Sound.playAuctionDropout();
+            }, delay);
+            delay += 400;
+        }
+
+        UI.updateAuctionRound(a, results);
+    }
+
+    function auctionPlayerDropout() {
+        if (!activeAuction || activeAuction.finished) return;
+        const a = activeAuction;
+        a.playerIn = false;
+        Sound.playClick();
+
+        // Simulate remaining rounds without player
+        while (a.round < a.maxRounds) {
+            a.round++;
+            const results = Rivals.processAuctionRound(a);
+            // Update current bid to highest active rival
+            for (const r of results) {
+                if (r.action === 'raise' && r.bid > a.currentBid) {
+                    a.currentBid = r.bid;
+                    a.leader = r.rival.id;
+                }
+            }
+            a.currentBid += a.increment;
+            const activeRivals = a.bidders.filter(b => b.active);
+            if (activeRivals.length <= 1) break;
+        }
+
+        // Determine winner among remaining rivals
+        const activeRivals = a.bidders.filter(b => b.active);
+        if (activeRivals.length > 0) {
+            a.leader = activeRivals[0].rival.id;
+            a.currentBid = activeRivals[0].lastBid || a.currentBid;
+        }
+
+        finishAuction();
+    }
+
+    function finishAuction() {
+        if (!activeAuction) return;
+        const a = activeAuction;
+        a.finished = true;
+
+        Sound.stopAuctionMusic();
+
+        if (a.leader === 'player' && a.playerIn) {
+            // Player wins!
+            GameState.money -= a.currentBid;
+            a.property.owner = 'player';
+            Sound.playAuctionWin();
+            UI.showAuctionResult(a, true, `You won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
+            UI.setNewsText(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}!`);
+            UI.addLogAction(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
+        } else if (a.leader) {
+            // A rival wins
+            const winner = a.bidders.find(b => b.rival.id === a.leader);
+            if (winner) {
+                a.property.owner = winner.rival.id;
+                winner.rival.money -= a.currentBid;
+                winner.rival.propertiesOwned++;
+            }
+            Sound.playAuctionLose();
+            const winnerName = winner ? winner.rival.shortName : 'Unknown';
+            UI.showAuctionResult(a, false, `${winnerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}.`);
+            UI.setNewsText(`${winnerName} won the auction for ${a.property.name}.`);
+            UI.addLogAction(`${winnerName} won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
+        } else {
+            // Nobody bid — property stays unowned
+            Sound.playAuctionLose();
+            UI.showAuctionResult(a, false, `No bidders — ${a.property.name} remains unsold.`);
+        }
+
+        UI.updateHUD(GameState);
+        MapRenderer.render();
+    }
+
+    function closeAuction() {
+        activeAuction = null;
+        document.getElementById('auction-overlay').classList.add('hidden');
+        // Resume normal music
+        Sound.startMusic();
+    }
+
+    // === CHEAT TRIGGERS ===
+    function cheatBiddingWar() {
+        if (GameState.rivals.length === 0) { UI.setNewsText('No rivals to bid against!'); return; }
+        // Force-generate an auction (ignore the 3% chance)
+        const unowned = GameState.properties.filter(p => p.owner === null && !p.easterEgg);
+        if (unowned.length === 0) { UI.setNewsText('No properties available for auction!'); return; }
+        // Temporarily override Math.random to guarantee auction generation
+        const origRandom = Math.random;
+        Math.random = () => 0; // always passes the 3% check and maximizes rival interest
+        const auction = Rivals.generateAuction(GameState);
+        Math.random = origRandom;
+        if (auction) {
+            startAuction(auction);
+        } else {
+            UI.setNewsText('Could not generate auction — rivals may not be interested in remaining properties.');
+        }
+    }
+
+    function cheatRivalOffer() {
+        if (GameState.rivals.length === 0) { UI.setNewsText('No rivals!'); return; }
+        const origRandom = Math.random;
+        Math.random = () => 0;
+        const offer = Rivals.generateOffer(GameState);
+        Math.random = origRandom;
+        if (offer) {
+            pendingOffer = offer;
+            UI.showOfferDialog(offer);
+        } else {
+            UI.setNewsText('No offer could be generated — need player or rival properties.');
+        }
+    }
+
+    function cheatEasterEgg() {
+        const options = [
+            'polar_bears', 'alien_invasion',
+            'tonttu_invasion', 'moose_rush_hour', 'nokia_comeback',
+            'northern_lights', 'rubber_duck', 'angry_bird',
+        ];
+        // Remove any already active
+        const available = options.filter(id => !GameState.activeEvents.some(e => e.id === id));
+        if (available.length === 0) {
+            UI.setNewsText('All easter eggs are already active!');
+            return;
+        }
+        const pick = available[Math.floor(Math.random() * available.length)];
+
+        const cheatMessages = {
+            polar_bears: 'BREAKING: Polar bears spotted swimming near the coastline! Check the shores of Helsinki!',
+            alien_invasion: 'ALERT: Unidentified flying objects detected over Helsinki! Look up — and hold onto your properties!',
+            tonttu_invasion: 'Pssst... tiny red hats have been spotted on rooftops across Helsinki. Look at your properties!',
+            moose_rush_hour: 'TRAFFIC UPDATE: A herd of moose is stampeding down Mannerheimintie! Find the main road!',
+            nokia_comeback: 'TECH NEWS: Nokia announces return to mobile phones! Office values surge in tech districts!',
+            northern_lights: 'Look up... the sky over Helsinki is glowing. A rare aurora borealis illuminates the night.',
+            rubber_duck: 'HARBOUR MYSTERY: Something large and yellow has appeared in South Harbour. What could it be?',
+            angry_bird: 'EYEWITNESS: Something red, round, and very angry just launched across the Helsinki sky!',
+        };
+
+        // Check if seasonal cheat is out of season
+        const currentSeason = Seasons.getCurrentSeason(GameState.month);
+        const seasonalWarnings = {
+            polar_bears: 'winter',
+            tonttu_invasion: 'winter',
+            northern_lights: 'winter',
+        };
+        const winterHints = [
+            'Something stirs in the cold... but it\'s not cold enough yet.',
+            'The conditions aren\'t right. Perhaps when Helsinki freezes over...',
+            'Nothing happens. Some things only reveal themselves in the darkest months.',
+            'You feel a strange anticipation... but the season is wrong.',
+            'Not yet. Wait for the frost and the long nights.',
+        ];
+        if (seasonalWarnings[pick] && currentSeason !== seasonalWarnings[pick]) {
+            UI.setNewsText(winterHints[Math.floor(Math.random() * winterHints.length)]);
+            return;
+        }
+
+        if (pick === 'polar_bears') {
+            MapRenderer.forcePolarBears();
+            UI.setNewsText(cheatMessages.polar_bears);
+            return;
+        }
+
+        // Find template from EVENT_POOL
+        const template = Events.EVENT_POOL.find(e => e.id === pick);
+        if (!template) return;
+
+        const event = { ...template, remainingDuration: template.duration };
+
+        // Assign random district if needed
+        if (template.randomDistrict) {
+            const districts = HelsinkiDistricts.districts;
+            event.affectedDistricts = [districts[Math.floor(Math.random() * districts.length)].id];
+        }
+
+        // Apply immediate value modifier effects (alien invasion, etc.)
+        if (event.valueModifier) {
+            for (const prop of GameState.properties) {
+                if (event.global || (event.affectedDistricts && event.affectedDistricts.includes(prop.district))) {
+                    prop.price = Math.floor(prop.price * (1 + event.valueModifier));
+                }
+            }
+        }
+
+        GameState.activeEvents.push(event);
+        Sound.playEventSpecial();
+        UI.showEventNotification(event);
+        if (pick === 'nokia_comeback') {
+            UI.showNokiaAnnouncement();
+        }
+        UI.updateHUD(GameState);
+        MapRenderer.render();
+        UI.setNewsText(cheatMessages[pick]);
     }
 
     function buyProperty(property) {
@@ -405,7 +699,7 @@ const Game = (() => {
 
     function buildSaveData() {
         return {
-            version: '0.10.2',
+            version: '0.12.0',
             savedAt: Date.now(),
             money: GameState.money,
             month: GameState.month,
@@ -585,6 +879,12 @@ const Game = (() => {
         undo,
         acceptOffer,
         declineOffer,
+        auctionPlayerRaise,
+        auctionPlayerDropout,
+        closeAuction,
+        cheatBiddingWar,
+        cheatRivalOffer,
+        cheatEasterEgg,
         autoSave,
         saveGame,
         loadGame,

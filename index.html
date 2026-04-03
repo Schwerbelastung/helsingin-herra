@@ -273,6 +273,14 @@
                     <div class="cheat-hint" id="cheat-free-status">OFF — click a property to buy for free</div>
                 </div>
                 <div class="cheat-section">
+                    <label>Events:</label>
+                    <div class="cheat-buttons">
+                        <button class="cheat-btn" id="cheat-bidding-war">Bidding War</button>
+                        <button class="cheat-btn" id="cheat-rival-offer">Rival Offer</button>
+                        <button class="cheat-btn" id="cheat-easter-egg">Easter Egg</button>
+                    </div>
+                </div>
+                <div class="cheat-section">
                     <label>Other:</label>
                     <div class="cheat-buttons">
                         <button class="cheat-btn" id="cheat-repair-all">Repair All</button>
@@ -280,6 +288,38 @@
                     </div>
                 </div>
                 <div class="cheat-warn">Cheats are for fun — no judgement!</div>
+            </div>
+        </div>
+
+        <!-- Auction overlay -->
+        <div id="auction-overlay" class="overlay hidden">
+            <div id="auction-content">
+                <div id="auction-header">
+                    <span id="auction-flash-left" class="auction-flash">&#9889;</span>
+                    BIDDING WAR
+                    <span id="auction-flash-right" class="auction-flash">&#9889;</span>
+                </div>
+                <div id="auction-round">ROUND <span id="auction-round-num">1</span> / <span id="auction-round-max">3</span></div>
+                <div id="auction-body">
+                    <div id="auction-property">
+                        <div id="auction-prop-name"></div>
+                        <div id="auction-prop-stats"></div>
+                    </div>
+                    <div id="auction-bid-display">
+                        <div id="auction-bid-label">CURRENT BID</div>
+                        <div id="auction-bid-amount"></div>
+                        <div id="auction-bid-leader"></div>
+                    </div>
+                    <div id="auction-participants"></div>
+                </div>
+                <div id="auction-buttons">
+                    <button class="auction-btn" id="auction-raise">RAISE</button>
+                    <button class="auction-btn auction-btn-danger" id="auction-dropout">DROP OUT</button>
+                </div>
+                <div id="auction-result" class="hidden">
+                    <div id="auction-result-text"></div>
+                    <button class="auction-btn" id="auction-close">CONTINUE</button>
+                </div>
             </div>
         </div>
 
@@ -300,6 +340,27 @@
                 <div id="offer-buttons">
                     <button class="offer-btn" id="offer-accept">ACCEPT</button>
                     <button class="offer-btn" id="offer-decline">DECLINE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nokia press release overlay -->
+        <div id="nokia-overlay" class="overlay hidden">
+            <div id="nokia-content">
+                <div id="nokia-header">PRESS RELEASE</div>
+                <div id="nokia-body">
+                    <div id="nokia-left">
+                        <canvas id="nokia-portrait" width="64" height="64"></canvas>
+                        <canvas id="nokia-phone" width="64" height="120"></canvas>
+                    </div>
+                    <div id="nokia-details">
+                        <div id="nokia-source">NOKIA CORPORATION — HELSINKI</div>
+                        <div id="nokia-headline">NOKIA ANNOUNCES RETURN TO MOBILE PHONES</div>
+                        <div id="nokia-text"></div>
+                    </div>
+                </div>
+                <div id="nokia-buttons">
+                    <button class="nokia-btn" id="nokia-close">CONNECTING PEOPLE</button>
                 </div>
             </div>
         </div>
@@ -414,19 +475,19 @@
             </div>
         </div>
 
-    <script src="js/districts.js?v=0102"></script>
-    <script src="js/properties.js?v=0102"></script>
-    <script src="js/economy.js?v=0102"></script>
-    <script src="js/events.js?v=0102"></script>
-    <script src="js/seasons.js?v=0102"></script>
-    <script src="js/rivals.js?v=0102"></script>
-    <script src="js/staff.js?v=0102"></script>
-    <script src="js/sound.js?v=0102"></script>
-    <script src="js/achievements.js?v=0102"></script>
-    <script src="js/changelog.js?v=0102"></script>
-    <script src="js/ui.js?v=0102"></script>
-    <script src="js/game.js?v=0102"></script>
-    <script src="js/map.js?v=0102"></script>
-    <script src="js/main.js?v=0102"></script>
+    <script src="js/districts.js?v=0120"></script>
+    <script src="js/properties.js?v=0120"></script>
+    <script src="js/economy.js?v=0120"></script>
+    <script src="js/events.js?v=0120"></script>
+    <script src="js/seasons.js?v=0120"></script>
+    <script src="js/rivals.js?v=0120"></script>
+    <script src="js/staff.js?v=0120"></script>
+    <script src="js/sound.js?v=0120"></script>
+    <script src="js/achievements.js?v=0120"></script>
+    <script src="js/changelog.js?v=0120"></script>
+    <script src="js/ui.js?v=0120"></script>
+    <script src="js/game.js?v=0120"></script>
+    <script src="js/map.js?v=0120"></script>
+    <script src="js/main.js?v=0120"></script>
 </body>
 </html>

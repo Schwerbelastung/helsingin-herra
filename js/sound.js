@@ -314,6 +314,58 @@ const Sound = (() => {
         }, 600);
     }
 
+    function playAngryBird() {
+        // Slingshot launch: stretchy rubber "twang" rising into a whistle
+        ensureAudio();
+        const now = audioCtx.currentTime;
+        // Rubber band twang
+        const twang = audioCtx.createOscillator();
+        const tg = audioCtx.createGain();
+        twang.type = 'sawtooth';
+        twang.frequency.setValueAtTime(120, now);
+        twang.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+        twang.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+        tg.gain.setValueAtTime(0.1, now);
+        tg.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        twang.connect(tg);
+        tg.connect(sfxGain);
+        twang.start(now);
+        twang.stop(now + 0.3);
+        // Flying whistle (rising then falling as bird crosses screen)
+        setTimeout(() => {
+            const fly = audioCtx.createOscillator();
+            const fg = audioCtx.createGain();
+            fly.type = 'sine';
+            const t = audioCtx.currentTime;
+            fly.frequency.setValueAtTime(500, t);
+            fly.frequency.exponentialRampToValueAtTime(1400, t + 0.8);
+            fly.frequency.exponentialRampToValueAtTime(400, t + 1.6);
+            fg.gain.setValueAtTime(0.07, t);
+            fg.gain.setValueAtTime(0.07, t + 1.2);
+            fg.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+            fly.connect(fg);
+            fg.connect(sfxGain);
+            fly.start(t);
+            fly.stop(t + 1.6);
+        }, 200);
+        // Angry squawk at peak
+        setTimeout(() => {
+            const squawk = audioCtx.createOscillator();
+            const sg = audioCtx.createGain();
+            squawk.type = 'square';
+            const t = audioCtx.currentTime;
+            squawk.frequency.setValueAtTime(900, t);
+            squawk.frequency.exponentialRampToValueAtTime(1200, t + 0.05);
+            squawk.frequency.exponentialRampToValueAtTime(700, t + 0.15);
+            sg.gain.setValueAtTime(0.06, t);
+            sg.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+            squawk.connect(sg);
+            sg.connect(sfxGain);
+            squawk.start(t);
+            squawk.stop(t + 0.15);
+        }, 800);
+    }
+
     function playRivalAction() {
         // Subtle alert: two quick low tones
         playTone(330, 0.08, 'triangle', 0.06);
@@ -325,6 +377,124 @@ const Sound = (() => {
         playTone(523, 0.15, 'sine', 0.08);
         setTimeout(() => playTone(659, 0.15, 'sine', 0.08), 150);
         setTimeout(() => playTone(784, 0.2, 'sine', 0.06), 300);
+    }
+
+    // === AUCTION SOUNDS ===
+
+    let auctionMusicInterval = null;
+    let auctionBassOsc = null;
+    let auctionBassGain = null;
+
+    function playAuctionStart() {
+        // Dramatic gavel strike + rising tension
+        playNoise(0.06, 0.15); // gavel crack
+        setTimeout(() => playNoise(0.04, 0.1), 80);
+        // Dramatic rising tones
+        setTimeout(() => playTone(220, 0.3, 'sawtooth', 0.07), 150);
+        setTimeout(() => playTone(277, 0.3, 'sawtooth', 0.07), 300);
+        setTimeout(() => playTone(330, 0.4, 'sawtooth', 0.08), 450);
+        // Tension chord
+        setTimeout(() => {
+            playTone(165, 0.6, 'sawtooth', 0.05);
+            playTone(220, 0.6, 'triangle', 0.04);
+        }, 650);
+    }
+
+    function playAuctionBid() {
+        // Escalating bid — ascending chime
+        playTone(440, 0.1, 'sine', 0.08);
+        setTimeout(() => playTone(554, 0.1, 'sine', 0.08), 80);
+        setTimeout(() => playTone(659, 0.15, 'sine', 0.07), 160);
+    }
+
+    function playAuctionRivalBid() {
+        // Rival raises — slightly menacing
+        playTone(330, 0.12, 'sawtooth', 0.06);
+        setTimeout(() => playTone(392, 0.12, 'sawtooth', 0.06), 100);
+        setTimeout(() => playTone(466, 0.15, 'sawtooth', 0.05), 200);
+    }
+
+    function playAuctionDropout() {
+        // Deflating descending tone
+        playTone(330, 0.15, 'triangle', 0.06);
+        setTimeout(() => playTone(262, 0.15, 'triangle', 0.05), 120);
+        setTimeout(() => playTone(196, 0.25, 'triangle', 0.04), 240);
+    }
+
+    function playAuctionWin() {
+        // Triumphant mini-fanfare
+        playTone(523, 0.15, 'sawtooth', 0.07);
+        setTimeout(() => playTone(659, 0.15, 'sawtooth', 0.07), 130);
+        setTimeout(() => playTone(784, 0.3, 'sawtooth', 0.08), 260);
+        setTimeout(() => {
+            playTone(523, 0.8, 'sawtooth', 0.05);
+            playTone(659, 0.8, 'sawtooth', 0.05);
+            playTone(784, 0.8, 'sawtooth', 0.05);
+        }, 450);
+    }
+
+    function playAuctionLose() {
+        // Sad descending trombone
+        ensureAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(350, now);
+        osc.frequency.linearRampToValueAtTime(180, now + 0.6);
+        g.gain.setValueAtTime(0.07, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.connect(g);
+        g.connect(sfxGain);
+        osc.start(now);
+        osc.stop(now + 0.8);
+    }
+
+    function startAuctionMusic() {
+        ensureAudio();
+        if (auctionMusicInterval) return;
+
+        // Soft pulsing bass drone (sine to avoid buzz)
+        auctionBassGain = audioCtx.createGain();
+        auctionBassGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        auctionBassGain.connect(musicGain);
+        auctionBassOsc = audioCtx.createOscillator();
+        auctionBassOsc.type = 'sine';
+        auctionBassOsc.frequency.value = 55; // low A
+        auctionBassOsc.connect(auctionBassGain);
+        auctionBassOsc.start();
+
+        // Rhythmic tension pattern — fast ticking heartbeat
+        let tick = 0;
+        const pattern = [165, 0, 196, 0, 165, 0, 220, 196]; // tension notes with rests
+        auctionMusicInterval = setInterval(() => {
+            if (!musicEnabled) return;
+            const note = pattern[tick % pattern.length];
+            if (note > 0) {
+                playTone(note, 0.12, 'triangle', 0.04, musicGain);
+                // Occasional high accent
+                if (tick % 8 === 6) {
+                    playTone(note * 2, 0.08, 'sine', 0.03, musicGain);
+                }
+            }
+            // Heartbeat pulse on every other beat
+            if (tick % 2 === 0) {
+                playTone(55, 0.08, 'sine', 0.05, musicGain);
+            }
+            tick++;
+        }, 350);
+    }
+
+    function stopAuctionMusic() {
+        if (auctionMusicInterval) {
+            clearInterval(auctionMusicInterval);
+            auctionMusicInterval = null;
+        }
+        if (auctionBassOsc) {
+            try { auctionBassOsc.stop(); } catch(e) {}
+            auctionBassOsc = null;
+        }
+        auctionBassGain = null;
     }
 
     // === WIN / LOSE ===
@@ -406,8 +576,17 @@ const Sound = (() => {
         playEventNegative,
         playEventSpecial,
         playPolarBears,
+        playAngryBird,
         playRivalAction,
         playOffer,
+        playAuctionStart,
+        playAuctionBid,
+        playAuctionRivalBid,
+        playAuctionDropout,
+        playAuctionWin,
+        playAuctionLose,
+        startAuctionMusic,
+        stopAuctionMusic,
         playVictory,
         playBankrupt,
         toggleMusic,

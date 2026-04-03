@@ -172,12 +172,87 @@ const Events = (() => {
             name: 'ALIEN INVASION!',
             description: 'Aliens have landed in Helsinki! Property values crash, but tourist boom will push them above normal in 6 months.',
             month: -1,
-            chance: 0.017, // ~2% per year
+            chance: 0.012, // ~1.4% per month
             duration: 6,
             valueModifier: -0.5, // Immediate 50% drop
             recoveryModifier: 1.5, // Recovers to 150%
             randomDistrict: true,
             positive: false,
+            special: true,
+        },
+        {
+            id: 'tonttu_invasion',
+            name: 'TONTTU INVASION!',
+            description: 'Finnish house gnomes have appeared on every rooftop! Residents are delighted — residential revenue soars.',
+            month: 11, // December
+            chance: 0.10, // 10% chance in December
+            duration: 2,
+            revenueModifier: 0.4,
+            affectedTypes: ['residential'],
+            global: true,
+            positive: true,
+            special: true,
+        },
+        {
+            id: 'moose_rush_hour',
+            name: 'MOOSE RUSH HOUR!',
+            description: 'A herd of moose is stampeding down Mannerheimintie! Some property damage, but tourists go wild.',
+            month: -1,
+            chance: 0.014,
+            duration: 2,
+            revenueModifier: 0.25,
+            global: true,
+            positive: true,
+            special: true,
+        },
+        {
+            id: 'nokia_comeback',
+            name: 'NOKIA COMEBACK!',
+            description: 'Risto announces Nokia is making phones again! Office property values in tech districts skyrocket.',
+            month: -1,
+            chance: 0.014,
+            duration: 4,
+            revenueModifier: 0.5,
+            affectedTypes: ['office'],
+            affectedDistricts: ['ruoholahti', 'jatkasaari', 'kamppi', 'sornainen'],
+            positive: true,
+            special: true,
+        },
+        {
+            id: 'northern_lights',
+            name: 'NORTHERN LIGHTS OVER HELSINKI!',
+            description: 'A rare aurora borealis is visible from Helsinki! Tourists flood the city.',
+            month: -1,
+            winterOnly: true,
+            chance: 0.055,
+            duration: 1,
+            revenueModifier: 0.3,
+            global: true,
+            positive: true,
+            special: true,
+        },
+        {
+            id: 'rubber_duck',
+            name: 'GIANT RUBBER DUCK!',
+            description: 'A mysterious giant rubber duck has appeared in South Harbour. Nobody knows where it came from.',
+            month: -1,
+            chance: 0.017,
+            duration: 3,
+            revenueModifier: 0.1,
+            global: true,
+            positive: true,
+            special: true,
+        },
+        {
+            id: 'angry_bird',
+            name: 'ANGRY BIRD!',
+            description: 'Something red and round just flew across the Helsinki skyline at incredible speed!',
+            month: -1,
+            chance: 0.01,
+            duration: 1,
+            revenueModifier: 0.05,
+            global: true,
+            positive: true,
             special: true,
         },
     ];
@@ -190,6 +265,12 @@ const Events = (() => {
         for (const template of EVENT_POOL) {
             // Skip if already active
             if (gameState.activeEvents.some(e => e.id === template.id)) continue;
+
+            // Nokia Comeback: once per campaign (unless cheat)
+            if (template.id === 'nokia_comeback' && gameState.nokiaHasOccurred) continue;
+
+            // Special events: at least 2 months between procs
+            if (template.special && (gameState.turn - gameState.lastSpecialEventTurn) < 3) continue;
 
             // Check month-specific events
             if (template.month >= 0 && template.month !== month) continue;

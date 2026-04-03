@@ -452,6 +452,19 @@ Good luck — become the Helsingin Herra!`,
                 if (!document.getElementById('offer-overlay').classList.contains('hidden')) {
                     Game.declineOffer();
                 }
+                // Close Nokia press release on escape
+                if (!document.getElementById('nokia-overlay').classList.contains('hidden')) {
+                    closeNokiaDialog();
+                }
+                // Close auction on escape
+                if (!document.getElementById('auction-overlay').classList.contains('hidden')) {
+                    const resultVisible = !document.getElementById('auction-result').classList.contains('hidden');
+                    if (resultVisible) {
+                        Game.closeAuction();
+                    } else {
+                        Game.auctionPlayerDropout();
+                    }
+                }
             }
         });
     }
@@ -1096,6 +1109,18 @@ Good luck — become the Helsingin Herra!`,
             setNewsText(`Cheat: repaired ${count} properties to 100%`);
         });
 
+        document.getElementById('cheat-bidding-war').addEventListener('click', () => {
+            Sound.playClick();
+            Game.cheatBiddingWar();
+        });
+        document.getElementById('cheat-rival-offer').addEventListener('click', () => {
+            Sound.playClick();
+            Game.cheatRivalOffer();
+        });
+        document.getElementById('cheat-easter-egg').addEventListener('click', () => {
+            Sound.playClick();
+            Game.cheatEasterEgg();
+        });
         document.getElementById('cheat-max-upgrade').addEventListener('click', () => {
             let count = 0;
             for (const p of GameState.properties) {
@@ -1795,6 +1820,366 @@ Good luck — become the Helsingin Herra!`,
         Sound.playOffer();
     }
 
+    // === NOKIA PRESS RELEASE ===
+
+    function drawNokia3310(canvas) {
+        const c = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        c.clearRect(0, 0, w, h);
+
+        const cx = w / 2;
+        const cy = h / 2;
+        const s = 1.4;
+
+        // Phone body (dark blue)
+        c.fillStyle = '#1a2a55';
+        c.beginPath();
+        c.roundRect(cx - 18*s, cy - 38*s, 36*s, 76*s, 5*s);
+        c.fill();
+
+        // Body inner highlight
+        c.fillStyle = '#222e58';
+        c.beginPath();
+        c.roundRect(cx - 16*s, cy - 36*s, 32*s, 72*s, 4*s);
+        c.fill();
+
+        // Top cap (slightly lighter curve)
+        c.fillStyle = '#2a3a6a';
+        c.beginPath();
+        c.roundRect(cx - 16*s, cy - 36*s, 32*s, 12*s, [4*s, 4*s, 0, 0]);
+        c.fill();
+
+        // Screen bezel
+        c.fillStyle = '#556677';
+        c.fillRect(cx - 12*s, cy - 24*s, 24*s, 18*s);
+
+        // Screen (greenish LCD)
+        c.fillStyle = '#88aa66';
+        c.fillRect(cx - 10*s, cy - 22*s, 20*s, 14*s);
+        // Screen inner glow
+        c.fillStyle = '#99bb77';
+        c.fillRect(cx - 8*s, cy - 20*s, 16*s, 10*s);
+
+        // "NOKIA" on screen
+        c.fillStyle = '#445522';
+        c.font = `bold ${Math.floor(5*s)}px monospace`;
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.fillText('NOKIA', cx, cy - 14*s);
+
+        // Signal bars on screen (top-left)
+        c.fillStyle = '#556633';
+        for (let i = 0; i < 4; i++) {
+            c.fillRect(cx - 8*s + i * 2.5*s, cy - 20*s + (3 - i)*s, 1.5*s, (i + 1)*s);
+        }
+
+        // Battery icon (top-right of screen)
+        c.fillRect(cx + 3*s, cy - 20*s, 5*s, 2*s);
+        c.fillRect(cx + 8*s, cy - 19.5*s, 1*s, 1*s);
+
+        // "NOKIA" branding above screen
+        c.fillStyle = '#8899bb';
+        c.font = `bold ${Math.floor(3.5*s)}px monospace`;
+        c.fillText('NOKIA', cx, cy - 28*s);
+
+        // Navigation button (round)
+        c.fillStyle = '#2a3870';
+        c.beginPath();
+        c.arc(cx, cy + 0*s, 6*s, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#3a4888';
+        c.beginPath();
+        c.arc(cx, cy + 0*s, 4.5*s, 0, Math.PI * 2);
+        c.fill();
+        // Directional marks
+        c.fillStyle = '#556699';
+        c.fillRect(cx - 0.5*s, cy - 3.5*s, 1*s, 2*s); // up
+        c.fillRect(cx - 0.5*s, cy + 1.5*s, 1*s, 2*s); // down
+        c.fillRect(cx - 3.5*s, cy - 0.5*s, 2*s, 1*s); // left
+        c.fillRect(cx + 1.5*s, cy - 0.5*s, 2*s, 1*s); // right
+
+        // Side buttons (menu / back)
+        c.fillStyle = '#2a3870';
+        c.beginPath();
+        c.roundRect(cx - 14*s, cy - 2*s, 6*s, 4*s, 1*s);
+        c.fill();
+        c.beginPath();
+        c.roundRect(cx + 8*s, cy - 2*s, 6*s, 4*s, 1*s);
+        c.fill();
+
+        // Keypad (4 rows x 3 cols)
+        const keyLabels = [
+            ['1','2','3'],
+            ['4','5','6'],
+            ['7','8','9'],
+            ['*','0','#'],
+        ];
+        c.font = `bold ${Math.floor(3*s)}px monospace`;
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 3; col++) {
+                const bx = cx + (col - 1) * 9*s;
+                const by = cy + 10*s + row * 7.5*s;
+                // Key button
+                c.fillStyle = '#2a3870';
+                c.beginPath();
+                c.roundRect(bx - 3.5*s, by - 2.5*s, 7*s, 5*s, 1.2*s);
+                c.fill();
+                // Key highlight
+                c.fillStyle = '#3a4888';
+                c.beginPath();
+                c.roundRect(bx - 2.5*s, by - 1.5*s, 5*s, 3*s, 0.8*s);
+                c.fill();
+                // Key label
+                c.fillStyle = '#8899bb';
+                c.fillText(keyLabels[row][col], bx, by + 0.5*s);
+            }
+        }
+
+        // Bottom speaker holes
+        c.fillStyle = '#151d40';
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+                c.fillRect(cx - 3*s + i * 3*s, cy + 34*s + j * 2.5*s, 1.5*s, 1*s);
+            }
+        }
+
+        c.textAlign = 'left';
+        c.textBaseline = 'alphabetic';
+    }
+
+    function showNokiaAnnouncement() {
+        const overlay = document.getElementById('nokia-overlay');
+        const portraitCanvas = document.getElementById('nokia-portrait');
+        const phoneCanvas = document.getElementById('nokia-phone');
+        const textEl = document.getElementById('nokia-text');
+
+        // Draw Risto's portrait
+        MapRenderer.drawRivalPortrait(portraitCanvas, 'risto');
+
+        // Draw Nokia 3310 pixel art
+        drawNokia3310(phoneCanvas);
+
+        textEl.innerHTML =
+            'Nokia Corporation Chairman Risto Siilasmaa today announced that Nokia will re-enter the consumer mobile phone market, ' +
+            'effective immediately. "The world needs indestructible phones again," Siilasmaa stated at a packed press conference in Espoo.<br><br>' +
+            'The company\'s first new device — a modernized Nokia 3310 — is expected to ship in Q2. ' +
+            'Office property values in Helsinki\'s tech districts have already surged on the news. ' +
+            'Analysts predict a sustained boom for Ruoholahti, Jätkäsaari, Kamppi, and Sörnäinen.';
+
+        overlay.classList.remove('hidden');
+    }
+
+    function closeNokiaDialog() {
+        document.getElementById('nokia-overlay').classList.add('hidden');
+    }
+
+    // === AUCTION UI ===
+
+    function showAuctionDialog(auction) {
+        const overlay = document.getElementById('auction-overlay');
+        const propName = document.getElementById('auction-prop-name');
+        const propStats = document.getElementById('auction-prop-stats');
+        const bidAmount = document.getElementById('auction-bid-amount');
+        const bidLeader = document.getElementById('auction-bid-leader');
+        const roundNum = document.getElementById('auction-round-num');
+        const roundMax = document.getElementById('auction-round-max');
+        const participantsEl = document.getElementById('auction-participants');
+        const buttonsEl = document.getElementById('auction-buttons');
+        const resultEl = document.getElementById('auction-result');
+        const raiseBtn = document.getElementById('auction-raise');
+
+        const p = auction.property;
+        propName.textContent = p.name;
+        propStats.innerHTML = `
+            District: <span>${p.districtName || p.district}</span> &nbsp;|&nbsp;
+            Type: <span>${p.type}</span><br>
+            Price: <span>€${formatMoney(p.price)}</span> &nbsp;|&nbsp;
+            Revenue: <span>€${formatMoney(p.revenue)}/mo</span><br>
+            Condition: <span>${Math.floor(p.condition)}%</span> &nbsp;|&nbsp;
+            Level: <span>${p.upgradeLevel}</span>
+        `;
+
+        roundNum.textContent = '1';
+        roundMax.textContent = auction.maxRounds;
+        bidAmount.textContent = `€${formatMoney(auction.currentBid)}`;
+        bidLeader.textContent = 'Opening bid';
+        raiseBtn.textContent = `RAISE €${formatMoney(auction.currentBid + auction.increment)}`;
+
+        // Build participant portraits
+        participantsEl.innerHTML = '';
+
+        // Player card
+        const playerCard = document.createElement('div');
+        playerCard.className = 'auction-participant active';
+        playerCard.id = 'auction-player-card';
+        playerCard.innerHTML = `
+            <canvas width="56" height="56" id="auction-player-portrait"></canvas>
+            <div class="auction-participant-name" style="color:#44ff44">You</div>
+            <div class="auction-participant-status">IN</div>
+        `;
+        participantsEl.appendChild(playerCard);
+
+        // Draw a simple player icon on the player portrait canvas
+        setTimeout(() => {
+            const pc = document.getElementById('auction-player-portrait');
+            if (pc) drawPlayerPortrait(pc);
+        }, 10);
+
+        // Rival cards
+        for (const b of auction.bidders) {
+            const card = document.createElement('div');
+            card.className = 'auction-participant active';
+            card.id = `auction-rival-${b.rival.id}`;
+            const canvasId = `auction-portrait-${b.rival.id}`;
+            card.innerHTML = `
+                <canvas width="56" height="56" id="${canvasId}"></canvas>
+                <div class="auction-participant-name" style="color:${b.rival.color}">${b.rival.shortName}</div>
+                <div class="auction-participant-status">IN</div>
+            `;
+            participantsEl.appendChild(card);
+            // Draw portrait
+            setTimeout(() => {
+                const c = document.getElementById(canvasId);
+                if (c) MapRenderer.drawRivalPortrait(c, b.rival.id);
+            }, 10);
+        }
+
+        buttonsEl.style.display = 'flex';
+        resultEl.classList.add('hidden');
+        overlay.classList.remove('hidden');
+    }
+
+    function drawPlayerPortrait(canvasEl) {
+        const c = canvasEl.getContext('2d');
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.imageSmoothingEnabled = false;
+        const s = w / 48;
+        c.save();
+        c.scale(s, s);
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+        // Simple player silhouette — green tinted
+        // Suit
+        c.fillStyle = '#224422';
+        c.fillRect(10, 33, 28, 15);
+        c.fillStyle = '#2a5a2a';
+        c.fillRect(14, 33, 4, 8);
+        c.fillRect(30, 33, 4, 8);
+        // Shirt
+        c.fillStyle = '#aaccaa';
+        c.fillRect(18, 31, 12, 8);
+        // Neck
+        c.fillStyle = '#d0a888';
+        c.fillRect(20, 28, 8, 5);
+        // Face
+        c.fillStyle = '#d0a888';
+        c.fillRect(15, 10, 18, 20);
+        c.fillRect(17, 28, 14, 2);
+        // Hair
+        c.fillStyle = '#554433';
+        c.fillRect(15, 6, 18, 6);
+        c.fillRect(14, 8, 2, 6);
+        c.fillRect(33, 8, 2, 5);
+        // Eyes
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 4, 3);
+        c.fillRect(26, 17, 4, 3);
+        c.fillStyle = '#336633';
+        c.fillRect(20, 17, 2, 3);
+        c.fillRect(28, 17, 2, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 18, 1, 2);
+        c.fillRect(28, 18, 1, 2);
+        // Nose
+        c.fillStyle = '#c09878';
+        c.fillRect(23, 20, 3, 4);
+        // Smile
+        c.fillStyle = '#b06050';
+        c.fillRect(21, 25, 6, 1);
+        // € symbol on suit pocket
+        c.fillStyle = '#44ff44';
+        c.font = '6px monospace';
+        c.fillText('€', 12, 40);
+        c.restore();
+    }
+
+    function updateAuctionRound(auction, rivalResults) {
+        const roundNum = document.getElementById('auction-round-num');
+        const bidAmount = document.getElementById('auction-bid-amount');
+        const bidLeader = document.getElementById('auction-bid-leader');
+        const raiseBtn = document.getElementById('auction-raise');
+
+        roundNum.textContent = auction.round + 1;
+        bidAmount.textContent = `€${formatMoney(auction.currentBid)}`;
+
+        if (auction.leader === 'player') {
+            bidLeader.textContent = 'You are leading!';
+            bidLeader.style.color = '#44ff44';
+        } else {
+            const leader = auction.bidders.find(b => b.rival.id === auction.leader);
+            bidLeader.textContent = leader ? `${leader.rival.shortName} is leading` : '';
+            bidLeader.style.color = leader ? leader.rival.color : '';
+        }
+
+        const nextBid = auction.currentBid + auction.increment;
+        raiseBtn.textContent = `RAISE €${formatMoney(nextBid)}`;
+
+        // Update rival cards
+        updateAuctionRivals(auction, rivalResults);
+    }
+
+    function updateAuctionRivals(auction, rivalResults) {
+        for (const r of rivalResults) {
+            const card = document.getElementById(`auction-rival-${r.rival.id}`);
+            if (!card) continue;
+            const statusEl = card.querySelector('.auction-participant-status');
+            if (r.action === 'raise') {
+                statusEl.textContent = `€${formatMoney(r.bid)}`;
+                card.className = 'auction-participant active';
+            } else {
+                statusEl.textContent = 'OUT';
+                card.className = 'auction-participant dropped';
+            }
+        }
+    }
+
+    function showAuctionResult(auction, playerWon, text) {
+        const buttonsEl = document.getElementById('auction-buttons');
+        const resultEl = document.getElementById('auction-result');
+        const resultText = document.getElementById('auction-result-text');
+
+        buttonsEl.style.display = 'none';
+        resultText.innerHTML = text;
+        resultText.style.color = playerWon ? '#44ff44' : '#ff6666';
+        resultEl.classList.remove('hidden');
+
+        // Update player card if they dropped out
+        if (!auction.playerIn) {
+            const playerCard = document.getElementById('auction-player-card');
+            if (playerCard) {
+                playerCard.className = 'auction-participant dropped';
+                playerCard.querySelector('.auction-participant-status').textContent = 'OUT';
+            }
+        }
+
+        // Final bid display
+        const bidAmount = document.getElementById('auction-bid-amount');
+        const bidLeader = document.getElementById('auction-bid-leader');
+        bidAmount.textContent = `€${formatMoney(auction.currentBid)}`;
+        if (playerWon) {
+            bidLeader.textContent = 'SOLD TO YOU!';
+            bidLeader.style.color = '#44ff44';
+        } else if (auction.leader) {
+            const winner = auction.bidders.find(b => b.rival.id === auction.leader);
+            bidLeader.textContent = winner ? `SOLD TO ${winner.rival.shortName.toUpperCase()}` : 'UNSOLD';
+            bidLeader.style.color = winner ? winner.rival.color : '#888';
+        }
+    }
+
     function setupOfferAndUndo() {
         document.getElementById('offer-accept').addEventListener('click', () => {
             Sound.playClick();
@@ -1806,6 +2191,22 @@ Good luck — become the Helsingin Herra!`,
         });
         document.getElementById('btn-undo').addEventListener('click', () => {
             Game.undo();
+        });
+        // Auction buttons
+        document.getElementById('auction-raise').addEventListener('click', () => {
+            Game.auctionPlayerRaise();
+        });
+        document.getElementById('auction-dropout').addEventListener('click', () => {
+            Game.auctionPlayerDropout();
+        });
+        document.getElementById('auction-close').addEventListener('click', () => {
+            Sound.playClick();
+            Game.closeAuction();
+        });
+        // Nokia press release
+        document.getElementById('nokia-close').addEventListener('click', () => {
+            Sound.playClick();
+            UI.closeNokiaDialog();
         });
     }
 
@@ -1822,6 +2223,12 @@ Good luck — become the Helsingin Herra!`,
         showBankPanel,
         showStatsPanel,
         showOfferDialog,
+        showNokiaAnnouncement,
+        closeNokiaDialog,
+        showAuctionDialog,
+        updateAuctionRound,
+        updateAuctionRivals,
+        showAuctionResult,
         formatMoney,
         formatMoneyPrecise,
         propertyMatchesFilter,

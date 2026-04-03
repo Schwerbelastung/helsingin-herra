@@ -173,10 +173,124 @@ const Rivals = (() => {
         return null;
     }
 
+    // === AUCTION / BIDDING WAR ===
+
+    function scorePropertyForRival(rival, prop) {
+        let score = 0;
+        if (prop.price > rival.money) return -1;
+        if (rival.preferredTypes.includes(prop.type)) score += 30;
+        if (rival.preferredDistricts.includes(prop.district)) score += 20;
+        score += (prop.revenue / prop.price) * 1000;
+        return score;
+    }
+
+    function generateAuction(gameState) {
+        // 3% chance per turn
+        if (Math.random() > 0.03) return null;
+
+        const activeRivals = gameState.rivals.filter(r => r.money > 0);
+        if (activeRivals.length === 0) return null;
+
+        const unowned = gameState.properties.filter(p => p.owner === null && !p.easterEgg);
+        if (unowned.length === 0) return null;
+
+        // Score each property by how many rivals want it (weighted)
+        const candidates = [];
+        for (const prop of unowned) {
+            let totalInterest = 0;
+            const interestedRivals = [];
+            for (const rival of activeRivals) {
+                const score = scorePropertyForRival(rival, prop);
+                if (score > 10) {
+                    totalInterest += score;
+                    interestedRivals.push({ rival, score });
+                }
+            }
+            if (interestedRivals.length > 0) {
+                candidates.push({ prop, totalInterest, interestedRivals });
+            }
+        }
+
+        if (candidates.length === 0) return null;
+
+        // Weighted random pick — properties with more rival interest are more likely
+        const totalWeight = candidates.reduce((s, c) => s + c.totalInterest, 0);
+        let roll = Math.random() * totalWeight;
+        let chosen = candidates[0];
+        for (const c of candidates) {
+            roll -= c.totalInterest;
+            if (roll <= 0) { chosen = c; break; }
+        }
+
+        // Starting bid = 85% of market value
+        const startBid = Math.floor(chosen.prop.price * 0.85);
+        // Bid increment = 8% of base price
+        const increment = Math.floor(chosen.prop.price * 0.08);
+
+        // Determine each rival's max willingness to pay
+        const bidders = chosen.interestedRivals.map(({ rival, score }) => {
+            // Max bid scales with aggressiveness and how much they want it
+            const desire = Math.min(1, score / 50);
+            const maxBid = Math.floor(chosen.prop.price * (1 + rival.aggressiveness * 0.4 * desire));
+            return {
+                rival,
+                maxBid: Math.min(maxBid, Math.floor(rival.money * 0.8)), // won't spend >80% of cash
+                active: true,
+                lastBid: 0,
+            };
+        }).filter(b => b.maxBid >= startBid); // only rivals who can afford opening bid
+
+        if (bidders.length === 0) return null;
+
+        return {
+            property: chosen.prop,
+            startBid,
+            increment,
+            currentBid: startBid,
+            round: 0,
+            maxRounds: 3,
+            bidders,
+            playerIn: true,
+            playerBid: 0,
+            leader: null, // 'player' or rival id
+            finished: false,
+        };
+    }
+
+    function processAuctionRound(auction) {
+        // Each active rival decides: bid or drop out
+        const results = [];
+        const nextBid = auction.currentBid + auction.increment;
+
+        for (const b of auction.bidders) {
+            if (!b.active) continue;
+
+            // Probability of staying: depends on how close to their max
+            const ratio = nextBid / b.maxBid;
+            let stayChance;
+            if (ratio < 0.7) stayChance = 0.95;
+            else if (ratio < 0.85) stayChance = 0.75;
+            else if (ratio < 1.0) stayChance = 0.45;
+            else stayChance = 0.1; // over their max, very unlikely to stay
+
+            if (Math.random() < stayChance && nextBid <= b.rival.money * 0.8) {
+                b.lastBid = nextBid;
+                results.push({ rival: b.rival, action: 'raise', bid: nextBid });
+            } else {
+                b.active = false;
+                results.push({ rival: b.rival, action: 'dropout' });
+            }
+        }
+
+        return results;
+    }
+
     return {
         RIVAL_PROFILES,
         initRivals,
         processRivalTurn,
         generateOffer,
+        generateAuction,
+        processAuctionRound,
     };
 })();

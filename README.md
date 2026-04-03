@@ -4,7 +4,7 @@
 
 **A retro pixel-art real estate tycoon game set in the heart of Finland's capital.**
 
-Buy corner shops in Kallio, flip luxury villas in Kaivopuisto, and outmaneuver three ruthless AI rivals -- all while dodging pipe bursts, market crashes, and the occasional alien invasion. Yes, aliens. Helsinki is a weird place.
+Buy corner shops in Kallio, flip luxury villas in Kaivopuisto, and outmaneuver three ruthless AI rivals -- all while dodging pipe bursts, market crashes, and the occasional... unusual event. Helsinki is a weird place.
 
 No downloads, no installs, no frameworks. Just open `index.html` in your browser and start your empire.
 
@@ -40,7 +40,7 @@ Press **Space** to end your turn and watch the months roll by.
 - Bank loans unlock after month 3 (up to 2x your net worth)
 
 ### Events
-Real Helsinki events affect the economy: **Flow Festival**, **Slush**, **Helsinki Pride**, **Christmas Markets**, and more. Also fake ones: recessions, pipe bursts, and a ~2% annual chance of **alien invasion** (property values crash, but tourism booms afterward -- buy the dip!).
+Real Helsinki events affect the economy: **Flow Festival**, **Slush**, **Helsinki Pride**, **Christmas Markets**, and more. Also fictional ones: recessions, pipe bursts, and a handful of rare surprises that you'll have to discover for yourself.
 
 ### AI Rivals
 Three Finnish business personalities compete for properties:
@@ -106,7 +106,7 @@ helsinki-tycoon/
     districts.js    -- 23 Helsinki districts + coastline + landmarks
     properties.js   -- 33 named businesses + procedural generation
     economy.js      -- revenue, maintenance, loans
-    events.js       -- 16 events + alien invasion
+    events.js       -- 16+ events including rare surprises
     seasons.js      -- seasonal revenue modifiers
     rivals.js       -- 3 AI competitors
     staff.js        -- hireable staff system
@@ -127,7 +127,7 @@ helsinki-tycoon/
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history, or click the **CHANGELOG** button on the in-game start screen.
 
-**Current version: v0.10.2**
+**Current version: v0.12.0**
 
 ---
 
