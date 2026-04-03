@@ -22,12 +22,11 @@ const Properties = (() => {
         { name: 'Ravintola Savoy', type: 'restaurant', district: 'kluuvi', price: 6000000, revenue: 135000, description: 'Fine dining with Aalto interior', lat: 60.168, lon: 24.943 },
         { name: 'Sea Horse', type: 'restaurant', district: 'punavuori', price: 2500000, revenue: 60000, description: 'Classic Finnish restaurant since 1934', lat: 60.163, lon: 24.921 },
         { name: 'Zetor', type: 'restaurant', district: 'kamppi', price: 2000000, revenue: 54000, description: 'Tractor-themed Finnish restaurant', lat: 60.170, lon: 24.921 },
-        { name: 'Löyly', type: 'restaurant', district: 'eira', price: 5000000, revenue: 120000, description: 'Sauna restaurant by the sea', lat: 60.153, lon: 24.920 },
         { name: 'Café Regatta', type: 'restaurant', district: 'toolo', price: 500000, revenue: 24000, description: 'Cozy seaside café in Töölö', lat: 60.178, lon: 24.915 },
         { name: 'Ravintola Nokka', type: 'restaurant', district: 'katajanokka', price: 3500000, revenue: 84000, description: 'Nordic fine dining on Katajanokka', lat: 60.170, lon: 24.965 },
         { name: 'Bar Loose', type: 'restaurant', district: 'kamppi', price: 800000, revenue: 30000, description: 'Live music bar in Kamppi', lat: 60.168, lon: 24.924 },
         { name: 'Ravintola Elite', type: 'restaurant', district: 'punavuori', price: 3000000, revenue: 66000, description: 'Artists\' restaurant since 1932', lat: 60.165, lon: 24.920 },
-        { name: 'Story', type: 'restaurant', district: 'kruununhaka', price: 3000000, revenue: 75000, description: 'Restaurant at the Old Market Hall', lat: 60.167, lon: 24.954 },
+        { name: 'Story', type: 'restaurant', district: 'kruununhaka', price: 3000000, revenue: 75000, description: 'Restaurant at the Old Market Hall', lat: 60.168, lon: 24.952 },
 
         // === HOTELS ===
         { name: 'Hotel Kämp', type: 'hotel', district: 'kluuvi', price: 20000000, revenue: 540000, description: 'Helsinki\'s most prestigious hotel', lat: 60.170, lon: 24.944 },
@@ -43,11 +42,12 @@ const Properties = (() => {
         { name: 'Kansallismuseo', type: 'landmark', district: 'toolo', price: 12000000, revenue: 210000, description: 'National Museum of Finland, Art Nouveau castle', lat: 60.177, lon: 24.929 },
 
         // === OFFICES ===
+        { name: 'Citymarket Ruoholahti', type: 'retail', district: 'ruoholahti', price: 8000000, revenue: 180000, description: 'Large hypermarket serving western Helsinki', lat: 60.162, lon: 24.906 },
         { name: 'Salmisaari Office Park', type: 'office', district: 'ruoholahti', price: 12000000, revenue: 270000, description: 'Modern office complex', lat: 60.168, lon: 24.908 },
         { name: 'Ruoholahti Office Tower', type: 'office', district: 'ruoholahti', price: 8000000, revenue: 195000, description: 'Office tower near canal', lat: 60.167, lon: 24.910 },
 
         // === HERNESAARI ===
-        { name: 'Löyly', type: 'restaurant', district: 'hernesaari', price: 5000000, revenue: 120000, description: 'Iconic public sauna and restaurant by the sea', lat: 60.147, lon: 24.919 },
+        { name: 'Löyly', type: 'restaurant', district: 'hernesaari', price: 5000000, revenue: 120000, description: 'Iconic public sauna and restaurant by the sea', lat: 60.1495, lon: 24.920 },
         { name: 'Hernesaari Heliport', type: 'landmark', district: 'hernesaari', price: 3000000, revenue: 60000, description: 'Helsinki heliport, scenic flights', lat: 60.149, lon: 24.917 },
         { name: 'Hernesaari Warehouse', type: 'office', district: 'hernesaari', price: 2000000, revenue: 45000, description: 'Industrial warehouse space', lat: 60.151, lon: 24.916 },
 
@@ -88,7 +88,9 @@ const Properties = (() => {
         { name: 'Kallio Pizza', type: 'restaurant', district: 'kallio', price: 120000, revenue: 7200, description: 'Popular neighborhood pizzeria', lat: 60.184, lon: 24.949 },
         { name: 'Punavuori Barber', type: 'retail', district: 'punavuori', price: 80000, revenue: 4800, description: 'Hipster barbershop on Iso Roobertinkatu', lat: 60.162, lon: 24.924 },
         { name: 'Kallio Vinyl Bar', type: 'restaurant', district: 'kallio', price: 150000, revenue: 9000, description: 'Trendy vinyl record bar', lat: 60.183, lon: 24.951 },
-        { name: 'Lauttasaari Gym', type: 'retail', district: 'lauttasaari', price: 180000, revenue: 9000, description: 'Neighborhood fitness studio', lat: 60.162, lon: 24.878 },
+        { name: 'Lauttasaari Gym', type: 'retail', district: 'lauttasaari', price: 180000, revenue: 9000, description: 'Neighborhood fitness studio', lat: 60.160, lon: 24.874 },
+        { name: 'Lauttasaari Pizzeria', type: 'restaurant', district: 'lauttasaari', price: 200000, revenue: 10500, description: 'Popular island pizzeria on Lauttasaarentie', lat: 60.164, lon: 24.885 },
+        { name: 'Lauttasaari S-Market', type: 'retail', district: 'lauttasaari', price: 350000, revenue: 15000, description: 'Grocery store serving the island', lat: 60.158, lon: 24.888 },
         { name: 'Kamppi Laundromat', type: 'retail', district: 'kamppi', price: 70000, revenue: 4200, description: 'Self-service laundromat', lat: 60.167, lon: 24.926 },
         { name: 'Sörnäinen Kebab', type: 'restaurant', district: 'sornainen', price: 90000, revenue: 5400, description: 'Late-night kebab shop', lat: 60.186, lon: 24.962 },
         { name: 'Hakaniemi Flower Shop', type: 'retail', district: 'hakaniemi', price: 65000, revenue: 3600, description: 'Small flower shop by the market', lat: 60.181, lon: 24.961 },
@@ -180,13 +182,27 @@ const Properties = (() => {
         return inside;
     }
 
-    // Generate a random position inside a district polygon, near its center
+    // Generate a random position inside a district polygon, spread across it
     function randomPointInDistrict(district, spreadX, spreadY) {
         const [cx, cy] = district.center;
+        // Compute polygon bounding box to scale spread for larger districts
+        const poly = district.polygon;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const [px, py] of poly) {
+            if (px < minX) minX = px;
+            if (px > maxX) maxX = px;
+            if (py < minY) minY = py;
+            if (py > maxY) maxY = py;
+        }
+        const polyW = maxX - minX;
+        const polyH = maxY - minY;
+        // Use the larger of the passed spread or 70% of the polygon extent
+        const sx = Math.max(spreadX, polyW * 0.7);
+        const sy = Math.max(spreadY, polyH * 0.7);
         // Try up to 20 times to find a point inside the polygon
         for (let attempt = 0; attempt < 20; attempt++) {
-            const x = cx + (Math.random() - 0.5) * spreadX;
-            const y = cy + (Math.random() - 0.5) * spreadY;
+            const x = cx + (Math.random() - 0.5) * sx;
+            const y = cy + (Math.random() - 0.5) * sy;
             if (pointInPolygon(x, y, district.polygon)) {
                 return [x, y];
             }

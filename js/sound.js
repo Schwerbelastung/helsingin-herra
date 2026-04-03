@@ -278,10 +278,53 @@ const Sound = (() => {
         setTimeout(() => playTone(1400, 0.4, 'sine', 0.03), 500);
     }
 
+    function playPolarBears() {
+        // Funny bear growl + comedic slide whistle
+        ensureAudio();
+        const now = audioCtx.currentTime;
+        // Low growl (noise-like via detuned sawtooth)
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.4);
+        osc.frequency.setValueAtTime(70, now + 0.4);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+        g.gain.setValueAtTime(0.06, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc.connect(g);
+        g.connect(sfxGain);
+        osc.start(now);
+        osc.stop(now + 0.8);
+        // Comedic slide whistle after growl
+        setTimeout(() => {
+            const osc2 = audioCtx.createOscillator();
+            const g2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            const t = audioCtx.currentTime;
+            osc2.frequency.setValueAtTime(400, t);
+            osc2.frequency.exponentialRampToValueAtTime(1200, t + 0.3);
+            osc2.frequency.exponentialRampToValueAtTime(300, t + 0.5);
+            g2.gain.setValueAtTime(0.06, t);
+            g2.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+            osc2.connect(g2);
+            g2.connect(sfxGain);
+            osc2.start(t);
+            osc2.stop(t + 0.5);
+        }, 600);
+    }
+
     function playRivalAction() {
         // Subtle alert: two quick low tones
         playTone(330, 0.08, 'triangle', 0.06);
         setTimeout(() => playTone(294, 0.1, 'triangle', 0.05), 100);
+    }
+
+    function playOffer() {
+        // Attention-getting doorbell-like chime
+        playTone(523, 0.15, 'sine', 0.08);
+        setTimeout(() => playTone(659, 0.15, 'sine', 0.08), 150);
+        setTimeout(() => playTone(784, 0.2, 'sine', 0.06), 300);
     }
 
     // === WIN / LOSE ===
@@ -362,7 +405,9 @@ const Sound = (() => {
         playEventPositive,
         playEventNegative,
         playEventSpecial,
+        playPolarBears,
         playRivalAction,
+        playOffer,
         playVictory,
         playBankrupt,
         toggleMusic,

@@ -453,6 +453,91 @@ html {
     padding-top: 6px;
 }
 
+/* === Rival Offer Dialog === */
+#offer-overlay {
+    z-index: 250;
+    background: rgba(5, 5, 15, 0.88);
+}
+#offer-content {
+    background: var(--bg-panel);
+    border: 3px solid var(--text-accent);
+    padding: 24px 32px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+}
+#offer-header {
+    font-size: 14px;
+    color: var(--text-accent);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+#offer-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+#offer-portrait {
+    border: 2px solid var(--border-color);
+    background: #111122;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+#offer-details {
+    flex: 1;
+}
+#offer-rival-name {
+    font-size: 10px;
+    color: var(--text-accent);
+    margin-bottom: 8px;
+}
+#offer-text {
+    font-size: 8px;
+    color: var(--text-primary);
+    line-height: 1.8;
+    margin-bottom: 12px;
+}
+#offer-price-row {
+    font-size: 11px;
+    color: var(--text-money);
+    margin-bottom: 4px;
+}
+#offer-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+.offer-btn {
+    font-family: var(--font-pixel);
+    font-size: 10px;
+    padding: 10px 28px;
+    border: 2px solid var(--border-color);
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+    letter-spacing: 1px;
+}
+.offer-btn:hover {
+    border-color: var(--text-accent);
+    background: var(--btn-hover);
+}
+#offer-accept {
+    border-color: #44ff44;
+    color: #44ff44;
+}
+#offer-accept:hover {
+    background: rgba(68, 255, 68, 0.1);
+}
+#offer-decline {
+    border-color: #ff4444;
+    color: #ff4444;
+}
+#offer-decline:hover {
+    background: rgba(255, 68, 68, 0.1);
+}
+
 /* === Victory Screen === */
 #victory-overlay {
     z-index: 300;
@@ -1326,6 +1411,155 @@ html {
     margin-left: auto;
     color: var(--text-secondary);
     font-size: 7px;
+}
+
+/* === Achievement Toast === */
+.achievement-toast {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--bg-panel);
+    border: 2px solid var(--text-accent);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+}
+
+.achievement-toast.hidden {
+    display: none;
+}
+
+.achievement-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-icon {
+    font-size: 18px;
+}
+
+.toast-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.toast-label {
+    font-size: 6px;
+    color: var(--text-accent);
+    letter-spacing: 1px;
+}
+
+.toast-name {
+    font-size: 8px;
+    color: var(--text-primary);
+}
+
+/* === Achievements Panel === */
+#achievements-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.85);
+}
+
+#achievements-panel.hidden {
+    display: none;
+}
+
+#achievements-content {
+    background: var(--bg-panel);
+    border: 2px solid var(--text-accent);
+    width: 460px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.achievements-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-panel-hover);
+    border-bottom: 2px solid var(--border-color);
+    font-size: 9px;
+    color: var(--text-accent);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.achievements-header button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.achievements-header button:hover {
+    color: var(--text-danger);
+}
+
+#achievements-body {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.achievement-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+}
+
+.achievement-item.unlocked {
+    border-color: var(--text-accent);
+    background: var(--bg-panel-hover);
+}
+
+.achievement-item.locked {
+    opacity: 0.45;
+}
+
+.achievement-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+}
+
+.achievement-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.achievement-name {
+    font-size: 7px;
+    color: var(--text-accent);
+}
+
+.achievement-item.locked .achievement-name {
+    color: var(--text-secondary);
+}
+
+.achievement-desc {
+    font-size: 6px;
+    color: var(--text-secondary);
+    line-height: 1.6;
 }
 
 .menu-info {

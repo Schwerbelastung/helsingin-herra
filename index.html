@@ -68,7 +68,9 @@
                 <button class="action-btn" id="btn-filter"><u>F</u>ilter</button>
                 <button class="action-btn" id="btn-staff">S<u>t</u>aff</button>
                 <button class="action-btn" id="btn-menu"><u>M</u>enu</button>
+                <button class="action-btn" id="btn-undo" disabled><u>U</u>ndo</button>
                 <button class="action-btn" id="btn-help"><u>H</u>elp</button>
+                <button class="action-btn" id="btn-achievements"><u>A</u>chievements</button>
             </div>
             <div id="action-info">
                 <span id="actions-remaining">Actions: 3/3</span>
@@ -161,6 +163,21 @@
                 <div id="bank-locked" class="bank-locked hidden">
                     <span id="bank-locked-text">Bank loans unlock in X turns.</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Achievement notification toast -->
+        <div id="achievement-toast" class="achievement-toast hidden"></div>
+
+        <!-- Achievements panel -->
+        <div id="achievements-panel" class="overlay hidden">
+            <div id="achievements-content">
+                <div class="achievements-header">
+                    <span>ACHIEVEMENTS</span>
+                    <span id="achievements-count"></span>
+                    <button id="achievements-close">&times;</button>
+                </div>
+                <div id="achievements-body"></div>
             </div>
         </div>
 
@@ -266,6 +283,27 @@
             </div>
         </div>
 
+        <!-- Rival offer overlay -->
+        <div id="offer-overlay" class="overlay hidden">
+            <div id="offer-content">
+                <div id="offer-header">INCOMING OFFER</div>
+                <div id="offer-body">
+                    <canvas id="offer-portrait" width="64" height="64"></canvas>
+                    <div id="offer-details">
+                        <div id="offer-rival-name"></div>
+                        <div id="offer-text"></div>
+                        <div id="offer-price-row">
+                            <span id="offer-price"></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="offer-buttons">
+                    <button class="offer-btn" id="offer-accept">ACCEPT</button>
+                    <button class="offer-btn" id="offer-decline">DECLINE</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Victory overlay -->
         <div id="victory-overlay" class="overlay hidden">
             <div id="victory-content">
@@ -328,7 +366,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.9.0 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v0.9.3 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
@@ -376,18 +414,19 @@
             </div>
         </div>
 
-    <script src="js/districts.js?v=090"></script>
-    <script src="js/properties.js?v=090"></script>
-    <script src="js/economy.js?v=090"></script>
-    <script src="js/events.js?v=090"></script>
-    <script src="js/seasons.js?v=090"></script>
-    <script src="js/rivals.js?v=090"></script>
-    <script src="js/staff.js?v=090"></script>
-    <script src="js/sound.js?v=090"></script>
-    <script src="js/changelog.js?v=090"></script>
-    <script src="js/ui.js?v=090"></script>
-    <script src="js/game.js?v=090"></script>
-    <script src="js/map.js?v=090"></script>
-    <script src="js/main.js?v=090"></script>
+    <script src="js/districts.js?v=0102"></script>
+    <script src="js/properties.js?v=0102"></script>
+    <script src="js/economy.js?v=0102"></script>
+    <script src="js/events.js?v=0102"></script>
+    <script src="js/seasons.js?v=0102"></script>
+    <script src="js/rivals.js?v=0102"></script>
+    <script src="js/staff.js?v=0102"></script>
+    <script src="js/sound.js?v=0102"></script>
+    <script src="js/achievements.js?v=0102"></script>
+    <script src="js/changelog.js?v=0102"></script>
+    <script src="js/ui.js?v=0102"></script>
+    <script src="js/game.js?v=0102"></script>
+    <script src="js/map.js?v=0102"></script>
+    <script src="js/main.js?v=0102"></script>
 </body>
 </html>

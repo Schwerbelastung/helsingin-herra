@@ -128,9 +128,55 @@ const Rivals = (() => {
         return actions;
     }
 
+    // === RANDOM OFFERS ===
+    // After rival turns, there's a chance a rival makes an offer to the player
+
+    function generateOffer(gameState) {
+        const activeRivals = gameState.rivals.filter(r => r.netWorth > 0);
+        if (activeRivals.length === 0) return null;
+
+        // 8% chance per turn of getting an offer
+        if (Math.random() > 0.08) return null;
+
+        const rival = activeRivals[Math.floor(Math.random() * activeRivals.length)];
+
+        // 50/50: buy offer (rival wants to buy your property) or sell offer (rival sells you one of theirs)
+        const playerProps = gameState.properties.filter(p => p.owner === 'player');
+        const rivalProps = gameState.properties.filter(p => p.owner === rival.id);
+
+        if (Math.random() < 0.5 && playerProps.length > 0) {
+            // Rival wants to BUY one of your properties
+            const prop = playerProps[Math.floor(Math.random() * playerProps.length)];
+            const premium = 1.15 + Math.random() * 0.35; // 115% to 150% of value
+            const offerPrice = Math.floor(prop.price * premium);
+            return {
+                type: 'buy',
+                rival,
+                property: prop,
+                price: offerPrice,
+                premium: Math.floor((premium - 1) * 100),
+            };
+        } else if (rivalProps.length > 0) {
+            // Rival offers to SELL one of their properties to you
+            const prop = rivalProps[Math.floor(Math.random() * rivalProps.length)];
+            const discount = 0.7 + Math.random() * 0.2; // 70% to 90% of value
+            const offerPrice = Math.floor(prop.price * discount);
+            return {
+                type: 'sell',
+                rival,
+                property: prop,
+                price: offerPrice,
+                discount: Math.floor((1 - discount) * 100),
+            };
+        }
+
+        return null;
+    }
+
     return {
         RIVAL_PROFILES,
         initRivals,
         processRivalTurn,
+        generateOffer,
     };
 })();

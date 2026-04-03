@@ -6,8 +6,8 @@ const GameState = {
     month: 0, // 0 = January
     year: 2024,
     turn: 1,
-    actionsRemaining: 3,
-    actionsPerTurn: 3,
+    actionsRemaining: 4,
+    actionsPerTurn: 4,
     difficulty: 'normal',
     mode: 'campaign',
     properties: [],
@@ -22,6 +22,9 @@ const GameState = {
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
 
+// Undo snapshot — stores state before last player action
+let undoSnapshot = null;
+
 const Game = (() => {
 
     function start(capital, difficulty, mode, rivalCount, target) {
@@ -34,8 +37,8 @@ const Game = (() => {
 
         // Difficulty settings
         const diffSettings = {
-            easy: { actionsPerTurn: 4, interestRate: 0.03 },
-            normal: { actionsPerTurn: 3, interestRate: 0.05 },
+            easy: { actionsPerTurn: 5, interestRate: 0.03 },
+            normal: { actionsPerTurn: 4, interestRate: 0.05 },
             hard: { actionsPerTurn: 3, interestRate: 0.08 },
         };
         const settings = diffSettings[difficulty] || diffSettings.normal;
@@ -158,6 +161,7 @@ const Game = (() => {
             const netWorth = Economy.calculateNetWorth(GameState);
             if (netWorth >= GameState.winTarget) {
                 GameState.gameOver = true;
+                Achievements.checkWin(GameState);
                 Sound.playVictory();
                 UI.showWinScreen();
             }
@@ -171,12 +175,119 @@ const Game = (() => {
             alert('Game Over!\n\nYou have gone bankrupt.\nFinal turn: ' + GameState.turn);
         }
 
-        // 11. Update display
+        // 11. Check achievements
+        Achievements.check(GameState);
+
+        // 12. Update display
         UI.updateHUD(GameState);
         MapRenderer.render();
 
-        // 12. Auto-save
+        // 13. Show achievement notifications
+        UI.showPendingAchievements();
+
+        // 14. Clear undo (can't undo after ending turn)
+        undoSnapshot = null;
+        const undoBtn = document.getElementById('btn-undo');
+        if (undoBtn) undoBtn.disabled = true;
+
+        // 15. Check for rival offer
+        if (!GameState.gameOver && GameState.rivals.length > 0) {
+            const offer = Rivals.generateOffer(GameState);
+            if (offer) {
+                pendingOffer = offer;
+                UI.showOfferDialog(offer);
+            }
+        }
+
+        // 16. Auto-save
         autoSave();
+    }
+
+    // === UNDO SYSTEM ===
+    function saveUndoSnapshot() {
+        undoSnapshot = {
+            money: GameState.money,
+            actionsRemaining: GameState.actionsRemaining,
+            properties: GameState.properties.map(p => ({
+                id: p.id, owner: p.owner, price: p.price, revenue: p.revenue,
+                condition: p.condition, upgradeLevel: p.upgradeLevel,
+            })),
+        };
+        const btn = document.getElementById('btn-undo');
+        if (btn) btn.disabled = false;
+    }
+
+    function undo() {
+        if (!undoSnapshot) return false;
+        GameState.money = undoSnapshot.money;
+        GameState.actionsRemaining = undoSnapshot.actionsRemaining;
+        for (const snap of undoSnapshot.properties) {
+            const prop = GameState.properties.find(p => p.id === snap.id);
+            if (prop) {
+                prop.owner = snap.owner;
+                prop.price = snap.price;
+                prop.revenue = snap.revenue;
+                prop.condition = snap.condition;
+                prop.upgradeLevel = snap.upgradeLevel;
+            }
+        }
+        undoSnapshot = null;
+        const btn = document.getElementById('btn-undo');
+        if (btn) btn.disabled = true;
+        Sound.playClick();
+        UI.updateHUD(GameState);
+        UI.hidePropertyPanel();
+        UI.setNewsText('Action undone.');
+        UI.addLogAction('Undid last action');
+        MapRenderer.render();
+        return true;
+    }
+
+    // === OFFER SYSTEM ===
+    let pendingOffer = null;
+
+    function acceptOffer() {
+        if (!pendingOffer) return;
+        const offer = pendingOffer;
+        pendingOffer = null;
+
+        if (offer.type === 'buy') {
+            // Rival buys player's property
+            GameState.money += offer.price;
+            offer.property.owner = offer.rival.id;
+            offer.rival.money -= offer.price;
+            offer.rival.propertiesOwned++;
+            Sound.playSell();
+            UI.setNewsText(`Sold ${offer.property.name} to ${offer.rival.shortName} for €${UI.formatMoney(offer.price)}!`);
+            UI.addLogAction(`Sold ${offer.property.name} to ${offer.rival.shortName} for €${UI.formatMoney(offer.price)} (+${offer.premium}% premium)`);
+        } else {
+            // Player buys rival's property
+            if (GameState.money < offer.price) {
+                UI.setNewsText("You can't afford this property right now!");
+                document.getElementById('offer-overlay').classList.add('hidden');
+                return;
+            }
+            GameState.money -= offer.price;
+            offer.property.owner = 'player';
+            offer.rival.money += offer.price;
+            offer.rival.propertiesOwned--;
+            Sound.playBuy();
+            UI.setNewsText(`Bought ${offer.property.name} from ${offer.rival.shortName} for €${UI.formatMoney(offer.price)}!`);
+            UI.addLogAction(`Bought ${offer.property.name} from ${offer.rival.shortName} for €${UI.formatMoney(offer.price)} (${offer.discount}% discount)`);
+        }
+
+        document.getElementById('offer-overlay').classList.add('hidden');
+        UI.updateHUD(GameState);
+        MapRenderer.render();
+    }
+
+    function declineOffer() {
+        if (!pendingOffer) return;
+        const name = pendingOffer.rival.shortName;
+        pendingOffer = null;
+        document.getElementById('offer-overlay').classList.add('hidden');
+        Sound.playClick();
+        UI.setNewsText(`You declined ${name}'s offer.`);
     }
 
     function buyProperty(property) {
@@ -194,6 +305,7 @@ const Game = (() => {
             return;
         }
 
+        saveUndoSnapshot();
         if (!isFree) {
             GameState.money -= property.price;
         } else {
@@ -203,6 +315,8 @@ const Game = (() => {
         GameState.actionsRemaining--;
 
         Sound.playBuy();
+        MapRenderer.triggerAdvisorAction('buy');
+        Achievements.onBuy();
         UI.updateHUD(GameState);
         UI.showPropertyPanel(property);
         UI.setNewsText(`Bought ${property.name} for €${UI.formatMoney(property.price)}!`);
@@ -217,12 +331,15 @@ const Game = (() => {
         }
         if (property.owner !== 'player') return;
 
+        saveUndoSnapshot();
         const sellPrice = Math.floor(property.price * 0.85); // 15% transaction fee
         GameState.money += sellPrice;
         property.owner = null;
         GameState.actionsRemaining--;
 
         Sound.playSell();
+        MapRenderer.triggerAdvisorAction('sell');
+        Achievements.onSell();
         UI.updateHUD(GameState);
         UI.hidePropertyPanel();
         UI.setNewsText(`Sold ${property.name} for €${UI.formatMoney(sellPrice)}.`);
@@ -241,6 +358,7 @@ const Game = (() => {
             return;
         }
 
+        saveUndoSnapshot();
         const revBefore = property.revenue;
         GameState.money -= cost;
         Properties.upgradeProperty(property);
@@ -248,6 +366,8 @@ const Game = (() => {
         const revGain = property.revenue - revBefore;
 
         Sound.playUpgrade();
+        MapRenderer.triggerAdvisorAction('upgrade');
+        Achievements.onUpgrade();
         UI.updateHUD(GameState);
         UI.showPropertyPanel(property);
         const revStr = UI.formatMoneyPrecise(revGain);
@@ -266,11 +386,13 @@ const Game = (() => {
             return;
         }
 
+        saveUndoSnapshot();
         GameState.money -= cost;
         Properties.repairProperty(property);
         GameState.actionsRemaining--;
 
         Sound.playRepair();
+        MapRenderer.triggerAdvisorAction('repair');
         UI.updateHUD(GameState);
         UI.showPropertyPanel(property);
         UI.setNewsText(`Repaired ${property.name} to perfect condition!`);
@@ -283,7 +405,7 @@ const Game = (() => {
 
     function buildSaveData() {
         return {
-            version: '0.9.0',
+            version: '0.10.2',
             savedAt: Date.now(),
             money: GameState.money,
             month: GameState.month,
@@ -460,6 +582,9 @@ const Game = (() => {
         sellProperty,
         upgradeProperty,
         repairProperty,
+        undo,
+        acceptOffer,
+        declineOffer,
         autoSave,
         saveGame,
         loadGame,

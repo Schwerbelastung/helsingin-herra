@@ -1,5 +1,110 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.9.0 — Stats Graphs & Tutorial (2026-04-03)
+const CHANGELOG_MD = `## v0.10.2 — Sprites, Animations & Balance (2026-04-03)
+
+### Added
+- **Kiasma** landmark with curved modern museum sprite
+- **Animated Töölönlahti fountain** — water jets oscillate, droplets orbit; frozen in winter
+- **Food truck sprite** for Jätkäsaari Food Truck Spot — red truck with serving window and awning
+- **Löyly sauna sprite** — wooden sauna building with chimney smoke
+
+### Changed
+- **Actions per turn** — Normal: 4 (was 3), Easy: 5 (was 4), Hard: 3 (unchanged)
+- **Citymarket Ruoholahti** nudged southwest
+- **Löyly** nudged southeast, duplicate removed
+- Replaced Mannerheim statue decoration with Kiasma landmark
+
+---
+
+## v0.10.1 — Landmarks & Fixes (2026-04-03)
+
+### Added
+- **Tähtitorninmäki Observatory** landmark north of Kaivopuisto with dome + telescope sprite
+- **Seurasaari Open-Air Museum** landmark — red Finnish wooden cottage on northern Seurasaari
+- **Löyly sauna sprite** — Löyly now renders as a sauna building with chimney smoke
+
+### Changed
+- **Seurasaari bridge** repositioned from north edge of island to mainland NE
+- **Suomenlinna ferry** slower and pauses 6 seconds at each end
+- **Lighthouse Island** moved further west
+- **Weather effects** shortened to 5 seconds
+
+### Fixed
+- Removed duplicate Löyly property and orphaned sauna decoration
+- Observatory positions corrected (Kaivopuisto SW, Tähtitorninmäki N)
+
+---
+
+## v0.10.0 — Rival Offers, Animations & Weather (2026-04-03)
+
+### Added
+- **Rival offers** — AI rivals occasionally propose to buy your properties at a premium or sell theirs at a discount
+  - Offer dialog with pixel art portraits of Björn, Hjallis, and Risto
+  - Accept or decline with keyboard (Enter/Escape) or buttons
+- **Animated seagulls** — seagulls now drift and circle over the water
+- **Moving Suomenlinna ferry** — the ferry glides back and forth between Market Square and Suomenlinna
+- **Weather effects** — temporary rain, snow, or sunshine particles on season changes (30% chance)
+- **Undo button** — undo your last action (buy/sell/upgrade/repair) before ending the turn (hotkey **U**)
+- **Offer sound effect** — doorbell chime when a rival makes an offer
+
+---
+
+## v0.9.4 — Position Fixes (2026-04-03)
+
+### Fixed
+- **Story restaurant** nudged northwest — no longer partially in the ocean
+- **Market Square tents** nudged northwest to match corrected position
+
+---
+
+## v0.9.3 — Decorations, Islands & Polar Bears (2026-04-03)
+
+### Added
+- **Korkeasaari Zoo island** south of Mustikkamaa with zoo gate, lion, bear, and penguin
+- **Seurasaari island** with label and pedestrian bridge
+- **6 new islands**: Sirpalesaari, Liuskasaari, Uunisaari, Särkkä, Harakka (labeled), Lighthouse Island
+- **6 new bridges** connecting island chains
+- **Tali DiscGolfPark** landmark with frisbee golfer sprite
+- **Water decorations**: sailboats, rowing boat, buoys, seagulls, wave clusters
+- **Töölönlahti** label, fountain, and paddle boat
+- **Land decorations**: Helsinki tram, Mannerheim statue, Helsinki Wheel, market tents, sauna
+- **Christmas tree** on Senate Square (winter only)
+- **Bushes** along park edges, **moose** in the north
+- **Polar bear invasion** — 5% chance each winter with funny growl sound
+- **Lighthouse**, **Citymarket Ruoholahti**, **Lauttasaari Beach** and new properties
+
+### Changed
+- Lauttasaari properties spread across the full island
+- Bigger, more detailed polar bear sprite; winter-only group spawn event
+- Bushes now larger and darker green with highlights
+
+### Fixed
+- Buoy moved from land to water, Seurasaari position corrected, duplicate island removed
+
+---
+
+## v0.9.2 — Season Transitions & Achievements (2026-04-03)
+
+### Added
+- **Animated season transitions** — map colors smoothly blend between seasons with a banner overlay
+- **32 achievements** — persistent across games, covering purchases, milestones, economy, campaign wins, and easter eggs
+- **Achievement toast** notification and **Achievements panel** (press **A**)
+
+---
+
+## v0.9.1 — Tycoon Advisor & Landmark Sprites (2026-04-03)
+
+### Added
+- **Tycoon Advisor** — pixel art character with tips, jokes, and action reactions replaces the minimap
+- **Custom landmark sprites**: Linnanmäki rollercoaster, Hietaniemi Beach umbrella, Allas Sea Pool, Olympic Stadium, Sibelius Monument pipes
+- **Island decorations**: Suomenlinna castle with walls, cannons, and Finnish flag; Mustikkamaa blueberry
+- **Help button** (H) in the action bar and tutorial prompt after starting a new game
+
+### Changed
+- **District labels** use text outline instead of black background boxes for better visibility
+
+---
+
+## v0.9.0 — Stats Graphs & Tutorial (2026-04-03)
 
 ### Added
 - **Income vs Expenses bar graph** in Stats panel — last 12 months of green (income) vs red (expenses)

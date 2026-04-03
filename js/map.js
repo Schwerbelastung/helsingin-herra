@@ -253,15 +253,93 @@ const MapRenderer = (() => {
         return inside;
     }
 
+    // Season transition state
+    let transitionProgress = 1; // 0 = old season, 1 = new season (fully transitioned)
+    let transitionFrom = null;
+    let transitionStartTime = 0;
+    const TRANSITION_DURATION = 1200; // ms
+    let transitionAnimFrame = null;
+    let seasonBannerAlpha = 0;
+    let seasonBannerText = '';
+
+    const SEASON_NAMES = {
+        winter: 'WINTER',
+        spring: 'SPRING',
+        summer: 'SUMMER',
+        autumn: 'AUTUMN',
+    };
+
+    const SEASON_ICONS = {
+        winter: '❄',
+        spring: '🌱',
+        summer: '☀',
+        autumn: '🍂',
+    };
+
     function setSeason(season) {
+        const oldSeason = currentSeason;
         currentSeason = season;
+        if (oldSeason && oldSeason !== season) {
+            // Start transition animation
+            transitionFrom = oldSeason;
+            transitionProgress = 0;
+            transitionStartTime = performance.now();
+            seasonBannerAlpha = 1;
+            seasonBannerText = SEASON_NAMES[season];
+            if (!transitionAnimFrame) {
+                transitionAnimFrame = requestAnimationFrame(animateTransition);
+            }
+            // Re-roll polar bears when winter arrives
+            if (season === 'winter') {
+                rollPolarBears();
+            }
+        }
+    }
+
+    function animateTransition(now) {
+        const elapsed = now - transitionStartTime;
+        transitionProgress = Math.min(1, elapsed / TRANSITION_DURATION);
+        seasonBannerAlpha = transitionProgress < 0.7 ? 1 : 1 - ((transitionProgress - 0.7) / 0.3);
+
+        render();
+
+        if (transitionProgress < 1) {
+            transitionAnimFrame = requestAnimationFrame(animateTransition);
+        } else {
+            transitionFrom = null;
+            transitionAnimFrame = null;
+            seasonBannerAlpha = 0;
+        }
+    }
+
+    function lerpColor(hex1, hex2, t) {
+        const r1 = parseInt(hex1.slice(1, 3), 16), g1 = parseInt(hex1.slice(3, 5), 16), b1 = parseInt(hex1.slice(5, 7), 16);
+        const r2 = parseInt(hex2.slice(1, 3), 16), g2 = parseInt(hex2.slice(3, 5), 16), b2 = parseInt(hex2.slice(5, 7), 16);
+        const r = Math.round(r1 + (r2 - r1) * t), g = Math.round(g1 + (g2 - g1) * t), b = Math.round(b1 + (b2 - b1) * t);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    function getBlendedPalette() {
+        const target = seasonPalettes[currentSeason];
+        if (!transitionFrom || transitionProgress >= 1) return target;
+        const from = seasonPalettes[transitionFrom];
+        const t = transitionProgress;
+        const blended = {};
+        for (const key in target) {
+            if (key === 'snow') {
+                blended[key] = t > 0.5 ? target[key] : from[key];
+            } else {
+                blended[key] = lerpColor(from[key], target[key], t);
+            }
+        }
+        return blended;
     }
 
     // === RENDERING ===
 
     function render() {
         if (!ctx) return;
-        const palette = seasonPalettes[currentSeason];
+        const palette = getBlendedPalette();
 
         // Clear with deep water color
         ctx.fillStyle = palette.waterDark;
@@ -274,9 +352,12 @@ const MapRenderer = (() => {
         drawWater(palette);
         drawLand(palette);
         drawInternalWater(palette);
+        drawFerries(palette);
+        drawWaterDecorations(palette);
         drawParks(palette);
         drawRoads(palette);
         drawDistrictOverlays(palette);
+        drawLandDecorations(palette);
         drawLandmarks(palette);
         drawProperties(palette);
         drawAlienInvasion(palette);
@@ -285,7 +366,37 @@ const MapRenderer = (() => {
 
         ctx.restore();
 
-        drawMinimap(palette);
+        drawAdvisor(palette);
+
+        // Season transition banner
+        if (seasonBannerAlpha > 0) {
+            drawSeasonBanner();
+        }
+    }
+
+    function drawSeasonBanner() {
+        const alpha = seasonBannerAlpha * 0.85;
+        const bw = 220;
+        const bh = 36;
+        const bx = (canvas.width - bw) / 2;
+        const by = 60;
+
+        // Banner background
+        ctx.fillStyle = `rgba(10, 10, 26, ${alpha * 0.8})`;
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = `rgba(255, 204, 0, ${alpha})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        // Season text
+        ctx.font = '12px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(255, 204, 0, ${alpha})`;
+        const icon = SEASON_ICONS[currentSeason] || '';
+        ctx.fillText(`${icon} ${seasonBannerText} ${icon}`, canvas.width / 2, by + bh / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
     }
 
     function drawWater(palette) {
@@ -465,10 +576,6 @@ const MapRenderer = (() => {
             const [x, y] = lm.pos;
             const isHovered = lm === hoveredLandmark;
 
-            // Different shapes for different landmarks
-            const isChurch = lm.name.includes('Cathedral') || lm.name.includes('Church');
-            const isMonument = lm.name.includes('Monument') || lm.name.includes('Stadium');
-
             // Hover glow
             if (isHovered) {
                 ctx.strokeStyle = '#ffcc00';
@@ -478,51 +585,1847 @@ const MapRenderer = (() => {
                 ctx.stroke();
             }
 
-            if (isChurch) {
-                ctx.fillStyle = '#ddc080';
-                ctx.fillRect(x - 4, y - 4, 8, 7);
-                ctx.fillStyle = '#ccb060';
-                ctx.beginPath();
-                ctx.moveTo(x - 4, y - 4);
-                ctx.lineTo(x, y - 10);
-                ctx.lineTo(x + 4, y - 4);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#ffcc00';
-                ctx.fillRect(x - 1, y - 11, 2, 2);
-            } else if (isMonument) {
-                ctx.fillStyle = '#bba870';
-                ctx.beginPath();
-                ctx.arc(x, y, 4, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#998850';
-                ctx.lineWidth = 1;
-                ctx.stroke();
+            // Custom sprites for specific landmarks
+            if (lm.name === 'Linnanmäki') {
+                drawRollercoasterSprite(x, y, palette);
+            } else if (lm.name.includes('Beach')) {
+                drawBeachSprite(x, y, palette);
+            } else if (lm.name === 'Allas Sea Pool') {
+                drawSeaPoolSprite(x, y, palette);
+            } else if (lm.name === 'Olympic Stadium') {
+                drawStadiumSprite(x, y, palette);
+            } else if (lm.name === 'Sibelius Monument') {
+                drawSibeliusSprite(x, y, palette);
+            } else if (lm.name.includes('DiscGolf')) {
+                drawDiscGolfSprite(x, y, palette);
+            } else if (lm.name.includes('Observatory')) {
+                drawObservatorySprite(x, y, palette);
+            } else if (lm.name.includes('Open-Air Museum')) {
+                drawOpenAirMuseumSprite(x, y, palette);
+            } else if (lm.name === 'Kiasma') {
+                drawKiasmaSprite(x, y, palette);
             } else {
-                ctx.fillStyle = '#ddc080';
-                ctx.fillRect(x - 4, y - 5, 8, 7);
-                ctx.fillStyle = '#ccb060';
-                ctx.fillRect(x - 5, y - 6, 10, 2);
-                ctx.fillStyle = '#ffcc00';
-                ctx.fillRect(x - 1, y - 8, 2, 2);
-            }
+                // Default shapes
+                const isChurch = lm.name.includes('Cathedral') || lm.name.includes('Church');
+                const isMonument = lm.name.includes('Monument');
 
-            // Snow on landmarks in winter
-            if (palette.snow) {
-                ctx.fillStyle = '#e8e8f0';
                 if (isChurch) {
+                    ctx.fillStyle = '#ddc080';
+                    ctx.fillRect(x - 4, y - 4, 8, 7);
+                    ctx.fillStyle = '#ccb060';
                     ctx.beginPath();
-                    ctx.moveTo(x - 3, y - 5);
+                    ctx.moveTo(x - 4, y - 4);
                     ctx.lineTo(x, y - 10);
-                    ctx.lineTo(x + 3, y - 5);
+                    ctx.lineTo(x + 4, y - 4);
                     ctx.closePath();
                     ctx.fill();
-                } else if (!isMonument) {
-                    ctx.fillRect(x - 5, y - 7, 10, 2);
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.fillRect(x - 1, y - 11, 2, 2);
+                } else if (isMonument) {
+                    ctx.fillStyle = '#bba870';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#998850';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#ddc080';
+                    ctx.fillRect(x - 4, y - 5, 8, 7);
+                    ctx.fillStyle = '#ccb060';
+                    ctx.fillRect(x - 5, y - 6, 10, 2);
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.fillRect(x - 1, y - 8, 2, 2);
+                }
+
+                // Snow on default landmarks in winter
+                if (palette.snow) {
+                    ctx.fillStyle = '#e8e8f0';
+                    if (isChurch) {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 3, y - 5);
+                        ctx.lineTo(x, y - 10);
+                        ctx.lineTo(x + 3, y - 5);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (!isMonument) {
+                        ctx.fillRect(x - 5, y - 7, 10, 2);
+                    }
                 }
             }
-
         }
+    }
+
+    // === CUSTOM LANDMARK SPRITES ===
+
+    function drawRollercoasterSprite(x, y, palette) {
+        // Roller coaster track — arched rails
+        ctx.strokeStyle = '#aa4444';
+        ctx.lineWidth = 1.5;
+        // First hill
+        ctx.beginPath();
+        ctx.moveTo(x - 12, y + 2);
+        ctx.quadraticCurveTo(x - 6, y - 14, x, y - 4);
+        ctx.stroke();
+        // Second hill (smaller)
+        ctx.beginPath();
+        ctx.moveTo(x, y - 4);
+        ctx.quadraticCurveTo(x + 5, y - 10, x + 10, y - 2);
+        ctx.stroke();
+        // Support beams
+        ctx.strokeStyle = '#884444';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y + 2); ctx.lineTo(x - 6, y - 10);
+        ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 4);
+        ctx.moveTo(x + 5, y + 2); ctx.lineTo(x + 5, y - 7);
+        ctx.stroke();
+        // Cart on the first hill
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(x - 8, y - 12, 4, 3);
+        // Wheels
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x - 8, y - 9, 1, 1);
+        ctx.fillRect(x - 5, y - 9, 1, 1);
+        // Ground platform
+        ctx.fillStyle = '#665544';
+        ctx.fillRect(x - 13, y + 2, 24, 2);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 13, y + 1, 24, 1);
+        }
+    }
+
+    function drawBeachSprite(x, y, palette) {
+        // Sandy beach area
+        ctx.fillStyle = palette.snow ? '#d8d0c0' : '#e8d8a0';
+        ctx.beginPath();
+        ctx.ellipse(x, y + 1, 8, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Beach umbrella pole
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(x - 0.5, y - 8, 1, 9);
+        // Umbrella top
+        ctx.fillStyle = '#ff6644';
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 7);
+        ctx.quadraticCurveTo(x, y - 12, x + 6, y - 7);
+        ctx.lineTo(x, y - 8);
+        ctx.closePath();
+        ctx.fill();
+        // Umbrella stripes
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y - 7.5);
+        ctx.quadraticCurveTo(x - 1.5, y - 10, x, y - 7.8);
+        ctx.lineTo(x - 1, y - 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x + 2, y - 7.8);
+        ctx.quadraticCurveTo(x + 3.5, y - 10, x + 5, y - 7.3);
+        ctx.lineTo(x + 3, y - 7.8);
+        ctx.closePath();
+        ctx.fill();
+        // Waves
+        if (!palette.snow) {
+            ctx.strokeStyle = 'rgba(100, 200, 255, 0.5)';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(x - 9, y + 4);
+            ctx.quadraticCurveTo(x - 6, y + 3, x - 3, y + 4);
+            ctx.quadraticCurveTo(x, y + 5, x + 3, y + 4);
+            ctx.stroke();
+        }
+    }
+
+    function drawSeaPoolSprite(x, y, palette) {
+        // Floating pool — rectangle on water
+        ctx.fillStyle = palette.snow ? '#4488aa' : '#44aacc';
+        ctx.fillRect(x - 6, y - 3, 12, 6);
+        ctx.strokeStyle = '#dddddd';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - 6, y - 3, 12, 6);
+        // Pool water
+        ctx.fillStyle = palette.snow ? '#2266aa' : '#2299dd';
+        ctx.fillRect(x - 4, y - 1, 8, 3);
+        // Small sauna building
+        ctx.fillStyle = '#aa8855';
+        ctx.fillRect(x + 4, y - 5, 4, 4);
+        // Smoke from sauna
+        ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+        ctx.beginPath();
+        ctx.arc(x + 6, y - 7, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + 7, y - 9, 1, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawStadiumSprite(x, y, palette) {
+        // Olympic stadium — oval with tower
+        ctx.fillStyle = '#ccbbaa';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 7, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#998877';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Inner field
+        ctx.fillStyle = palette.snow ? '#bbccbb' : '#66aa55';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 4, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Stadium tower
+        ctx.fillStyle = '#ccbbaa';
+        ctx.fillRect(x + 5, y - 12, 3, 14);
+        // Tower top
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(x + 4, y - 13, 5, 2);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x + 4, y - 14, 5, 1);
+        }
+    }
+
+    function drawSibeliusSprite(x, y, palette) {
+        // Pipe organ-style vertical pipes
+        const pipes = [-5, -3, -1, 1, 3, 5];
+        const heights = [8, 11, 13, 12, 10, 7];
+        for (let i = 0; i < pipes.length; i++) {
+            ctx.fillStyle = '#aaaaaa';
+            ctx.fillRect(x + pipes[i], y - heights[i], 1.5, heights[i]);
+            // Pipe tops
+            ctx.fillStyle = '#cccccc';
+            ctx.fillRect(x + pipes[i] - 0.25, y - heights[i] - 1, 2, 1.5);
+        }
+        // Base
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x - 6, y, 13, 2);
+        // Snow on pipe tops
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            for (let i = 0; i < pipes.length; i++) {
+                ctx.fillRect(x + pipes[i] - 0.25, y - heights[i] - 1.5, 2, 1);
+            }
+        }
+    }
+
+    function drawDiscGolfSprite(x, y, palette) {
+        // Disc golf basket (target)
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x + 8, y - 8, 1, 10); // pole
+        // Basket chains (cone shape)
+        ctx.strokeStyle = '#aaaaaa';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + 8.5, y - 8);
+            ctx.lineTo(x + 5.5 + i * 1.5, y - 3);
+            ctx.stroke();
+        }
+        // Basket rim
+        ctx.fillStyle = '#777777';
+        ctx.fillRect(x + 5, y - 3, 8, 1);
+        // Basket bottom
+        ctx.fillStyle = '#666666';
+        ctx.fillRect(x + 6, y - 2, 6, 1.5);
+        // Top cap
+        ctx.fillStyle = '#999999';
+        ctx.beginPath();
+        ctx.arc(x + 8.5, y - 8.5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Person throwing frisbee
+        // Legs
+        ctx.fillStyle = '#334466';
+        ctx.fillRect(x - 4, y - 1, 1.5, 4);
+        ctx.fillRect(x - 1.5, y - 1, 1.5, 4);
+        // Body
+        ctx.fillStyle = '#cc4444';
+        ctx.fillRect(x - 4, y - 7, 5, 6);
+        // Head
+        ctx.fillStyle = '#ddbb88';
+        ctx.beginPath();
+        ctx.arc(x - 1.5, y - 9, 2, 0, Math.PI * 2);
+        ctx.fill();
+        // Throwing arm (extended toward basket)
+        ctx.strokeStyle = '#ddbb88';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 5);
+        ctx.lineTo(x + 4, y - 6);
+        ctx.stroke();
+        // Flying frisbee
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.ellipse(x + 5, y - 6.5, 2, 0.6, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x + 5, y - 3.5, 8, 0.7);
+        }
+    }
+
+    function drawObservatorySprite(x, y, palette) {
+        // Stone base / walls
+        ctx.fillStyle = '#aa9970';
+        ctx.fillRect(x - 5, y - 2, 10, 5);
+        // Round dome roof
+        ctx.fillStyle = palette.snow ? '#aaaaaa' : '#7a7a6a';
+        ctx.beginPath();
+        ctx.arc(x, y - 2, 5.5, Math.PI, 0);
+        ctx.fill();
+        // Dome opening slit (dark gap where telescope pokes out)
+        ctx.fillStyle = '#222233';
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, y - 7.5);
+        ctx.lineTo(x + 3, y - 5);
+        ctx.lineTo(x + 2, y - 4.5);
+        ctx.lineTo(x - 0.5, y - 7);
+        ctx.closePath();
+        ctx.fill();
+        // Telescope tube — angled up-right out of the dome
+        ctx.fillStyle = '#555566';
+        ctx.save();
+        ctx.translate(x + 1, y - 6);
+        ctx.rotate(-0.6); // angled to upper-right
+        ctx.fillRect(0, -0.8, 8, 1.6);
+        // Lens cap
+        ctx.fillStyle = '#4444aa';
+        ctx.fillRect(7.5, -1.2, 1, 2.4);
+        ctx.restore();
+        // Door
+        ctx.fillStyle = '#665533';
+        ctx.fillRect(x - 1.5, y, 3, 3);
+        // Snow on dome
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.arc(x, y - 2.5, 5.7, Math.PI + 0.3, -0.3);
+            ctx.fill();
+        }
+    }
+
+    function drawOpenAirMuseumSprite(x, y, palette) {
+        // Traditional red Finnish wooden cottage
+        // Walls
+        ctx.fillStyle = '#993322';
+        ctx.fillRect(x - 6, y - 4, 12, 7);
+        // Log texture lines
+        ctx.strokeStyle = '#772211';
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 2.5 + i * 2);
+            ctx.lineTo(x + 6, y - 2.5 + i * 2);
+            ctx.stroke();
+        }
+        // Roof (steep wooden)
+        ctx.fillStyle = '#554433';
+        ctx.beginPath();
+        ctx.moveTo(x - 7, y - 4);
+        ctx.lineTo(x, y - 10);
+        ctx.lineTo(x + 7, y - 4);
+        ctx.closePath();
+        ctx.fill();
+        // Window (white frames, typical Finnish style)
+        ctx.fillStyle = '#ddeeff';
+        ctx.fillRect(x - 4, y - 2, 3, 3);
+        ctx.fillRect(x + 1, y - 2, 3, 3);
+        // Window cross frames
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 4, y - 0.8, 3, 0.4);
+        ctx.fillRect(x - 2.8, y - 2, 0.4, 3);
+        ctx.fillRect(x + 1, y - 0.8, 3, 0.4);
+        ctx.fillRect(x + 2.2, y - 2, 0.4, 3);
+        // Door
+        ctx.fillStyle = '#664422';
+        ctx.fillRect(x - 1, y - 1, 2, 4);
+        // Chimney
+        ctx.fillStyle = '#776655';
+        ctx.fillRect(x + 3, y - 9, 2, 4);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.moveTo(x - 7, y - 4.5);
+            ctx.lineTo(x, y - 10.5);
+            ctx.lineTo(x + 7, y - 4.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(x + 3, y - 9.5, 2, 0.7);
+        }
+    }
+
+    // === ISLAND DECORATION SPRITES ===
+
+    function drawSuomenlinnaDeco(cx, cy, palette) {
+        // Castle walls with crenellations
+        const wallColor = '#aa9977';
+        const darkWall = '#887755';
+        const snowColor = '#e8e8f0';
+
+        // Left wall section
+        ctx.fillStyle = wallColor;
+        ctx.fillRect(cx - 18, cy - 6, 10, 8);
+        // Crenellations (battlements)
+        ctx.fillStyle = darkWall;
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(cx - 18 + i * 3, cy - 8, 2, 2);
+        }
+        // Gate arch
+        ctx.fillStyle = '#443322';
+        ctx.fillRect(cx - 15, cy - 2, 4, 4);
+        ctx.fillStyle = darkWall;
+        ctx.beginPath();
+        ctx.arc(cx - 13, cy - 2, 2, Math.PI, 0);
+        ctx.fill();
+
+        // Right wall section
+        ctx.fillStyle = wallColor;
+        ctx.fillRect(cx + 6, cy - 4, 12, 6);
+        // Crenellations
+        ctx.fillStyle = darkWall;
+        for (let i = 0; i < 5; i++) {
+            ctx.fillRect(cx + 6 + i * 3, cy - 6, 2, 2);
+        }
+
+        // Tower
+        ctx.fillStyle = wallColor;
+        ctx.fillRect(cx - 2, cy - 12, 6, 14);
+        ctx.fillStyle = darkWall;
+        // Tower top crenellations
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(cx - 2 + i * 2.5, cy - 14, 2, 2);
+        }
+        // Tower window
+        ctx.fillStyle = '#443322';
+        ctx.fillRect(cx, cy - 9, 2, 2);
+
+        // Cannon (left)
+        ctx.fillStyle = '#444444';
+        ctx.fillRect(cx - 22, cy - 3, 5, 2);
+        // Cannon wheels
+        ctx.fillStyle = '#553322';
+        ctx.beginPath();
+        ctx.arc(cx - 20, cy + 1, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx - 18, cy + 1, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cannon (right)
+        ctx.fillStyle = '#444444';
+        ctx.fillRect(cx + 16, cy - 1, 5, 2);
+        ctx.fillStyle = '#553322';
+        ctx.beginPath();
+        ctx.arc(cx + 18, cy + 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + 20, cy + 3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Finnish flag on tower
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cx + 1, cy - 18, 5, 3);
+        ctx.fillStyle = '#003580';
+        ctx.fillRect(cx + 1, cy - 17, 5, 1); // horizontal cross
+        ctx.fillRect(cx + 3, cy - 18, 1, 3); // vertical cross
+        // Flag pole
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(cx + 0.5, cy - 19, 1, 7);
+
+        // Snow on walls
+        if (palette.snow) {
+            ctx.fillStyle = snowColor;
+            ctx.fillRect(cx - 18, cy - 9, 10, 1);
+            ctx.fillRect(cx + 6, cy - 7, 12, 1);
+            ctx.fillRect(cx - 2, cy - 15, 6, 1);
+        }
+    }
+
+    function drawBlueberryDeco(cx, cy) {
+        // Cute blueberry with a small leaf
+        // Berry body
+        ctx.fillStyle = '#4444bb';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Berry highlight
+        ctx.fillStyle = '#6666dd';
+        ctx.beginPath();
+        ctx.arc(cx - 1, cy - 1.5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Berry crown (calyx — the star-shaped bit on top)
+        ctx.fillStyle = '#334488';
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy - 3.5);
+        ctx.lineTo(cx, cy - 5);
+        ctx.lineTo(cx + 2, cy - 3.5);
+        ctx.fill();
+        // Leaf
+        ctx.fillStyle = '#44aa44';
+        ctx.beginPath();
+        ctx.ellipse(cx + 3, cy - 5, 3, 1.5, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+        // Leaf vein
+        ctx.strokeStyle = '#338833';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx + 1, cy - 5);
+        ctx.lineTo(cx + 5, cy - 5);
+        ctx.stroke();
+        // Stem
+        ctx.strokeStyle = '#338833';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 4);
+        ctx.lineTo(cx + 1, cy - 5.5);
+        ctx.stroke();
+    }
+
+    // === FERRY DECORATION SPRITES ===
+
+    // Viking Line ferry — large red hull, white superstructure
+    function drawVikingLineFerry(x, y, palette) {
+        const p = 1;
+        // Hull (red)
+        ctx.fillStyle = '#cc2222';
+        ctx.beginPath();
+        ctx.moveTo(x - 16 * p, y + 2 * p);
+        ctx.lineTo(x - 14 * p, y + 5 * p);
+        ctx.lineTo(x + 14 * p, y + 5 * p);
+        ctx.lineTo(x + 18 * p, y + 2 * p);
+        ctx.lineTo(x + 18 * p, y);
+        ctx.lineTo(x - 16 * p, y);
+        ctx.closePath();
+        ctx.fill();
+        // Hull waterline (dark red)
+        ctx.fillStyle = '#881111';
+        ctx.fillRect(x - 15 * p, y + 3 * p, 31 * p, 2 * p);
+        // Main deck (white)
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(x - 14 * p, y - 4 * p, 28 * p, 4 * p);
+        // Upper deck (white)
+        ctx.fillStyle = '#e8e8e8';
+        ctx.fillRect(x - 10 * p, y - 7 * p, 20 * p, 3 * p);
+        // Bridge (white, narrow)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 4 * p, y - 10 * p, 8 * p, 3 * p);
+        // Bridge windows
+        ctx.fillStyle = '#4488cc';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(x + 5 * p + i * 2.5 * p, y - 9 * p, 1.5 * p, 1.5 * p);
+        }
+        // Deck windows
+        ctx.fillStyle = '#4488cc';
+        for (let i = 0; i < 8; i++) {
+            ctx.fillRect(x - 12 * p + i * 3.2 * p, y - 3 * p, 2 * p, 1.5 * p);
+        }
+        // Funnel (red with orange diamond)
+        ctx.fillStyle = '#cc2222';
+        ctx.fillRect(x - 4 * p, y - 13 * p, 5 * p, 5 * p);
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(x - 4 * p, y - 13 * p, 5 * p, 1 * p); // black top
+        // Orange diamond on funnel
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath();
+        ctx.moveTo(x - 1.5 * p, y - 12 * p);
+        ctx.lineTo(x, y - 10 * p);
+        ctx.lineTo(x + 1.5 * p, y - 12 * p);
+        ctx.lineTo(x, y - 14 * p + 3 * p);
+        ctx.closePath();
+        ctx.fill();
+        // Snow on decks
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 14 * p, y - 4.5 * p, 28 * p, 0.5 * p);
+            ctx.fillRect(x - 10 * p, y - 7.5 * p, 20 * p, 0.5 * p);
+        }
+        // Wake lines (subtle)
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 17 * p, y + 6 * p);
+        ctx.lineTo(x - 22 * p, y + 8 * p);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 17 * p, y + 4 * p);
+        ctx.lineTo(x - 24 * p, y + 7 * p);
+        ctx.stroke();
+    }
+
+    // Silja Line ferry — white hull, blue stripes
+    function drawSiljaLineFerry(x, y, palette) {
+        const p = 1;
+        // Hull (white)
+        ctx.fillStyle = '#e8e8e8';
+        ctx.beginPath();
+        ctx.moveTo(x - 16 * p, y + 2 * p);
+        ctx.lineTo(x - 14 * p, y + 5 * p);
+        ctx.lineTo(x + 14 * p, y + 5 * p);
+        ctx.lineTo(x + 18 * p, y + 2 * p);
+        ctx.lineTo(x + 18 * p, y);
+        ctx.lineTo(x - 16 * p, y);
+        ctx.closePath();
+        ctx.fill();
+        // Blue stripe along hull
+        ctx.fillStyle = '#2255aa';
+        ctx.fillRect(x - 15 * p, y + 1 * p, 31 * p, 1.5 * p);
+        // Hull bottom (dark blue)
+        ctx.fillStyle = '#1a3366';
+        ctx.fillRect(x - 14 * p, y + 3 * p, 29 * p, 2 * p);
+        // Main deck (white)
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(x - 13 * p, y - 4 * p, 26 * p, 4 * p);
+        // Upper deck
+        ctx.fillStyle = '#eeeeee';
+        ctx.fillRect(x - 9 * p, y - 7 * p, 18 * p, 3 * p);
+        // Bridge
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 5 * p, y - 10 * p, 7 * p, 3 * p);
+        // Bridge windows
+        ctx.fillStyle = '#4488cc';
+        for (let i = 0; i < 3; i++) {
+            ctx.fillRect(x + 6 * p + i * 2 * p, y - 9 * p, 1.5 * p, 1.5 * p);
+        }
+        // Deck windows
+        ctx.fillStyle = '#6699cc';
+        for (let i = 0; i < 7; i++) {
+            ctx.fillRect(x - 11 * p + i * 3.2 * p, y - 3 * p, 2 * p, 1.5 * p);
+        }
+        // Blue stripe on upper deck
+        ctx.fillStyle = '#2255aa';
+        ctx.fillRect(x - 9 * p, y - 5 * p, 18 * p, 1 * p);
+        // Funnel (white with blue 'R')
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 3 * p, y - 13 * p, 5 * p, 5 * p);
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(x - 3 * p, y - 13 * p, 5 * p, 0.8 * p);
+        // Blue 'R' on funnel (simplified as blue bar)
+        ctx.fillStyle = '#2255aa';
+        ctx.fillRect(x - 1.5 * p, y - 12 * p, 2 * p, 3 * p);
+        // Snow on decks
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 13 * p, y - 4.5 * p, 26 * p, 0.5 * p);
+            ctx.fillRect(x - 9 * p, y - 7.5 * p, 18 * p, 0.5 * p);
+        }
+        // Wake lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 17 * p, y + 6 * p);
+        ctx.lineTo(x - 22 * p, y + 8 * p);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 17 * p, y + 4 * p);
+        ctx.lineTo(x - 24 * p, y + 7 * p);
+        ctx.stroke();
+    }
+
+    // Suomenlinna ferry — small commuter vessel
+    function drawSuomenlinnaFerry(x, y, palette) {
+        const p = 1;
+        // Hull (dark)
+        ctx.fillStyle = '#333333';
+        ctx.beginPath();
+        ctx.moveTo(x - 8 * p, y + 1 * p);
+        ctx.lineTo(x - 7 * p, y + 3 * p);
+        ctx.lineTo(x + 7 * p, y + 3 * p);
+        ctx.lineTo(x + 9 * p, y + 1 * p);
+        ctx.lineTo(x + 9 * p, y);
+        ctx.lineTo(x - 8 * p, y);
+        ctx.closePath();
+        ctx.fill();
+        // Hull waterline
+        ctx.fillStyle = '#222222';
+        ctx.fillRect(x - 7 * p, y + 2 * p, 14 * p, 1 * p);
+        // Yellow stripe (Sunlines)
+        ctx.fillStyle = '#ddaa00';
+        ctx.fillRect(x - 7 * p, y - 0.5 * p, 14 * p, 1 * p);
+        // Cabin (white)
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(x - 5 * p, y - 4 * p, 10 * p, 3.5 * p);
+        // Cabin windows
+        ctx.fillStyle = '#4488cc';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(x - 4 * p + i * 2.5 * p, y - 3 * p, 1.5 * p, 1.5 * p);
+        }
+        // Wheelhouse
+        ctx.fillStyle = '#e8e8e8';
+        ctx.fillRect(x + 1 * p, y - 6 * p, 4 * p, 2 * p);
+        // Wheelhouse window
+        ctx.fillStyle = '#4488cc';
+        ctx.fillRect(x + 1.5 * p, y - 5.5 * p, 3 * p, 1 * p);
+        // Finnish flag at stern
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 6 * p, y - 7 * p, 3 * p, 2 * p);
+        ctx.fillStyle = '#003580';
+        ctx.fillRect(x - 6 * p, y - 6.2 * p, 3 * p, 0.6 * p);
+        ctx.fillRect(x - 5 * p, y - 7 * p, 0.6 * p, 2 * p);
+        // Flag pole
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x - 6.5 * p, y - 8 * p, 0.5 * p, 4 * p);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 5 * p, y - 4.5 * p, 10 * p, 0.5 * p);
+        }
+        // Wake
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(x - 9 * p, y + 4 * p);
+        ctx.lineTo(x - 12 * p, y + 5 * p);
+        ctx.stroke();
+    }
+
+    // Ferry positions (in water, off coastlines)
+    const ferryPositions = {
+        vikingLine: HelsinkiDistricts.geoToMap([[60.163, 24.965]])[0],   // SW Katajanokka coast
+        siljaLine: HelsinkiDistricts.geoToMap([[60.160, 24.958]])[0],    // NE Kaivopuisto
+        suomenlinnaFerry: HelsinkiDistricts.geoToMap([[60.153, 24.975]])[0], // Between mainland and Suomenlinna
+    };
+
+    function drawFerries(palette) {
+        drawVikingLineFerry(ferryPositions.vikingLine[0], ferryPositions.vikingLine[1], palette);
+        drawSiljaLineFerry(ferryPositions.siljaLine[0], ferryPositions.siljaLine[1], palette);
+        drawSuomenlinnaFerry(ferryPositions.suomenlinnaFerry[0], ferryPositions.suomenlinnaFerry[1], palette);
+    }
+
+    // === WATER DECORATION SPRITES ===
+
+    function drawSailboat(x, y, palette, angle) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle || 0);
+        // Hull
+        ctx.fillStyle = '#553322';
+        ctx.beginPath();
+        ctx.moveTo(-5, 1);
+        ctx.lineTo(-4, 3);
+        ctx.lineTo(4, 3);
+        ctx.lineTo(6, 1);
+        ctx.lineTo(6, 0);
+        ctx.lineTo(-5, 0);
+        ctx.closePath();
+        ctx.fill();
+        // Mast
+        ctx.fillStyle = '#665544';
+        ctx.fillRect(-0.5, -10, 1, 10);
+        // Sail (white triangle)
+        ctx.fillStyle = palette.snow ? '#e8e8f0' : '#f5f5f0';
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.lineTo(0, -1);
+        ctx.lineTo(5, -2);
+        ctx.closePath();
+        ctx.fill();
+        // Small rear sail
+        ctx.beginPath();
+        ctx.moveTo(0, -7);
+        ctx.lineTo(0, -1);
+        ctx.lineTo(-3, -2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawRowboat(x, y) {
+        // Small rowing boat / kayak
+        ctx.fillStyle = '#664422';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 5, 2, 0.1, 0, Math.PI * 2);
+        ctx.fill();
+        // Seat
+        ctx.fillStyle = '#554433';
+        ctx.fillRect(x - 1.5, y - 0.5, 3, 1);
+        // Oars
+        ctx.strokeStyle = '#887766';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 1, y);
+        ctx.lineTo(x - 5, y - 3);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 1, y);
+        ctx.lineTo(x + 5, y - 3);
+        ctx.stroke();
+    }
+
+    function drawBuoy(x, y) {
+        // Small navigation buoy
+        ctx.fillStyle = '#dd3333';
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = '#ff6666';
+        ctx.beginPath();
+        ctx.arc(x - 0.5, y - 0.5, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        // Post
+        ctx.fillStyle = '#cc2222';
+        ctx.fillRect(x - 0.4, y - 4, 0.8, 2);
+        // Top marker
+        ctx.fillStyle = '#ffaa00';
+        ctx.beginPath();
+        ctx.moveTo(x - 1.5, y - 4);
+        ctx.lineTo(x, y - 6);
+        ctx.lineTo(x + 1.5, y - 4);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function drawSeagull(x, y) {
+        // Simple V-shaped seagull
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y + 1);
+        ctx.quadraticCurveTo(x - 1, y - 2, x, y);
+        ctx.quadraticCurveTo(x + 1, y - 2, x + 3, y + 1);
+        ctx.stroke();
+    }
+
+    function drawWaveCluster(x, y) {
+        // Small wave marks — two or three curved lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 4, y);
+        ctx.quadraticCurveTo(x - 2, y - 1.5, x, y);
+        ctx.quadraticCurveTo(x + 2, y + 1.5, x + 4, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y + 2.5);
+        ctx.quadraticCurveTo(x - 1, y + 1, x + 1, y + 2.5);
+        ctx.quadraticCurveTo(x + 3, y + 4, x + 5, y + 2.5);
+        ctx.stroke();
+    }
+
+    // Water decoration positions
+    const wavePositions = [
+        // Eastern waters
+        HelsinkiDistricts.geoToMap([[60.165, 24.995]])[0],
+        HelsinkiDistricts.geoToMap([[60.155, 24.975]])[0],
+        HelsinkiDistricts.geoToMap([[60.172, 24.985]])[0],
+        HelsinkiDistricts.geoToMap([[60.145, 24.960]])[0],
+        HelsinkiDistricts.geoToMap([[60.160, 24.960]])[0],
+        HelsinkiDistricts.geoToMap([[60.178, 24.995]])[0],
+        HelsinkiDistricts.geoToMap([[60.143, 24.985]])[0],
+        HelsinkiDistricts.geoToMap([[60.150, 24.993]])[0],
+        HelsinkiDistricts.geoToMap([[60.168, 24.998]])[0],
+        HelsinkiDistricts.geoToMap([[60.140, 24.970]])[0],
+        // Southern waters
+        HelsinkiDistricts.geoToMap([[60.142, 24.940]])[0],
+        HelsinkiDistricts.geoToMap([[60.139, 24.955]])[0],
+        HelsinkiDistricts.geoToMap([[60.144, 24.920]])[0],
+        HelsinkiDistricts.geoToMap([[60.141, 24.930]])[0],
+        // Western waters (Lauttasaari strait and beyond)
+        HelsinkiDistricts.geoToMap([[60.155, 24.870]])[0],
+        HelsinkiDistricts.geoToMap([[60.170, 24.865]])[0],
+        HelsinkiDistricts.geoToMap([[60.162, 24.862]])[0],
+        HelsinkiDistricts.geoToMap([[60.148, 24.878]])[0],
+        HelsinkiDistricts.geoToMap([[60.145, 24.868]])[0],
+        HelsinkiDistricts.geoToMap([[60.175, 24.868]])[0],
+        HelsinkiDistricts.geoToMap([[60.180, 24.862]])[0],
+        HelsinkiDistricts.geoToMap([[60.165, 24.858]])[0],
+        HelsinkiDistricts.geoToMap([[60.155, 24.860]])[0],
+        HelsinkiDistricts.geoToMap([[60.142, 24.885]])[0],
+        // Lauttasaari strait
+        HelsinkiDistricts.geoToMap([[60.163, 24.898]])[0],
+        HelsinkiDistricts.geoToMap([[60.158, 24.900]])[0],
+        // Misc scattered
+        HelsinkiDistricts.geoToMap([[60.190, 24.998]])[0],
+        HelsinkiDistricts.geoToMap([[60.148, 24.935]])[0],
+        HelsinkiDistricts.geoToMap([[60.195, 24.870]])[0],
+        HelsinkiDistricts.geoToMap([[60.138, 24.950]])[0],
+    ];
+
+    const waterDecoPositions = {
+        sailboats: [
+            // Eastern waters
+            { pos: HelsinkiDistricts.geoToMap([[60.170, 24.995]])[0], angle: 0.2 },
+            { pos: HelsinkiDistricts.geoToMap([[60.160, 24.990]])[0], angle: -0.15 },
+            { pos: HelsinkiDistricts.geoToMap([[60.175, 24.988]])[0], angle: 0.35 },
+            { pos: HelsinkiDistricts.geoToMap([[60.155, 24.968]])[0], angle: -0.1 },
+            // Western waters
+            { pos: HelsinkiDistricts.geoToMap([[60.168, 24.862]])[0], angle: 0.25 },
+            { pos: HelsinkiDistricts.geoToMap([[60.178, 24.866]])[0], angle: -0.2 },
+            // Trio south of Lauttasaari
+            { pos: HelsinkiDistricts.geoToMap([[60.148, 24.878]])[0], angle: 0.1 },
+            { pos: HelsinkiDistricts.geoToMap([[60.147, 24.882]])[0], angle: 0.25 },
+            { pos: HelsinkiDistricts.geoToMap([[60.149, 24.875]])[0], angle: -0.05 },
+        ],
+        rowboat: HelsinkiDistricts.geoToMap([[60.184, 24.908]])[0], // near Töölö coast / Seurasaari
+        buoys: [
+            HelsinkiDistricts.geoToMap([[60.166, 24.957]])[0], // south harbour entrance
+            HelsinkiDistricts.geoToMap([[60.170, 24.980]])[0], // east of Katajanokka
+            HelsinkiDistricts.geoToMap([[60.148, 24.935]])[0], // off Eira/Ullanlinna coast
+        ],
+        seagulls: [
+            HelsinkiDistricts.geoToMap([[60.168, 24.992]])[0],
+            HelsinkiDistricts.geoToMap([[60.158, 24.985]])[0],
+            HelsinkiDistricts.geoToMap([[60.150, 24.945]])[0],
+            HelsinkiDistricts.geoToMap([[60.173, 24.996]])[0],
+            HelsinkiDistricts.geoToMap([[60.145, 24.970]])[0],
+            HelsinkiDistricts.geoToMap([[60.162, 24.870]])[0], // west of Lauttasaari
+        ],
+    };
+
+    // Töölönlahti water features
+    const toolonlahtiPositions = {
+        fountain: HelsinkiDistricts.geoToMap([[60.180, 24.937]])[0],      // center of Töölönlahti
+        paddleBoat: HelsinkiDistricts.geoToMap([[60.177, 24.939]])[0],    // south part of Töölönlahti
+    };
+
+    function drawWaterDecorations(palette) {
+        // Wave clusters
+        for (const w of wavePositions) {
+            drawWaveCluster(w[0], w[1]);
+        }
+        // Sailboats
+        for (const sb of waterDecoPositions.sailboats) {
+            drawSailboat(sb.pos[0], sb.pos[1], palette, sb.angle);
+        }
+        // Rowboat
+        drawRowboat(waterDecoPositions.rowboat[0], waterDecoPositions.rowboat[1]);
+        // Buoys
+        for (const b of waterDecoPositions.buoys) {
+            drawBuoy(b[0], b[1]);
+        }
+        // Seagulls (animated drift/circle)
+        for (const sg of seagullStates) {
+            const sx = sg.currentX !== undefined ? sg.currentX : sg.baseX;
+            const sy = sg.currentY !== undefined ? sg.currentY : sg.baseY;
+            drawSeagull(sx, sy);
+        }
+        // Töölönlahti fountain
+        drawFountain(toolonlahtiPositions.fountain[0], toolonlahtiPositions.fountain[1], palette);
+        // Paddle boat on Töölönlahti (not in winter — water frozen!)
+        if (!palette.snow) {
+            drawPaddleBoat(toolonlahtiPositions.paddleBoat[0], toolonlahtiPositions.paddleBoat[1]);
+        }
+    }
+
+    // === LAND DECORATION SPRITES ===
+
+    function drawTram(x, y, palette) {
+        // Helsinki green tram (side view, heading right)
+        // Wheels
+        ctx.fillStyle = '#333333';
+        ctx.beginPath(); ctx.arc(x - 5, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 5, y + 3, 1.2, 0, Math.PI * 2); ctx.fill();
+        // Body (Helsinki green)
+        ctx.fillStyle = '#336633';
+        ctx.fillRect(x - 7, y - 3, 14, 6);
+        // Lighter top
+        ctx.fillStyle = '#449944';
+        ctx.fillRect(x - 7, y - 5, 14, 2);
+        // Roof
+        ctx.fillStyle = '#ddddcc';
+        ctx.fillRect(x - 7, y - 6, 14, 1);
+        // Windows
+        ctx.fillStyle = '#88ccff';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(x - 5.5 + i * 3.2, y - 4, 2.2, 2.5);
+        }
+        // Door
+        ctx.fillStyle = '#224422';
+        ctx.fillRect(x + 4, y - 3, 2, 5);
+        // Pantograph (power collector)
+        ctx.strokeStyle = '#777777';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6);
+        ctx.lineTo(x - 1, y - 9);
+        ctx.lineTo(x + 1, y - 11);
+        ctx.stroke();
+        // Snow on roof
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 7, y - 7, 14, 1);
+        }
+    }
+
+    function drawMannerheimStatue(x, y, palette) {
+        // Equestrian statue — rider on horse
+        // Pedestal
+        ctx.fillStyle = '#888877';
+        ctx.fillRect(x - 5, y, 10, 4);
+        ctx.fillStyle = '#777766';
+        ctx.fillRect(x - 6, y + 4, 12, 2);
+        // Horse body
+        ctx.fillStyle = '#556655';
+        ctx.beginPath();
+        ctx.ellipse(x, y - 3, 5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Horse legs
+        ctx.fillRect(x - 4, y - 1, 1.2, 3);
+        ctx.fillRect(x - 2, y - 1, 1.2, 3);
+        ctx.fillRect(x + 1.5, y - 1, 1.2, 3);
+        ctx.fillRect(x + 3.5, y - 1, 1.2, 3);
+        // Horse head/neck
+        ctx.fillStyle = '#556655';
+        ctx.beginPath();
+        ctx.moveTo(x + 4, y - 4);
+        ctx.lineTo(x + 7, y - 7);
+        ctx.lineTo(x + 6, y - 8);
+        ctx.lineTo(x + 4, y - 6);
+        ctx.closePath();
+        ctx.fill();
+        // Rider
+        ctx.fillStyle = '#444455';
+        ctx.fillRect(x - 0.5, y - 8, 3, 4);
+        // Rider head
+        ctx.beginPath();
+        ctx.arc(x + 1, y - 9, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 6, y + 3.5, 12, 0.8);
+        }
+    }
+
+    function drawKiasmaSprite(x, y, palette) {
+        // Kiasma — curved modern art museum
+        // Main body (metallic curved shape)
+        ctx.fillStyle = '#aaaaaa';
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y + 3);
+        ctx.lineTo(x - 6, y - 4);
+        ctx.quadraticCurveTo(x - 2, y - 10, x + 4, y - 8);
+        ctx.lineTo(x + 7, y - 5);
+        ctx.lineTo(x + 7, y + 3);
+        ctx.closePath();
+        ctx.fill();
+        // Curved roof highlight
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 4);
+        ctx.quadraticCurveTo(x - 2, y - 10, x + 4, y - 8);
+        ctx.lineTo(x + 7, y - 5);
+        ctx.stroke();
+        // Glass facade
+        ctx.fillStyle = '#88aabb';
+        ctx.fillRect(x - 5, y - 2, 5, 5);
+        // Glass panels
+        ctx.strokeStyle = '#99bbcc';
+        ctx.lineWidth = 0.4;
+        ctx.strokeRect(x - 5, y - 2, 2.5, 2.5);
+        ctx.strokeRect(x - 2.5, y - 2, 2.5, 2.5);
+        ctx.strokeRect(x - 5, y + 0.5, 2.5, 2.5);
+        ctx.strokeRect(x - 2.5, y + 0.5, 2.5, 2.5);
+        // Entrance
+        ctx.fillStyle = '#334455';
+        ctx.fillRect(x + 1, y + 0.5, 3, 2.5);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 4.5);
+            ctx.quadraticCurveTo(x - 2, y - 10.5, x + 4, y - 8.5);
+            ctx.lineTo(x + 7, y - 5.5);
+            ctx.lineTo(x + 7, y - 5);
+            ctx.quadraticCurveTo(x + 2, y - 8, x - 2, y - 9.5);
+            ctx.quadraticCurveTo(x - 5, y - 5, x - 6, y - 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    function drawHelsinkiWheel(x, y, palette) {
+        const r = 10;
+        // Support structure
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y + 4);
+        ctx.lineTo(x, y - r + 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y + 4);
+        ctx.lineTo(x, y - r + 2);
+        ctx.stroke();
+        // Base
+        ctx.fillStyle = '#555555';
+        ctx.fillRect(x - 6, y + 3, 12, 2);
+        // Wheel rim
+        ctx.strokeStyle = '#aaaaaa';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y - r + 2, r - 1, 0, Math.PI * 2);
+        ctx.stroke();
+        // Spokes
+        ctx.lineWidth = 0.4;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y - r + 2);
+            ctx.lineTo(x + Math.cos(angle) * (r - 1), y - r + 2 + Math.sin(angle) * (r - 1));
+            ctx.stroke();
+        }
+        // Gondolas (colored capsules at spoke ends)
+        const gondolaColors = ['#cc3333', '#3366cc', '#33aa33', '#ddaa00', '#cc33cc', '#33aaaa', '#ff6600', '#9944cc'];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const gx = x + Math.cos(angle) * (r - 1);
+            const gy = y - r + 2 + Math.sin(angle) * (r - 1);
+            ctx.fillStyle = gondolaColors[i];
+            ctx.fillRect(gx - 1.2, gy - 0.8, 2.4, 2);
+        }
+        // Hub
+        ctx.fillStyle = '#888888';
+        ctx.beginPath();
+        ctx.arc(x, y - r + 2, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawChristmasTree(x, y) {
+        // Only drawn in winter — called conditionally
+        // Trunk
+        ctx.fillStyle = '#553311';
+        ctx.fillRect(x - 1, y, 2, 3);
+        // Tree layers (dark green)
+        ctx.fillStyle = '#225522';
+        ctx.beginPath();
+        ctx.moveTo(x, y - 14);
+        ctx.lineTo(x - 5, y - 6);
+        ctx.lineTo(x + 5, y - 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x, y - 10);
+        ctx.lineTo(x - 6, y - 2);
+        ctx.lineTo(x + 6, y - 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x, y - 6);
+        ctx.lineTo(x - 7, y + 1);
+        ctx.lineTo(x + 7, y + 1);
+        ctx.closePath();
+        ctx.fill();
+        // Star on top
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.moveTo(x, y - 16);
+        ctx.lineTo(x - 1.5, y - 13.5);
+        ctx.lineTo(x + 1.5, y - 13.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x, y - 12.5);
+        ctx.lineTo(x - 1.5, y - 15);
+        ctx.lineTo(x + 1.5, y - 15);
+        ctx.closePath();
+        ctx.fill();
+        // Ornaments (colorful dots)
+        const ornaments = [
+            [-3, -4, '#ff3333'], [2, -3, '#3366ff'], [0, -8, '#ffaa00'],
+            [-4, -1, '#ff66cc'], [4, -1, '#33cc33'], [-1, -5, '#ff6600'],
+            [3, -7, '#cc33ff'], [-2, -9, '#33cccc'],
+        ];
+        for (const [ox, oy, c] of ornaments) {
+            ctx.fillStyle = c;
+            ctx.beginPath();
+            ctx.arc(x + ox, y + oy, 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Snow on branches
+        ctx.fillStyle = '#e8e8f0';
+        ctx.fillRect(x - 5, y - 6.5, 3, 0.8);
+        ctx.fillRect(x + 2, y - 6.5, 3, 0.8);
+        ctx.fillRect(x - 6, y - 2.5, 4, 0.8);
+        ctx.fillRect(x + 3, y - 2.5, 3, 0.8);
+    }
+
+    function drawSaunaSmoke(x, y) {
+        // Small sauna building + smoke puffs
+        // Building
+        ctx.fillStyle = '#664433';
+        ctx.fillRect(x - 4, y - 2, 8, 5);
+        // Roof
+        ctx.fillStyle = '#553322';
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 2);
+        ctx.lineTo(x, y - 6);
+        ctx.lineTo(x + 5, y - 2);
+        ctx.closePath();
+        ctx.fill();
+        // Door
+        ctx.fillStyle = '#443322';
+        ctx.fillRect(x - 1, y, 2, 3);
+        // Chimney
+        ctx.fillStyle = '#555555';
+        ctx.fillRect(x + 2, y - 7, 2, 3);
+        // Smoke puffs (animated-looking, static but staggered)
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#cccccc';
+        ctx.beginPath(); ctx.arc(x + 3, y - 9, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath(); ctx.arc(x + 4, y - 11, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath(); ctx.arc(x + 3.5, y - 13.5, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath(); ctx.arc(x + 4.5, y - 16, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    function drawSaunaSprite(x, y, palette) {
+        // Sauna building — slightly bigger than the decoration version
+        // Building
+        ctx.fillStyle = '#664433';
+        ctx.fillRect(x - 5, y - 3, 10, 6);
+        // Roof
+        ctx.fillStyle = '#553322';
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 3);
+        ctx.lineTo(x, y - 8);
+        ctx.lineTo(x + 6, y - 3);
+        ctx.closePath();
+        ctx.fill();
+        // Door
+        ctx.fillStyle = '#443322';
+        ctx.fillRect(x - 1.5, y - 0.5, 3, 3.5);
+        // Window
+        ctx.fillStyle = '#ddaa44';
+        ctx.fillRect(x + 2, y - 1.5, 2.5, 2);
+        // Chimney
+        ctx.fillStyle = '#555555';
+        ctx.fillRect(x + 2.5, y - 9, 2.5, 3.5);
+        // Smoke puffs
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#cccccc';
+        ctx.beginPath(); ctx.arc(x + 3.5, y - 11, 1.8, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.25;
+        ctx.beginPath(); ctx.arc(x + 4.5, y - 13.5, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.2;
+        ctx.beginPath(); ctx.arc(x + 4, y - 16, 2.8, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 3.5);
+            ctx.lineTo(x, y - 8.5);
+            ctx.lineTo(x + 6, y - 3.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(x + 2.5, y - 9.5, 2.5, 0.7);
+        }
+    }
+
+    function drawFoodTruckSprite(x, y, palette) {
+        // Food truck — side view facing right
+        // Wheels
+        ctx.fillStyle = '#222222';
+        ctx.beginPath(); ctx.arc(x - 4, y + 2, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 4, y + 2, 1.5, 0, Math.PI * 2); ctx.fill();
+        // Hubcaps
+        ctx.fillStyle = '#555555';
+        ctx.beginPath(); ctx.arc(x - 4, y + 2, 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 4, y + 2, 0.6, 0, Math.PI * 2); ctx.fill();
+        // Truck body
+        ctx.fillStyle = '#cc4433';
+        ctx.fillRect(x - 6, y - 5, 12, 7);
+        // Rounded top
+        ctx.beginPath();
+        ctx.moveTo(x - 6, y - 5);
+        ctx.quadraticCurveTo(x - 6, y - 8, x - 3, y - 8);
+        ctx.lineTo(x + 3, y - 8);
+        ctx.quadraticCurveTo(x + 6, y - 8, x + 6, y - 5);
+        ctx.fill();
+        // Serving window (open hatch)
+        ctx.fillStyle = '#ffdd88';
+        ctx.fillRect(x - 4, y - 4, 6, 3);
+        // Window frame
+        ctx.strokeStyle = '#aa3322';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x - 4, y - 4, 6, 3);
+        // Awning over window
+        ctx.fillStyle = '#ff6644';
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 4);
+        ctx.lineTo(x - 5, y - 5.5);
+        ctx.lineTo(x + 3, y - 5.5);
+        ctx.lineTo(x + 3, y - 4);
+        ctx.fill();
+        // Stripe on awning
+        ctx.fillStyle = '#ffcc44';
+        ctx.fillRect(x - 5, y - 5, 8, 0.5);
+        // Cab (front right)
+        ctx.fillStyle = '#bb3322';
+        ctx.fillRect(x + 3, y - 4, 3, 5);
+        // Windshield
+        ctx.fillStyle = '#88bbdd';
+        ctx.fillRect(x + 4, y - 3.5, 2, 2.5);
+        // Bumper
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x + 5.5, y, 1, 1.5);
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y - 5.5);
+            ctx.quadraticCurveTo(x - 6, y - 8.5, x - 3, y - 8.5);
+            ctx.lineTo(x + 3, y - 8.5);
+            ctx.quadraticCurveTo(x + 6, y - 8.5, x + 6, y - 5.5);
+            ctx.fill();
+        }
+    }
+
+    function drawMarketTent(x, y, color) {
+        // Small market stall with striped awning
+        // Counter
+        ctx.fillStyle = '#aa8855';
+        ctx.fillRect(x - 4, y, 8, 3);
+        // Awning
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y);
+        ctx.lineTo(x, y - 4);
+        ctx.lineTo(x + 5, y);
+        ctx.closePath();
+        ctx.fill();
+        // Awning stripes
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(x - 2.5, y);
+        ctx.lineTo(x - 0.5, y - 3);
+        ctx.lineTo(x + 0.5, y - 3);
+        ctx.lineTo(x + 2.5, y);
+        ctx.closePath();
+        ctx.fill();
+        // Goods on counter (colored dots)
+        ctx.fillStyle = '#ff6633';
+        ctx.beginPath(); ctx.arc(x - 2, y + 0.5, 0.8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#33aa33';
+        ctx.beginPath(); ctx.arc(x, y + 0.5, 0.8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath(); ctx.arc(x + 2, y + 0.5, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+
+    function drawBush(x, y, palette) {
+        // Darker green than park background for contrast
+        const baseGreen = palette.park || '#3a7a2a';
+        // Darken the park color for bush
+        const r = parseInt(baseGreen.slice(1, 3), 16);
+        const g = parseInt(baseGreen.slice(3, 5), 16);
+        const b = parseInt(baseGreen.slice(5, 7), 16);
+        const dark = '#' + Math.max(0, r - 40).toString(16).padStart(2, '0')
+                        + Math.max(0, g - 30).toString(16).padStart(2, '0')
+                        + Math.max(0, b - 30).toString(16).padStart(2, '0');
+        const mid = '#' + Math.max(0, r - 25).toString(16).padStart(2, '0')
+                       + Math.max(0, g - 15).toString(16).padStart(2, '0')
+                       + Math.max(0, b - 15).toString(16).padStart(2, '0');
+        // Main bush shape — bigger, rounder
+        ctx.fillStyle = dark;
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 3, y + 1, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x - 3, y + 1, 3.2, 0, Math.PI * 2); ctx.fill();
+        // Lighter highlight on top
+        ctx.fillStyle = mid;
+        ctx.beginPath(); ctx.arc(x, y - 1.5, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 2.5, y - 0.5, 2, 0, Math.PI * 2); ctx.fill();
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath(); ctx.arc(x, y - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 2, y - 1, 1.8, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    function drawMoose(x, y, palette) {
+        // Pixel art moose facing right
+        // Body
+        ctx.fillStyle = '#5a3a1a';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 5, 3.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Legs
+        ctx.fillStyle = '#4a2a0a';
+        ctx.fillRect(x - 3.5, y + 2, 1.5, 4);
+        ctx.fillRect(x - 1.5, y + 2, 1.5, 4);
+        ctx.fillRect(x + 1, y + 2, 1.5, 4);
+        ctx.fillRect(x + 3, y + 2, 1.5, 4);
+        // Neck and head
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(x + 4, y - 4, 2.5, 5);
+        // Head
+        ctx.fillStyle = '#6a4a2a';
+        ctx.beginPath();
+        ctx.ellipse(x + 7, y - 5, 3, 2, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        // Antlers
+        ctx.strokeStyle = '#7a5a3a';
+        ctx.lineWidth = 0.8;
+        // Left antler
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y - 6);
+        ctx.lineTo(x + 3, y - 10);
+        ctx.lineTo(x + 1, y - 11);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 3, y - 10);
+        ctx.lineTo(x + 4, y - 12);
+        ctx.stroke();
+        // Right antler
+        ctx.beginPath();
+        ctx.moveTo(x + 7, y - 7);
+        ctx.lineTo(x + 9, y - 11);
+        ctx.lineTo(x + 11, y - 11);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 9, y - 11);
+        ctx.lineTo(x + 9, y - 13);
+        ctx.stroke();
+        // Eye
+        ctx.fillStyle = '#111111';
+        ctx.beginPath();
+        ctx.arc(x + 8, y - 5.5, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        // Nose/muzzle
+        ctx.fillStyle = '#4a3a2a';
+        ctx.beginPath();
+        ctx.ellipse(x + 9.5, y - 4.5, 1.5, 1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Snow on back
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.beginPath();
+            ctx.ellipse(x, y - 3, 4, 1, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    function drawPolarBear(x, y) {
+        // Bigger, more bear-like polar bear
+        const s = 1.6; // scale factor
+        // Body — large, rounded, bulky
+        ctx.fillStyle = '#f0ece8';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 6 * s, 4 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Rear haunch
+        ctx.beginPath();
+        ctx.ellipse(x - 4 * s, y + 0.5 * s, 3.5 * s, 3.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Shoulder hump (bears have a distinctive shoulder hump)
+        ctx.beginPath();
+        ctx.ellipse(x + 2 * s, y - 2 * s, 3 * s, 2.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Front legs (thick, sturdy)
+        ctx.fillStyle = '#e8e4df';
+        ctx.fillRect(x + 1 * s, y + 2.5 * s, 2.5 * s, 4 * s);
+        ctx.fillRect(x + 4 * s, y + 2 * s, 2.5 * s, 4.5 * s);
+        // Back legs
+        ctx.fillRect(x - 5 * s, y + 2 * s, 2.5 * s, 4 * s);
+        ctx.fillRect(x - 2.5 * s, y + 2.5 * s, 2.5 * s, 4 * s);
+        // Paws (big, round)
+        ctx.fillStyle = '#ddd8d2';
+        ctx.beginPath(); ctx.ellipse(x + 2.2 * s, y + 6.5 * s, 1.8 * s, 1 * s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x + 5.2 * s, y + 6.5 * s, 1.8 * s, 1 * s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x - 3.8 * s, y + 6 * s, 1.8 * s, 1 * s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x - 1.3 * s, y + 6.5 * s, 1.8 * s, 1 * s, 0, 0, Math.PI * 2); ctx.fill();
+        // Neck
+        ctx.fillStyle = '#f0ece8';
+        ctx.fillRect(x + 4 * s, y - 3 * s, 3 * s, 4 * s);
+        // Head — elongated, bear-shaped (longer snout than round)
+        ctx.beginPath();
+        ctx.ellipse(x + 7.5 * s, y - 4 * s, 3.5 * s, 2.8 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Snout (protruding, elongated)
+        ctx.fillStyle = '#e8e4df';
+        ctx.beginPath();
+        ctx.ellipse(x + 10.5 * s, y - 3.5 * s, 2 * s, 1.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Small round ears
+        ctx.fillStyle = '#e0dcd6';
+        ctx.beginPath(); ctx.arc(x + 6 * s, y - 6.5 * s, 1.3 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 8.5 * s, y - 6.5 * s, 1.3 * s, 0, Math.PI * 2); ctx.fill();
+        // Inner ear
+        ctx.fillStyle = '#d8ccc0';
+        ctx.beginPath(); ctx.arc(x + 6 * s, y - 6.5 * s, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 8.5 * s, y - 6.5 * s, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+        // Eyes (small, dark, beady)
+        ctx.fillStyle = '#111111';
+        ctx.beginPath(); ctx.arc(x + 8.5 * s, y - 4.5 * s, 0.5 * s, 0, Math.PI * 2); ctx.fill();
+        // Nose (black, prominent)
+        ctx.fillStyle = '#111111';
+        ctx.beginPath(); ctx.arc(x + 12 * s, y - 3.5 * s, 0.8 * s, 0, Math.PI * 2); ctx.fill();
+        // Mouth line
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(x + 12 * s, y - 2.8 * s);
+        ctx.lineTo(x + 11 * s, y - 2.3 * s);
+        ctx.stroke();
+        // Short stubby tail
+        ctx.fillStyle = '#f0ece8';
+        ctx.beginPath();
+        ctx.arc(x - 6.5 * s, y - 1 * s, 1.2 * s, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawLighthouse(x, y, palette) {
+        // Lighthouse tower
+        // Base
+        ctx.fillStyle = '#888877';
+        ctx.fillRect(x - 3, y + 2, 6, 3);
+        // Tower (white with red stripe)
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(x - 2, y - 10, 4, 12);
+        // Red stripes
+        ctx.fillStyle = '#cc3333';
+        ctx.fillRect(x - 2, y - 7, 4, 2);
+        ctx.fillRect(x - 2, y - 2, 4, 2);
+        // Lantern room
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(x - 2.5, y - 12, 5, 2);
+        // Glass
+        ctx.fillStyle = '#ffee88';
+        ctx.fillRect(x - 1.5, y - 11.5, 3, 1);
+        // Dome
+        ctx.fillStyle = '#cc3333';
+        ctx.beginPath();
+        ctx.moveTo(x - 2, y - 12);
+        ctx.lineTo(x, y - 14);
+        ctx.lineTo(x + 2, y - 12);
+        ctx.closePath();
+        ctx.fill();
+        // Light glow
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = '#ffee88';
+        ctx.beginPath();
+        ctx.arc(x, y - 11, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Snow
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 3, y + 1.5, 6, 0.8);
+            ctx.fillRect(x - 2.5, y - 12.5, 5, 0.8);
+        }
+    }
+
+    // === ZOO / KORKEASAARI SPRITES ===
+
+    function drawKorkeasaariDeco(cx, cy, palette) {
+        const gy = cy - 8; // gate shifted north
+        const ay = cy + 6; // animals shifted south
+        // Zoo entrance gate
+        ctx.fillStyle = '#887766';
+        ctx.fillRect(cx - 10, gy - 4, 3, 7);
+        ctx.fillRect(cx + 7, gy - 4, 3, 7);
+        // Gate arch
+        ctx.strokeStyle = '#887766';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, gy - 4, 8.5, Math.PI, 0);
+        ctx.stroke();
+        // "ZOO" text on arch
+        ctx.fillStyle = '#ddcc88';
+        ctx.font = '3px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ZOO', cx, gy - 9);
+
+        // Lion (left side)
+        ctx.fillStyle = '#cc9933';
+        ctx.beginPath();
+        ctx.ellipse(cx - 14, ay + 4, 3, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Mane
+        ctx.fillStyle = '#aa7722';
+        ctx.beginPath();
+        ctx.arc(cx - 12, ay + 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Head
+        ctx.fillStyle = '#cc9933';
+        ctx.beginPath();
+        ctx.arc(cx - 11.5, ay + 3.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(cx - 11, ay + 3, 0.3, 0, Math.PI * 2); ctx.fill();
+        // Legs
+        ctx.fillStyle = '#bb8822';
+        ctx.fillRect(cx - 16, ay + 5, 1, 2.5);
+        ctx.fillRect(cx - 14.5, ay + 5, 1, 2.5);
+        ctx.fillRect(cx - 12.5, ay + 5, 1, 2.5);
+
+        // Bear (right side) — brown bear
+        ctx.fillStyle = '#6a4422';
+        ctx.beginPath();
+        ctx.ellipse(cx + 14, ay + 3, 3.5, 2.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Head
+        ctx.beginPath();
+        ctx.arc(cx + 17, ay + 1.5, 2, 0, Math.PI * 2);
+        ctx.fill();
+        // Ears
+        ctx.fillStyle = '#5a3312';
+        ctx.beginPath(); ctx.arc(cx + 16, ay, 0.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 18, ay, 0.8, 0, Math.PI * 2); ctx.fill();
+        // Snout
+        ctx.fillStyle = '#8a6644';
+        ctx.beginPath(); ctx.ellipse(cx + 18.5, ay + 2, 1.2, 0.8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(cx + 19.2, ay + 1.8, 0.4, 0, Math.PI * 2); ctx.fill();
+        // Legs
+        ctx.fillStyle = '#5a3312';
+        ctx.fillRect(cx + 11.5, ay + 4.5, 1.3, 3);
+        ctx.fillRect(cx + 13.5, ay + 4.5, 1.3, 3);
+        ctx.fillRect(cx + 15.5, ay + 4.5, 1.3, 3);
+
+        // Penguin (front center)
+        ctx.fillStyle = '#222233';
+        ctx.beginPath();
+        ctx.ellipse(cx + 2, ay + 5, 1.5, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // White belly
+        ctx.fillStyle = '#eeeeee';
+        ctx.beginPath();
+        ctx.ellipse(cx + 2, ay + 5.5, 0.9, 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Beak
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath();
+        ctx.moveTo(cx + 3.2, ay + 3.8);
+        ctx.lineTo(cx + 4, ay + 4.2);
+        ctx.lineTo(cx + 3.2, ay + 4.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(cx + 2.8, ay + 3.5, 0.3, 0, Math.PI * 2); ctx.fill();
+
+        // Tree (between gate and animals)
+        ctx.fillStyle = '#335522';
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, cy - 2);
+        ctx.lineTo(cx - 7, cy + 3);
+        ctx.lineTo(cx - 1, cy + 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#553311';
+        ctx.fillRect(cx - 4.5, cy + 3, 1.5, 2);
+
+        // Snow on gate
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(cx - 10, gy - 4.5, 20, 0.7);
+        }
+    }
+
+    // === TÖÖLÖNLAHTI WATER FEATURES ===
+
+    function drawFountain(x, y, palette) {
+        // Water fountain in Töölönlahti — animated in non-winter, frozen in winter
+        // Base pool (circle in water)
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        // Center column
+        ctx.fillStyle = '#999988';
+        ctx.fillRect(x - 1, y - 2, 2, 4);
+
+        if (palette.snow) {
+            // Frozen — just show ice cap on the column
+            ctx.fillStyle = '#c8d8e8';
+            ctx.beginPath();
+            ctx.arc(x, y - 2, 2, Math.PI, 0);
+            ctx.fill();
+            return;
+        }
+
+        // Animated time factor
+        const t = animTime * 0.003;
+        const jetHeight = 8 + Math.sin(t) * 2; // main jet oscillates 6-10
+        const sideSpread = 4 + Math.sin(t * 1.3) * 1.5;
+
+        // Water jets (upward spray)
+        ctx.strokeStyle = 'rgba(200,230,255,0.5)';
+        ctx.lineWidth = 0.6;
+        // Main jet
+        ctx.beginPath();
+        ctx.moveTo(x, y - 2);
+        ctx.lineTo(x, y - 2 - jetHeight);
+        ctx.stroke();
+        // Side jets arcing outward
+        ctx.beginPath();
+        ctx.moveTo(x, y - 2 - jetHeight + 2);
+        ctx.quadraticCurveTo(x - sideSpread, y - 2 - jetHeight, x - sideSpread - 1, y - 4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y - 2 - jetHeight + 2);
+        ctx.quadraticCurveTo(x + sideSpread, y - 2 - jetHeight, x + sideSpread + 1, y - 4);
+        ctx.stroke();
+        // Animated splash droplets
+        ctx.fillStyle = 'rgba(200,230,255,0.4)';
+        const dropCount = 5;
+        for (let i = 0; i < dropCount; i++) {
+            const phase = t * 2 + i * 1.25;
+            const dx = Math.sin(phase) * (sideSpread + 1);
+            const dy = Math.abs(Math.cos(phase * 0.7)) * 3 + 2;
+            const r = 0.4 + Math.abs(Math.sin(phase * 1.5)) * 0.5;
+            ctx.beginPath();
+            ctx.arc(x + dx, y - dy, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        // Top droplet
+        ctx.beginPath();
+        ctx.arc(x + Math.sin(t * 1.7) * 0.8, y - 2 - jetHeight - 0.5, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawPaddleBoat(x, y) {
+        // Small pedal boat / paddle boat
+        // Hull (bright color — typically these are colorful)
+        ctx.fillStyle = '#dd6633';
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y);
+        ctx.lineTo(x - 4, y + 2);
+        ctx.lineTo(x + 4, y + 2);
+        ctx.lineTo(x + 6, y);
+        ctx.lineTo(x + 6, y - 0.5);
+        ctx.lineTo(x - 5, y - 0.5);
+        ctx.closePath();
+        ctx.fill();
+        // Seats
+        ctx.fillStyle = '#cc5522';
+        ctx.fillRect(x - 2, y - 2, 2, 2);
+        ctx.fillRect(x + 1, y - 2, 2, 2);
+        // Seat backs
+        ctx.fillRect(x - 2, y - 3.5, 2, 1);
+        ctx.fillRect(x + 1, y - 3.5, 2, 1);
+        // Canopy frame
+        ctx.strokeStyle = '#bb5522';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y - 2);
+        ctx.lineTo(x - 2, y - 5);
+        ctx.lineTo(x + 3, y - 5);
+        ctx.lineTo(x + 4, y - 2);
+        ctx.stroke();
+        // Canopy top
+        ctx.fillStyle = '#ee7744';
+        ctx.fillRect(x - 2.5, y - 6, 6, 1.5);
+        // Paddle wheel (visible at back)
+        ctx.strokeStyle = '#888888';
+        ctx.lineWidth = 0.4;
+        ctx.beginPath();
+        ctx.arc(x - 4.5, y + 1, 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        // Spokes
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 4.5, y + 1);
+            ctx.lineTo(x - 4.5 + Math.cos(a) * 1.5, y + 1 + Math.sin(a) * 1.5);
+            ctx.stroke();
+        }
+    }
+
+    // Polar bear possible spawn positions — each has 5% chance, winter only
+    const ALL_POLAR_BEAR_SPOTS = [
+        HelsinkiDistricts.geoToMap([[60.197, 24.910]])[0],   // Northern green area
+        HelsinkiDistricts.geoToMap([[60.155, 24.874]])[0],   // SW Lauttasaari
+        HelsinkiDistricts.geoToMap([[60.149, 24.986]])[0],   // Suomenlinna
+        HelsinkiDistricts.geoToMap([[60.181, 24.900]])[0],   // Seurasaari
+        HelsinkiDistricts.geoToMap([[60.187, 24.988]])[0],   // Mustikkamaa
+        HelsinkiDistricts.geoToMap([[60.193, 24.990]])[0],   // Kulosaari
+        HelsinkiDistricts.geoToMap([[60.152, 24.920]])[0],   // Hernesaari
+        HelsinkiDistricts.geoToMap([[60.175, 24.890]])[0],   // Kaskisaari
+        HelsinkiDistricts.geoToMap([[60.182, 24.990]])[0],   // Korkeasaari
+    ];
+    // All bears spawn together with 5% chance per winter — it's an event!
+    let polarBearsActive = false;
+    function rollPolarBears() {
+        polarBearsActive = Math.random() < 0.05;
+        if (polarBearsActive) {
+            Sound.playPolarBears();
+        }
+    }
+
+    // Land decoration positions
+    const landDecoPositions = {
+        tram: HelsinkiDistricts.geoToMap([[60.172, 24.934]])[0],          // on Mannerheimintie near Kiasma
+        helsinkiWheel: HelsinkiDistricts.geoToMap([[60.167, 24.962]])[0], // Katajanokka harbour
+        christmasTree: HelsinkiDistricts.geoToMap([[60.1693, 24.9515]])[0], // Senate Square
+        marketTents: [                                                     // Market Square (Kauppatori)
+            HelsinkiDistricts.geoToMap([[60.168, 24.950]])[0],
+            HelsinkiDistricts.geoToMap([[60.168, 24.952]])[0],
+            HelsinkiDistricts.geoToMap([[60.1675, 24.951]])[0],
+        ],
+        bushes: [
+            // Esplanadi edges
+            HelsinkiDistricts.geoToMap([[60.1688, 24.937]])[0],
+            HelsinkiDistricts.geoToMap([[60.1688, 24.942]])[0],
+            HelsinkiDistricts.geoToMap([[60.1688, 24.947]])[0],
+            HelsinkiDistricts.geoToMap([[60.1693, 24.939]])[0],
+            HelsinkiDistricts.geoToMap([[60.1693, 24.944]])[0],
+            HelsinkiDistricts.geoToMap([[60.1693, 24.949]])[0],
+            // Kaivopuisto park edges
+            HelsinkiDistricts.geoToMap([[60.156, 24.948]])[0],
+            HelsinkiDistricts.geoToMap([[60.157, 24.954]])[0],
+            HelsinkiDistricts.geoToMap([[60.154, 24.952]])[0],
+            // Sinebrychoff park
+            HelsinkiDistricts.geoToMap([[60.164, 24.919]])[0],
+            HelsinkiDistricts.geoToMap([[60.164, 24.922]])[0],
+        ],
+        moose: HelsinkiDistricts.geoToMap([[60.198, 24.940]])[0],         // Northern green area near Pasila
+        lighthouse: HelsinkiDistricts.geoToMap([[60.151, 24.969]])[0],    // Lighthouse Island W of Suomenlinna
+    };
+
+    function drawLandDecorations(palette) {
+        // Tram
+        drawTram(landDecoPositions.tram[0], landDecoPositions.tram[1], palette);
+
+
+        // Helsinki Wheel
+        drawHelsinkiWheel(landDecoPositions.helsinkiWheel[0], landDecoPositions.helsinkiWheel[1], palette);
+
+        // Christmas tree on Senate Square — winter only
+        if (palette.snow) {
+            drawChristmasTree(landDecoPositions.christmasTree[0], landDecoPositions.christmasTree[1]);
+        }
+
+        // Sauna with smoke
+
+        // Market Square tents
+        const tentColors = ['#cc3333', '#3366aa', '#cc8800'];
+        for (let i = 0; i < landDecoPositions.marketTents.length; i++) {
+            const t = landDecoPositions.marketTents[i];
+            drawMarketTent(t[0], t[1], tentColors[i]);
+        }
+
+        // Bushes near park edges
+        for (const b of landDecoPositions.bushes) {
+            drawBush(b[0], b[1], palette);
+        }
+
+        // Moose in the north
+        drawMoose(landDecoPositions.moose[0], landDecoPositions.moose[1], palette);
+
+        // Polar bears — winter-only easter egg! All spawn at once (5% chance per winter)
+        if (palette.snow && polarBearsActive) {
+            for (const pb of ALL_POLAR_BEAR_SPOTS) {
+                drawPolarBear(pb[0], pb[1]);
+            }
+        }
+
+        // Lighthouse on lighthouse island
+        drawLighthouse(landDecoPositions.lighthouse[0], landDecoPositions.lighthouse[1], palette);
     }
 
     // === PIXEL ART BUILDING SPRITES ===
@@ -737,13 +2640,19 @@ const MapRenderer = (() => {
 
             // Draw the pixel art sprite
             const color = prop.color || typeColors[prop.type] || '#888888';
-            const drawer = spriteDrawers[prop.type];
-            if (drawer) {
-                drawer(sx, sy, color, prop.upgradeLevel);
+            if (prop.name === 'Löyly') {
+                drawSaunaSprite(sx, sy, palette);
+            } else if (prop.name.includes('Food Truck')) {
+                drawFoodTruckSprite(sx, sy, palette);
             } else {
-                // Fallback square
-                ctx.fillStyle = color;
-                ctx.fillRect(sx - 4, sy - 8, 8, 8);
+                const drawer = spriteDrawers[prop.type];
+                if (drawer) {
+                    drawer(sx, sy, color, prop.upgradeLevel);
+                } else {
+                    // Fallback square
+                    ctx.fillStyle = color;
+                    ctx.fillRect(sx - 4, sy - 8, 8, 8);
+                }
             }
 
             // Snow on rooftops in winter
@@ -905,44 +2814,76 @@ const MapRenderer = (() => {
     function drawDistrictLabels(palette) {
         ctx.font = '7px "Press Start 2P"';
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
 
         for (const district of HelsinkiDistricts.districts) {
             const [cx, cy] = district.center;
             const isHovered = district === hoveredDistrict;
 
             const label = district.name;
-            const metrics = ctx.measureText(label);
-            const tw = metrics.width;
 
-            ctx.fillStyle = 'rgba(10, 10, 26, 0.7)';
-            ctx.fillRect(cx - tw / 2 - 3, cy - 5, tw + 6, 12);
+            // Text outline for readability (no background box)
+            ctx.strokeStyle = 'rgba(10, 10, 26, 0.9)';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(label, cx, cy);
 
             ctx.fillStyle = isHovered ? '#ffcc00' : 'rgba(255, 255, 255, 0.7)';
-            ctx.fillText(label, cx, cy + 4);
+            ctx.fillText(label, cx, cy);
         }
 
-        // Island labels (smaller, dimmer)
+        // Island labels (smaller, dimmer) + decorative sprites
         ctx.font = '5px "Press Start 2P"';
         if (HelsinkiDistricts.islands) {
             for (const island of HelsinkiDistricts.islands) {
                 if (!island.label) continue;
                 const poly = island.polygon;
-                // Compute centroid
                 let sx = 0, sy = 0;
                 for (const p of poly) { sx += p[0]; sy += p[1]; }
                 const cx = sx / poly.length;
                 const cy = sy / poly.length;
 
-                const metrics = ctx.measureText(island.name);
-                const tw = metrics.width;
-                ctx.fillStyle = 'rgba(10, 10, 26, 0.6)';
-                ctx.fillRect(cx - tw / 2 - 2, cy - 4, tw + 4, 10);
+                // Draw island-specific decorations
+                if (island.name === 'Suomenlinna') {
+                    drawSuomenlinnaDeco(cx, cy, palette);
+                } else if (island.name === 'Mustikkamaa') {
+                    drawBlueberryDeco(cx, cy - 10);
+                } else if (island.name === 'Korkeasaari') {
+                    drawKorkeasaariDeco(cx, cy, palette);
+                }
+
+                ctx.font = '5px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeStyle = 'rgba(10, 10, 26, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.strokeText(island.name, cx, cy);
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fillText(island.name, cx, cy + 3);
+                ctx.fillText(island.name, cx, cy);
             }
         }
 
+        // Water body labels
+        ctx.font = '7px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const toolonlahtiCenter = HelsinkiDistricts.geoToMap([[60.180, 24.937]])[0];
+        ctx.strokeStyle = 'rgba(10, 10, 26, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeText('Töölönlahti', toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
+        ctx.fillStyle = 'rgba(180, 210, 230, 0.6)';
+        ctx.fillText('Töölönlahti', toolonlahtiCenter[0], toolonlahtiCenter[1] + 12);
+
+        // Munkkiniemi area label (not a district, just a geographic label)
+        const munkkiniemiPos = HelsinkiDistricts.geoToMap([[60.194, 24.912]])[0];
+        ctx.strokeStyle = 'rgba(10, 10, 26, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.strokeText('Munkkiniemi', munkkiniemiPos[0], munkkiniemiPos[1] - 10);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.fillText('Munkkiniemi', munkkiniemiPos[0], munkkiniemiPos[1] - 10);
+
         ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
     }
 
     // Drawn last so tooltips always appear on top of district labels
@@ -971,64 +2912,338 @@ const MapRenderer = (() => {
         }
     }
 
-    function drawMinimap(palette) {
-        const mmW = 150;
-        const mmH = Math.floor(mmW * HelsinkiDistricts.MAP_HEIGHT / HelsinkiDistricts.MAP_WIDTH);
-        const mmX = canvas.width - mmW - 10;
-        const mmY = 10;
-        const scale = mmW / HelsinkiDistricts.MAP_WIDTH;
+    // =========================================================
+    // ADVISOR — Monopoly Man-style tycoon with speech bubble
+    // =========================================================
+    const ADVISOR_TIPS = [
+        // General tips
+        "Buy low, upgrade high. That's the Helsinki way.",
+        "Keep your properties in shape! Tenants hate leaky pipes.",
+        "Diversify, my friend. Don't put all your euros in one district.",
+        "A wise investor always keeps some cash in reserve.",
+        "Winter is coming. Hotels slow down, but retail goes brrr.",
+        "Summer tourists love hotels and restaurants. Ka-ching!",
+        "The bank is your friend... until the interest bill arrives.",
+        "Hire a maintenance person. Your future self will thank you.",
+        "An accountant pays for itself if you have a big loan.",
+        "A property manager means one extra action per turn!",
+        "Check the Stats panel to see how your empire grows.",
+        "Use filters to find bargain properties. There's always a deal.",
+        "Rivals can't buy what you buy first. Speed matters!",
+        "Upgraded properties earn more AND look taller. Win-win.",
+        "Sell before a crash, buy after one. Easier said than done.",
+        // Funny
+        "I once bought all of Kallio. The hipsters were NOT happy.",
+        "In Helsinki, even the seagulls have investment portfolios.",
+        "They say money can't buy happiness. They never owned Stockmann.",
+        "Nalle Wahlroos just bought another property. Do something!",
+        "Hjallis is eyeing that restaurant. Are you going to let him?",
+        "Pro tip: aliens occasionally invade. Don't ask me why.",
+        "The market goes up, the market goes down. I just twirl my mustache.",
+        "I've been standing here for hours. Could you end the turn?",
+        "Fun fact: I'm not actually the Monopoly Man. Please don't sue.",
+        "Psst... Ctrl+Shift+C. You didn't hear it from me.",
+        "My monocle sees all. Especially underpriced real estate.",
+        "Helsinki has more saunas than parking spots. Invest accordingly.",
+        "Did you know? Löyly means 'steam.' And also 'money printer.'",
+        "Jätkäsaari used to be a harbour. Now it's a gold mine.",
+        "Töölö is lovely this time of year. Any time of year, really.",
+    ];
 
-        // Background
-        ctx.fillStyle = 'rgba(10, 10, 26, 0.85)';
-        ctx.fillRect(mmX - 2, mmY - 2, mmW + 4, mmH + 4);
-        ctx.fillStyle = palette.water;
-        ctx.fillRect(mmX, mmY, mmW, mmH);
+    const ADVISOR_CONTEXT_QUOTES = {
+        lowCash: [
+            "Your wallet is looking thin. Maybe visit the bank?",
+            "I can see the bottom of your piggy bank from here.",
+            "A loan might be wise right now. Just saying.",
+        ],
+        richCash: [
+            "Look at all that cash! Time to go shopping.",
+            "Money in the bank earns nothing. Buy property!",
+            "You could buy a small island with that. Oh wait, Kulosaari is available.",
+        ],
+        noProperties: [
+            "Click a building on the map to start your empire!",
+            "Every tycoon starts somewhere. Pick your first property!",
+        ],
+        manyProperties: [
+            "What an empire! Your rivals must be jealous.",
+            "You own half of Helsinki. Why stop there?",
+        ],
+        badCondition: [
+            "Your properties are falling apart! Repair them!",
+            "I can hear the pipes groaning from here. Fix things!",
+        ],
+        winning: [
+            "You're almost at the finish line! Keep pushing!",
+            "The crown of Helsinki is within reach!",
+        ],
+    };
 
-        // Draw land on minimap
-        ctx.save();
-        ctx.translate(mmX, mmY);
-        ctx.scale(scale, scale);
+    const ADVISOR_ACTION_QUOTES = {
+        buy: [
+            "That's what I like to see!",
+            "Excellent purchase!",
+            "Smart move. I'd have bought that myself.",
+            "Welcome to the portfolio!",
+            "One more step toward world domination.",
+            "The previous owner is crying right now.",
+            "Location, location, location!",
+        ],
+        sell: [
+            "Profit is profit!",
+            "Sometimes you have to let go.",
+            "Cash in hand is never a bad thing.",
+            "I hope you won't regret that one.",
+            "Goodbye, old friend.",
+            "A true tycoon knows when to sell.",
+        ],
+        upgrade: [
+            "Bigger is better!",
+            "Now THAT'S an investment.",
+            "Watch that revenue climb!",
+            "The tenants will love it.",
+            "Shiny and new. Well, shinier.",
+            "Level up! ...Sorry, wrong game.",
+        ],
+        repair: [
+            "Good as new!",
+            "The pipes thank you.",
+            "Maintenance is not glamorous, but it pays.",
+            "A stitch in time saves nine.",
+            "Your tenants can sleep in peace now.",
+            "No more leaky roofs!",
+        ],
+    };
 
-        ctx.fillStyle = palette.land;
-        fillPolygon(HelsinkiDistricts.coastline);
-        fillPolygon(HelsinkiDistricts.lauttasaariIsland);
-        fillPolygon(HelsinkiDistricts.jatkasaariIsland);
-        fillPolygon(HelsinkiDistricts.kaskisaariIsland);
-        fillPolygon(HelsinkiDistricts.lehtisaariIsland);
-        fillPolygon(HelsinkiDistricts.kuusisaariIsland);
-        fillPolygon(HelsinkiDistricts.kulosaariIsland);
+    let advisorQuote = ADVISOR_TIPS[0];
+    let advisorLastTurn = -1;
+    let advisorActionOverride = null;
 
-        // Draw small islands on minimap
-        if (HelsinkiDistricts.islands) {
-            ctx.fillStyle = palette.landAlt;
-            for (const island of HelsinkiDistricts.islands) {
-                fillPolygon(island.polygon);
-            }
+    function triggerAdvisorAction(action) {
+        // ~50% chance to comment on an action
+        if (Math.random() > 0.5) return;
+        const quotes = ADVISOR_ACTION_QUOTES[action];
+        if (!quotes) return;
+        advisorActionOverride = quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    function updateAdvisorQuote() {
+        // Action override takes priority (shown until next turn change)
+        if (advisorActionOverride) {
+            advisorQuote = advisorActionOverride;
+            advisorActionOverride = null;
+            return;
         }
 
-        // Draw internal water on minimap
-        ctx.fillStyle = palette.water;
-        for (const key in HelsinkiDistricts.waterBodies) {
-            const body = HelsinkiDistricts.waterBodies[key];
-            if (body && body.length >= 3) fillPolygon(body);
+        const turn = GameState.turn;
+        if (turn === advisorLastTurn) return;
+        advisorLastTurn = turn;
+
+        // Every 3 turns, maybe give a contextual quote
+        if (turn % 3 === 0) {
+            const contextual = getContextualQuote();
+            if (contextual) { advisorQuote = contextual; return; }
         }
 
-        ctx.restore();
+        // Otherwise random tip
+        advisorQuote = ADVISOR_TIPS[Math.floor(Math.random() * ADVISOR_TIPS.length)];
+    }
 
-        // Viewport indicator
-        const vpLeft = (-camera.x / camera.zoom) * scale + mmX;
-        const vpTop = (-camera.y / camera.zoom) * scale + mmY;
-        const vpWidth = (canvas.width / camera.zoom) * scale;
-        const vpHeight = (canvas.height / camera.zoom) * scale;
+    function getContextualQuote() {
+        const playerProps = GameState.properties.filter(p => p.owner === 'player');
+        const netWorth = Economy.calculateNetWorth(GameState);
+        const pool = [];
 
-        ctx.strokeStyle = '#ffcc00';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(vpLeft, vpTop, vpWidth, vpHeight);
+        if (playerProps.length === 0) {
+            pool.push(...ADVISOR_CONTEXT_QUOTES.noProperties);
+        }
+        if (playerProps.length >= 15) {
+            pool.push(...ADVISOR_CONTEXT_QUOTES.manyProperties);
+        }
+        if (GameState.money < 50000 && playerProps.length > 0) {
+            pool.push(...ADVISOR_CONTEXT_QUOTES.lowCash);
+        }
+        if (GameState.money > 5000000) {
+            pool.push(...ADVISOR_CONTEXT_QUOTES.richCash);
+        }
+        if (playerProps.length > 0) {
+            const avgCond = playerProps.reduce((s, p) => s + p.condition, 0) / playerProps.length;
+            if (avgCond < 40) pool.push(...ADVISOR_CONTEXT_QUOTES.badCondition);
+        }
+        if (GameState.mode === 'campaign' && netWorth >= GameState.winTarget * 0.8) {
+            pool.push(...ADVISOR_CONTEXT_QUOTES.winning);
+        }
 
-        // Border
+        if (pool.length === 0) return null;
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function drawAdvisor(palette) {
+        updateAdvisorQuote();
+
+        const boxW = 190;
+        const boxH = 170;
+        const boxX = canvas.width - boxW - 8;
+        const boxY = 8;
+        const p = 1.5; // pixel scale
+
+        // Panel background
+        ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
         ctx.strokeStyle = '#3a3a5c';
         ctx.lineWidth = 2;
-        ctx.strokeRect(mmX - 2, mmY - 2, mmW + 4, mmH + 4);
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+        // Draw the tycoon sprite (bottom-center of left portion)
+        const spriteX = boxX + 38;
+        const spriteY = boxY + boxH - 10;
+        drawTycoonSprite(spriteX, spriteY, p, palette);
+
+        // Speech bubble (right side)
+        const bubbleX = boxX + 74;
+        const bubbleY = boxY + 6;
+        const bubbleW = boxW - 80;
+        const bubbleH = boxH - 14;
+
+        ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
+        ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bubbleX, bubbleY, bubbleW, bubbleH);
+
+        // Bubble tail (small triangle pointing left toward the character)
+        ctx.fillStyle = 'rgba(30, 30, 55, 0.95)';
+        ctx.beginPath();
+        ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
+        ctx.lineTo(bubbleX - 5, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
+        ctx.fill();
+        ctx.strokeStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.moveTo(bubbleX, bubbleY + bubbleH * 0.45);
+        ctx.lineTo(bubbleX - 5, bubbleY + bubbleH * 0.5);
+        ctx.lineTo(bubbleX, bubbleY + bubbleH * 0.55);
+        ctx.stroke();
+
+        // Word-wrap the quote text
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.fillStyle = '#e0e0ff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const words = advisorQuote.split(' ');
+        const maxLineW = bubbleW - 8;
+        const lines = [];
+        let currentLine = '';
+        for (const word of words) {
+            const testLine = currentLine ? currentLine + ' ' + word : word;
+            if (ctx.measureText(testLine).width > maxLineW && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine);
+
+        const lineH = 10;
+        const textStartY = bubbleY + Math.max(4, (bubbleH - lines.length * lineH) / 2);
+        for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], bubbleX + 4, textStartY + i * lineH);
+        }
+    }
+
+    function drawTycoonSprite(x, y, p, palette) {
+        // Monopoly-Man-style tycoon, drawn from bottom-center
+        // x,y = bottom center of sprite
+
+        // Top hat
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(x - 7*p, y - 36*p, 14*p, 3*p);   // hat brim
+        ctx.fillRect(x - 5*p, y - 48*p, 10*p, 12*p);   // hat crown
+        // Hat band
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillRect(x - 5*p, y - 38*p, 10*p, 2*p);
+
+        // Face
+        ctx.fillStyle = '#e8c090';
+        ctx.fillRect(x - 5*p, y - 33*p, 10*p, 10*p);
+
+        // Eyes
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(x - 3*p, y - 30*p, 2*p, 2*p);    // left eye
+        ctx.fillRect(x + 1*p, y - 30*p, 2*p, 2*p);     // right eye
+
+        // Monocle (right eye)
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + 2*p, y - 29*p, 3*p, 0, Math.PI * 2);
+        ctx.stroke();
+        // Monocle chain
+        ctx.beginPath();
+        ctx.moveTo(x + 5*p, y - 28*p);
+        ctx.lineTo(x + 7*p, y - 22*p);
+        ctx.stroke();
+
+        // Mustache
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(x - 4*p, y - 26*p, 3*p, 2*p);
+        ctx.fillRect(x + 1*p, y - 26*p, 3*p, 2*p);
+        // Curled ends
+        ctx.fillRect(x - 5*p, y - 27*p, 1*p, 2*p);
+        ctx.fillRect(x + 4*p, y - 27*p, 1*p, 2*p);
+
+        // Smile
+        ctx.fillStyle = '#c06060';
+        ctx.fillRect(x - 2*p, y - 24*p, 4*p, 1*p);
+
+        // Suit body
+        ctx.fillStyle = '#2a2a4a';
+        ctx.fillRect(x - 6*p, y - 23*p, 12*p, 14*p);
+
+        // Suit lapels
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath();
+        ctx.moveTo(x - 1*p, y - 23*p);
+        ctx.lineTo(x - 4*p, y - 15*p);
+        ctx.lineTo(x - 1*p, y - 15*p);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x + 1*p, y - 23*p);
+        ctx.lineTo(x + 4*p, y - 15*p);
+        ctx.lineTo(x + 1*p, y - 15*p);
+        ctx.fill();
+
+        // Tie
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(x - 1*p, y - 22*p, 2*p, 10*p);
+        // Tie knot
+        ctx.fillRect(x - 2*p, y - 22*p, 4*p, 2*p);
+
+        // Shirt collar
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 3*p, y - 23*p, 2*p, 2*p);
+        ctx.fillRect(x + 1*p, y - 23*p, 2*p, 2*p);
+
+        // Arms
+        ctx.fillStyle = '#2a2a4a';
+        ctx.fillRect(x - 8*p, y - 21*p, 2*p, 10*p);   // left arm
+        ctx.fillRect(x + 6*p, y - 21*p, 2*p, 10*p);    // right arm
+
+        // Hands
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x - 8*p, y - 11*p, 2*p, 2*p);
+        ctx.fillRect(x + 6*p, y - 11*p, 2*p, 2*p);
+
+        // Legs
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(x - 4*p, y - 9*p, 3*p, 8*p);     // left leg
+        ctx.fillRect(x + 1*p, y - 9*p, 3*p, 8*p);      // right leg
+
+        // Shoes
+        ctx.fillStyle = '#3a2a1a';
+        ctx.fillRect(x - 5*p, y - 1*p, 4*p, 2*p);
+        ctx.fillRect(x + 1*p, y - 1*p, 4*p, 2*p);
     }
 
     // === Helpers ===
@@ -1065,13 +3280,526 @@ const MapRenderer = (() => {
         }
     }
 
+    // === RIVAL PORTRAIT DRAWING ===
+    // Each portrait is drawn on a small canvas for the offer dialog
+
+    function drawRivalPortrait(canvasEl, rivalId) {
+        const c = canvasEl.getContext('2d');
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.imageSmoothingEnabled = false;
+
+        // Scale so our 48x48 pixel art fills the canvas
+        const s = w / 48;
+        c.save();
+        c.scale(s, s);
+
+        if (rivalId === 'nalle') drawBjornPortrait(c);
+        else if (rivalId === 'hjallis') drawHjallisPortrait(c);
+        else if (rivalId === 'risto') drawRistoPortrait(c);
+
+        c.restore();
+    }
+
+    function drawBjornPortrait(c) {
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+
+        // Navy suit jacket
+        c.fillStyle = '#1a1a44';
+        c.fillRect(10, 32, 28, 16);
+        // Lapels
+        c.fillStyle = '#222255';
+        c.fillRect(14, 32, 4, 10);
+        c.fillRect(30, 32, 4, 10);
+        // White shirt collar
+        c.fillStyle = '#e8e8f0';
+        c.fillRect(19, 30, 10, 4);
+        // Blue tie
+        c.fillStyle = '#1a3a7a';
+        c.fillRect(23, 33, 3, 8);
+        // Gold tie dots
+        c.fillStyle = '#ccaa44';
+        c.fillRect(24, 34, 1, 1);
+        c.fillRect(24, 36, 1, 1);
+        c.fillRect(24, 38, 1, 1);
+        // Pocket square
+        c.fillStyle = '#ffffff';
+        c.fillRect(12, 34, 3, 2);
+
+        // Neck
+        c.fillStyle = '#d8b090';
+        c.fillRect(20, 28, 8, 5);
+
+        // Face (head shape)
+        c.fillStyle = '#d8b090';
+        c.fillRect(15, 10, 18, 20);
+        // Chin
+        c.fillRect(17, 28, 14, 2);
+
+        // Silver/white hair - swept back, full
+        c.fillStyle = '#c8c8cc';
+        c.fillRect(14, 6, 20, 6);
+        c.fillRect(13, 8, 3, 10);
+        c.fillRect(33, 8, 2, 8);
+        // Hair top highlight
+        c.fillStyle = '#d8d8dd';
+        c.fillRect(16, 6, 14, 2);
+
+        // Ears
+        c.fillStyle = '#d0a888';
+        c.fillRect(13, 16, 2, 5);
+        c.fillRect(33, 16, 2, 5);
+
+        // Eyes
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 4, 3);
+        c.fillRect(26, 17, 4, 3);
+        c.fillStyle = '#446688';
+        c.fillRect(20, 17, 2, 3);
+        c.fillRect(28, 17, 2, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 18, 1, 2);
+        c.fillRect(28, 18, 1, 2);
+
+        // Glasses - round wire frames
+        c.strokeStyle = '#887766';
+        c.lineWidth = 0.8;
+        // Left lens
+        c.strokeRect(17, 16, 6, 5);
+        // Right lens
+        c.strokeRect(25, 16, 6, 5);
+        // Bridge
+        c.beginPath();
+        c.moveTo(23, 18);
+        c.lineTo(25, 18);
+        c.stroke();
+        // Temple arms
+        c.beginPath();
+        c.moveTo(17, 17);
+        c.lineTo(14, 17);
+        c.stroke();
+        c.beginPath();
+        c.moveTo(31, 17);
+        c.lineTo(34, 17);
+        c.stroke();
+
+        // Eyebrows
+        c.fillStyle = '#aaaaaa';
+        c.fillRect(18, 15, 5, 1);
+        c.fillRect(26, 15, 5, 1);
+
+        // Nose
+        c.fillStyle = '#c8a080';
+        c.fillRect(23, 20, 3, 4);
+        c.fillRect(22, 23, 1, 1);
+
+        // Slight smile / mouth
+        c.fillStyle = '#b07060';
+        c.fillRect(21, 25, 6, 1);
+        c.fillStyle = '#c08070';
+        c.fillRect(22, 26, 4, 1);
+
+        // Subtle mustache
+        c.fillStyle = '#aaaaaa';
+        c.fillRect(21, 24, 6, 1);
+    }
+
+    function drawHjallisPortrait(c) {
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+
+        // Dark jacket (open collar, casual)
+        c.fillStyle = '#222233';
+        c.fillRect(10, 33, 28, 15);
+        // Jacket lapels / collar (open)
+        c.fillStyle = '#2a2a3a';
+        c.fillRect(13, 33, 5, 8);
+        c.fillRect(30, 33, 5, 8);
+        // Light blue shirt (open collar, no tie)
+        c.fillStyle = '#8899bb';
+        c.fillRect(18, 31, 12, 8);
+        // Shirt collar points
+        c.fillStyle = '#99aacc';
+        c.fillRect(17, 31, 3, 3);
+        c.fillRect(28, 31, 3, 3);
+
+        // Neck (slightly thicker)
+        c.fillStyle = '#d0a888';
+        c.fillRect(19, 28, 10, 5);
+
+        // Face (broader, rounder)
+        c.fillStyle = '#d0a888';
+        c.fillRect(14, 10, 20, 20);
+        // Wider jaw
+        c.fillRect(15, 28, 18, 3);
+        // Round cheeks
+        c.fillStyle = '#d8b090';
+        c.fillRect(14, 18, 2, 6);
+        c.fillRect(32, 18, 2, 6);
+
+        // Reddish-brown hair - shorter, natural
+        c.fillStyle = '#884422';
+        c.fillRect(14, 6, 20, 6);
+        c.fillRect(13, 8, 2, 6);
+        c.fillRect(33, 8, 2, 5);
+        // Hair highlight
+        c.fillStyle = '#995533';
+        c.fillRect(16, 6, 10, 2);
+
+        // Ears
+        c.fillStyle = '#c8a080';
+        c.fillRect(12, 16, 2, 5);
+        c.fillRect(34, 16, 2, 5);
+
+        // Eyes (warm, friendly)
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 4, 3);
+        c.fillRect(26, 17, 4, 3);
+        c.fillStyle = '#556644';
+        c.fillRect(20, 17, 2, 3);
+        c.fillRect(28, 17, 2, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 18, 1, 2);
+        c.fillRect(28, 18, 1, 2);
+
+        // Eyebrows (slightly raised - friendly)
+        c.fillStyle = '#774422';
+        c.fillRect(18, 14, 5, 1);
+        c.fillRect(26, 14, 5, 1);
+
+        // Nose
+        c.fillStyle = '#c09878';
+        c.fillRect(23, 20, 3, 4);
+
+        // Broad smile (signature Hjallis grin)
+        c.fillStyle = '#b06050';
+        c.fillRect(19, 25, 10, 1);
+        c.fillStyle = '#ffffff';
+        c.fillRect(20, 25, 8, 1); // teeth showing
+        c.fillStyle = '#c07060';
+        c.fillRect(20, 26, 8, 1); // lower lip
+
+        // Smile lines
+        c.fillStyle = '#c09878';
+        c.fillRect(18, 24, 1, 3);
+        c.fillRect(29, 24, 1, 3);
+    }
+
+    function drawRistoPortrait(c) {
+        // Background
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(0, 0, 48, 48);
+
+        // Dark navy blazer (smart casual)
+        c.fillStyle = '#1a2244';
+        c.fillRect(10, 33, 28, 15);
+        // Blazer lapels
+        c.fillStyle = '#222a55';
+        c.fillRect(14, 33, 4, 8);
+        c.fillRect(30, 33, 4, 8);
+        // Light blue shirt (no tie, modern)
+        c.fillStyle = '#aabbdd';
+        c.fillRect(18, 31, 12, 8);
+        // Collar
+        c.fillStyle = '#bbccee';
+        c.fillRect(17, 31, 3, 2);
+        c.fillRect(28, 31, 3, 2);
+
+        // Neck
+        c.fillStyle = '#d0a080';
+        c.fillRect(20, 28, 8, 5);
+
+        // Face (lean, angular)
+        c.fillStyle = '#d0a080';
+        c.fillRect(15, 10, 18, 20);
+        // Angular jaw
+        c.fillRect(17, 28, 14, 2);
+
+        // Light brown hair — neat, modern cut
+        c.fillStyle = '#886644';
+        c.fillRect(15, 5, 18, 7);
+        c.fillRect(14, 7, 2, 6);
+        c.fillRect(33, 7, 2, 5);
+        // Hair highlight / parting
+        c.fillStyle = '#997755';
+        c.fillRect(18, 5, 8, 2);
+        c.fillRect(16, 6, 4, 1);
+
+        // Ears
+        c.fillStyle = '#c89878';
+        c.fillRect(13, 16, 2, 5);
+        c.fillRect(33, 16, 2, 5);
+
+        // Eyes (bright blue)
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 17, 4, 3);
+        c.fillRect(26, 17, 4, 3);
+        c.fillStyle = '#3366aa';
+        c.fillRect(20, 17, 2, 3);
+        c.fillRect(28, 17, 2, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 18, 1, 2);
+        c.fillRect(28, 18, 1, 2);
+
+        // Eyebrows (neat)
+        c.fillStyle = '#775533';
+        c.fillRect(18, 15, 5, 1);
+        c.fillRect(26, 15, 5, 1);
+
+        // Nose
+        c.fillStyle = '#c09070';
+        c.fillRect(23, 20, 3, 4);
+
+        // Slight confident smile
+        c.fillStyle = '#b06050';
+        c.fillRect(21, 25, 6, 1);
+        c.fillStyle = '#c07060';
+        c.fillRect(22, 26, 4, 1);
+    }
+
+    // === ANIMATION TICK ===
+    // Continuously running animation for seagulls, ferry, weather
+    let animTime = 0;
+    let animFrameId = null;
+    let weatherParticles = [];
+    let weatherActive = false;
+    let weatherType = null; // 'rain', 'snow', 'sun'
+    let weatherTimer = 0;
+    const WEATHER_DURATION = 5000; // 5 seconds of weather
+
+    // Seagull drift state — each seagull gets an offset that changes over time
+    const seagullStates = waterDecoPositions.seagulls.map((pos, i) => ({
+        baseX: pos[0],
+        baseY: pos[1],
+        phase: i * 1.3,
+        radius: 6 + Math.random() * 4,
+    }));
+
+    // Suomenlinna ferry animation state
+    const ferryAnim = {
+        startPos: HelsinkiDistricts.geoToMap([[60.166, 24.956]])[0],  // near market square
+        endPos: HelsinkiDistricts.geoToMap([[60.150, 24.977]])[0],    // NW edge of Suomenlinna
+        progress: 0, // 0..1..0 (oscillates)
+        speed: 0.00002, // very slow drift
+        direction: 1,
+        dwellTimer: 0, // pause at each end
+    };
+
+    function startAnimationLoop() {
+        if (animFrameId) return;
+        let lastTime = performance.now();
+        let lastRenderTime = 0;
+        const RENDER_INTERVAL = 80; // ~12 fps for animations (saves CPU)
+
+        function tick(now) {
+            const dt = now - lastTime;
+            lastTime = now;
+            animTime += dt;
+
+            // Update seagull positions
+            for (const sg of seagullStates) {
+                const t = animTime * 0.001 + sg.phase;
+                sg.currentX = sg.baseX + Math.cos(t * 0.5) * sg.radius;
+                sg.currentY = sg.baseY + Math.sin(t * 0.7) * sg.radius * 0.6;
+            }
+
+            // Update ferry position (with dwell at each end)
+            if (ferryAnim.dwellTimer > 0) {
+                ferryAnim.dwellTimer -= dt;
+            } else {
+                ferryAnim.progress += ferryAnim.speed * dt * ferryAnim.direction;
+                if (ferryAnim.progress >= 1) {
+                    ferryAnim.progress = 1;
+                    ferryAnim.direction = -1;
+                    ferryAnim.dwellTimer = 6000; // pause 6 seconds at Suomenlinna
+                }
+                if (ferryAnim.progress <= 0) {
+                    ferryAnim.progress = 0;
+                    ferryAnim.direction = 1;
+                    ferryAnim.dwellTimer = 6000; // pause 6 seconds at Market Square
+                }
+            }
+
+            // Update weather
+            let needsRender = false;
+            if (weatherActive) {
+                weatherTimer -= dt;
+                if (weatherTimer <= 0) {
+                    weatherActive = false;
+                    weatherParticles = [];
+                    needsRender = true;
+                } else {
+                    updateWeatherParticles(dt);
+                    needsRender = true;
+                }
+            }
+
+            // Re-render at throttled rate (or always during weather for smooth particles)
+            if (!transitionFrom && (now - lastRenderTime > RENDER_INTERVAL || needsRender)) {
+                lastRenderTime = now;
+                render();
+            }
+
+            animFrameId = requestAnimationFrame(tick);
+        }
+        animFrameId = requestAnimationFrame(tick);
+    }
+
+    function triggerWeather(season) {
+        // 30% chance each season change
+        if (Math.random() > 0.3) return;
+        if (season === 'winter') weatherType = 'snow';
+        else if (season === 'autumn') weatherType = 'rain';
+        else if (season === 'summer') weatherType = 'sun';
+        else weatherType = 'rain'; // spring rain
+        weatherActive = true;
+        weatherTimer = WEATHER_DURATION;
+        weatherParticles = [];
+        // Pre-spawn particles
+        for (let i = 0; i < 60; i++) {
+            spawnWeatherParticle();
+        }
+    }
+
+    function spawnWeatherParticle() {
+        weatherParticles.push({
+            x: Math.random() * (canvas ? canvas.width : 800),
+            y: Math.random() * (canvas ? canvas.height : 600) - 50,
+            vx: weatherType === 'rain' ? -0.5 : (weatherType === 'snow' ? (Math.random() - 0.5) * 0.3 : 0),
+            vy: weatherType === 'rain' ? 3 + Math.random() * 2 : (weatherType === 'snow' ? 0.5 + Math.random() * 0.5 : -0.3),
+            size: weatherType === 'snow' ? 1.5 + Math.random() * 2 : (weatherType === 'sun' ? 2 + Math.random() * 3 : 1),
+            life: 1,
+            alpha: 0.3 + Math.random() * 0.4,
+        });
+    }
+
+    function updateWeatherParticles(dt) {
+        const dts = dt / 16; // normalize to ~60fps
+        for (let i = weatherParticles.length - 1; i >= 0; i--) {
+            const p = weatherParticles[i];
+            p.x += p.vx * dts;
+            p.y += p.vy * dts;
+            if (weatherType === 'sun') {
+                p.life -= 0.003 * dts;
+                p.alpha = p.life * 0.5;
+            }
+            // Remove off-screen or dead
+            if (p.y > (canvas ? canvas.height : 600) + 10 || p.x < -10 || p.life <= 0) {
+                weatherParticles.splice(i, 1);
+                if (weatherActive) spawnWeatherParticle();
+            }
+        }
+    }
+
+    function drawWeatherEffects() {
+        if (!weatherActive || weatherParticles.length === 0) return;
+        ctx.save();
+        // Weather renders in screen space (after ctx.restore in render)
+        for (const p of weatherParticles) {
+            if (weatherType === 'rain') {
+                ctx.strokeStyle = `rgba(180, 200, 255, ${p.alpha * 0.5})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + p.vx * 3, p.y + p.vy * 3);
+                ctx.stroke();
+            } else if (weatherType === 'snow') {
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.7})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (weatherType === 'sun') {
+                ctx.fillStyle = `rgba(255, 230, 100, ${p.alpha * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
+    // Override render to use animated positions + weather
+    function render() {
+        if (!ctx) return;
+        const palette = getBlendedPalette();
+
+        // Clear with deep water color
+        ctx.fillStyle = palette.waterDark;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(camera.x, camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+
+        drawWater(palette);
+        drawLand(palette);
+        drawInternalWater(palette);
+
+        // Animated Suomenlinna ferry
+        drawAnimatedFerry(palette);
+
+        drawWaterDecorations(palette);
+        drawParks(palette);
+        drawRoads(palette);
+        drawDistrictOverlays(palette);
+        drawLandDecorations(palette);
+        drawLandmarks(palette);
+        drawProperties(palette);
+        drawAlienInvasion(palette);
+        drawDistrictLabels(palette);
+        drawHoverTooltips(palette);
+
+        ctx.restore();
+
+        drawAdvisor(palette);
+
+        // Weather effects (screen space)
+        drawWeatherEffects();
+
+        // Season transition banner
+        if (seasonBannerAlpha > 0) {
+            drawSeasonBanner();
+        }
+    }
+
+    function drawAnimatedFerry(palette) {
+        // Static ferries
+        drawVikingLineFerry(ferryPositions.vikingLine[0], ferryPositions.vikingLine[1], palette);
+        drawSiljaLineFerry(ferryPositions.siljaLine[0], ferryPositions.siljaLine[1], palette);
+
+        // Animated Suomenlinna ferry
+        const t = ferryAnim.progress;
+        const sx = ferryAnim.startPos[0], sy = ferryAnim.startPos[1];
+        const ex = ferryAnim.endPos[0], ey = ferryAnim.endPos[1];
+        const fx = sx + (ex - sx) * t;
+        const fy = sy + (ey - sy) * t;
+        drawSuomenlinnaFerry(fx, fy, palette);
+    }
+
+    // Wrap setSeason to also trigger weather
+    const _innerSetSeason = setSeason;
+
+    function setSeasonWithWeather(season) {
+        _innerSetSeason(season);
+        triggerWeather(season);
+    }
+
     return {
-        init,
+        init: function(canvasEl) {
+            init(canvasEl);
+            startAnimationLoop();
+        },
         render,
         resize,
-        setSeason,
+        setSeason: setSeasonWithWeather,
         screenToMap,
         mapToScreen,
+        triggerAdvisorAction,
+        drawRivalPortrait,
         camera,
         get hoveredDistrict() { return hoveredDistrict; },
         get hoveredProperty() { return hoveredProperty; },

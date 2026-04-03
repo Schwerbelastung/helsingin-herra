@@ -40,6 +40,7 @@ const UI = (() => {
         setupMenuPanel();
         setupCheats();
         setupHotkeys();
+        setupOfferAndUndo();
     }
 
     function setupStartScreen() {
@@ -367,6 +368,16 @@ Good luck — become the Helsingin Herra!`,
             Sound.playClick();
             showTutorial();
         });
+
+        document.getElementById('btn-achievements').addEventListener('click', () => {
+            Sound.playClick();
+            showAchievementsPanel();
+        });
+
+        document.getElementById('achievements-close').addEventListener('click', () => {
+            Sound.playClick();
+            document.getElementById('achievements-panel').classList.add('hidden');
+        });
     }
 
     function setupHotkeys() {
@@ -412,6 +423,11 @@ Good luck — become the Helsingin Herra!`,
             } else if (key === 'h') {
                 Sound.playClick();
                 showTutorial();
+            } else if (key === 'u') {
+                Game.undo();
+            } else if (key === 'a') {
+                Sound.playClick();
+                showAchievementsPanel();
             } else if ((key === '1' || key === '2' || key === '3' || key === '4') &&
                        !document.getElementById('property-panel').classList.contains('hidden')) {
                 // Property panel hotkeys
@@ -432,6 +448,10 @@ Good luck — become the Helsingin Herra!`,
                 document.getElementById('filter-panel').classList.add('hidden');
                 document.getElementById('btn-filter').classList.remove('filter-active');
                 document.getElementById('portfolio-overlay').classList.add('hidden');
+                // Decline offer on escape
+                if (!document.getElementById('offer-overlay').classList.contains('hidden')) {
+                    Game.declineOffer();
+                }
             }
         });
     }
@@ -1688,6 +1708,107 @@ Good luck — become the Helsingin Herra!`,
         return amount.toString();
     }
 
+    // =========================================================
+    // ACHIEVEMENTS UI
+    // =========================================================
+    function showAchievementsPanel() {
+        const panel = document.getElementById('achievements-panel');
+        if (!panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+            return;
+        }
+        panel.classList.remove('hidden');
+        renderAchievementsPanel();
+    }
+
+    function renderAchievementsPanel() {
+        const body = document.getElementById('achievements-body');
+        const countEl = document.getElementById('achievements-count');
+        const all = Achievements.getAll();
+        countEl.textContent = `${Achievements.getUnlockedCount()} / ${Achievements.getTotalCount()}`;
+
+        let html = '';
+        for (const a of all) {
+            const cls = a.unlocked ? 'achievement-item unlocked' : 'achievement-item locked';
+            const icon = a.unlocked ? a.icon : '🔒';
+            const name = a.unlocked ? a.name : '???';
+            const desc = a.unlocked ? a.desc : 'Keep playing to discover this achievement';
+            html += `<div class="${cls}">`;
+            html += `<span class="achievement-icon">${icon}</span>`;
+            html += `<div class="achievement-info">`;
+            html += `<div class="achievement-name">${name}</div>`;
+            html += `<div class="achievement-desc">${desc}</div>`;
+            html += `</div></div>`;
+        }
+        body.innerHTML = html;
+    }
+
+    let achievementToastTimer = null;
+
+    function showPendingAchievements() {
+        const notif = Achievements.popNotification();
+        if (!notif) return;
+        showAchievementToast(notif);
+    }
+
+    function showAchievementToast(def) {
+        const toast = document.getElementById('achievement-toast');
+        toast.innerHTML = `<span class="toast-icon">${def.icon}</span><div class="toast-info"><div class="toast-label">ACHIEVEMENT UNLOCKED</div><div class="toast-name">${def.name}</div></div>`;
+        toast.classList.remove('hidden');
+        toast.classList.add('show');
+
+        if (achievementToastTimer) clearTimeout(achievementToastTimer);
+        achievementToastTimer = setTimeout(() => {
+            toast.classList.remove('show');
+            toast.classList.add('hidden');
+            // Show next pending if any
+            const next = Achievements.popNotification();
+            if (next) {
+                setTimeout(() => showAchievementToast(next), 300);
+            }
+        }, 3000);
+    }
+
+    // === OFFER DIALOG ===
+    function showOfferDialog(offer) {
+        const overlay = document.getElementById('offer-overlay');
+        const nameEl = document.getElementById('offer-rival-name');
+        const textEl = document.getElementById('offer-text');
+        const priceEl = document.getElementById('offer-price');
+        const portraitCanvas = document.getElementById('offer-portrait');
+
+        // Draw rival portrait
+        MapRenderer.drawRivalPortrait(portraitCanvas, offer.rival.id);
+
+        nameEl.textContent = offer.rival.name;
+        nameEl.style.color = offer.rival.color;
+
+        if (offer.type === 'buy') {
+            textEl.innerHTML = `wants to <span style="color:#ffcc00">BUY</span> your <strong>${offer.property.name}</strong> in ${offer.property.districtName || offer.property.district}.<br><br>Offering <strong>+${offer.premium}% above market value</strong>.`;
+            priceEl.textContent = `€${formatMoney(offer.price)}`;
+        } else {
+            textEl.innerHTML = `offers to <span style="color:#ffcc00">SELL</span> you <strong>${offer.property.name}</strong> in ${offer.property.districtName || offer.property.district}.<br><br>At a <strong>${offer.discount}% discount</strong> below market value.`;
+            priceEl.textContent = `€${formatMoney(offer.price)}`;
+        }
+
+        overlay.classList.remove('hidden');
+        Sound.playOffer();
+    }
+
+    function setupOfferAndUndo() {
+        document.getElementById('offer-accept').addEventListener('click', () => {
+            Sound.playClick();
+            Game.acceptOffer();
+        });
+        document.getElementById('offer-decline').addEventListener('click', () => {
+            Sound.playClick();
+            Game.declineOffer();
+        });
+        document.getElementById('btn-undo').addEventListener('click', () => {
+            Game.undo();
+        });
+    }
+
     return {
         init,
         updateHUD,
@@ -1700,6 +1821,7 @@ Good luck — become the Helsingin Herra!`,
         showWinScreen,
         showBankPanel,
         showStatsPanel,
+        showOfferDialog,
         formatMoney,
         formatMoneyPrecise,
         propertyMatchesFilter,
@@ -1707,5 +1829,7 @@ Good luck — become the Helsingin Herra!`,
         addLogAction,
         isFreeBuyMode,
         clearFreeBuyMode,
+        showPendingAchievements,
+        showAchievementsPanel,
     };
 })();

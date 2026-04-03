@@ -488,13 +488,13 @@ const HelsinkiDistricts = (() => {
             points: geoToMap([
                 [60.167, 24.938],   // Erottaja (south end)
                 [60.169, 24.936],   // Stockmann
-                [60.171, 24.935],   // Kamppi / Railway Station
-                [60.174, 24.934],   // Kiasma
-                [60.177, 24.933],   // Töölönlahti west shore
-                [60.180, 24.932],   // Ooppera
-                [60.184, 24.930],   // Töölön tulli
-                [60.188, 24.928],   // towards Pasila
-                [60.193, 24.925],   // north off-map edge area
+                [60.171, 24.934],   // Kamppi / Railway Station
+                [60.174, 24.931],   // Kiasma
+                [60.177, 24.929],   // west of Töölönlahti
+                [60.180, 24.928],   // Ooppera
+                [60.184, 24.927],   // Töölön tulli
+                [60.188, 24.925],   // towards Pasila
+                [60.193, 24.923],   // north off-map edge area
             ]),
         },
         {
@@ -590,6 +590,63 @@ const HelsinkiDistricts = (() => {
                 [60.193, 24.984],   // Kulosaari island side
             ]),
         },
+        {
+            // Pedestrian bridge from Seurasaari north edge to mainland NE
+            name: 'Seurasaaren silta',
+            points: geoToMap([
+                [60.184, 24.900],   // Seurasaari north edge
+                [60.186, 24.905],   // mainland side (coast NE)
+            ]),
+        },
+        {
+            // Bridge from Mustikkamaa south to Korkeasaari zoo island
+            name: 'Korkeasaaren silta',
+            points: geoToMap([
+                [60.184, 24.988],   // Mustikkamaa side
+                [60.183, 24.989],   // Korkeasaari side
+            ]),
+        },
+        {
+            // Bridge from Kulosaari south to Mustikkamaa
+            name: 'Mustikkamaan silta',
+            points: geoToMap([
+                [60.189, 24.987],   // Kulosaari side
+                [60.188, 24.987],   // Mustikkamaa side
+            ]),
+        },
+        {
+            // Bridge from Lauttasaari north to Kaskisaari
+            name: 'Kaskisaaren silta',
+            points: geoToMap([
+                [60.168, 24.881],   // Lauttasaari N tip
+                [60.170, 24.884],   // mid-water
+                [60.172, 24.885],   // Kaskisaari S edge
+            ]),
+        },
+        {
+            // Bridge from Kaskisaari north to Lehtisaari
+            name: 'Lehtisaaren silta',
+            points: geoToMap([
+                [60.175, 24.887],   // Kaskisaari N edge
+                [60.177, 24.885],   // Lehtisaari S edge
+            ]),
+        },
+        {
+            // Bridge from Lehtisaari north to Kuusisaari
+            name: 'Kuusisaaren silta',
+            points: geoToMap([
+                [60.182, 24.887],   // Lehtisaari N edge
+                [60.184, 24.892],   // Kuusisaari S edge
+            ]),
+        },
+        {
+            // Bridge from Kuusisaari east to mainland
+            name: 'Kuusisaari mainland silta',
+            points: geoToMap([
+                [60.186, 24.898],   // Kuusisaari E edge
+                [60.187, 24.904],   // mainland coast
+            ]),
+        },
     ];
 
     // =========================================================
@@ -602,7 +659,7 @@ const HelsinkiDistricts = (() => {
             polygon: lauttasaariIsland,
             center: geoToMap([[60.160, 24.882]])[0],
             color: '#4a7a5a',
-            description: 'Residential island, good transport links',
+            description: 'Residential island with beach, good transport links',
             prestige: 3,
             propertyDensity: 'medium',
         },
@@ -1181,7 +1238,12 @@ const HelsinkiDistricts = (() => {
         { name: 'Hietaniemi Beach', pos: geoToMap([[60.1770, 24.9060]])[0], district: 'toolo' },
         { name: 'Olympic Stadium', pos: geoToMap([[60.1870, 24.9270]])[0], district: 'toolo' },
         { name: 'Linnanmäki', pos: geoToMap([[60.1880, 24.9400]])[0], district: 'kallio' },
-        { name: 'Kaivopuisto Observatory', pos: geoToMap([[60.1565, 24.9520]])[0], district: 'kaivopuisto' },
+        { name: 'Kaivopuisto Observatory', pos: geoToMap([[60.1550, 24.9490]])[0], district: 'kaivopuisto' },
+        { name: 'Tähtitorninmäki Observatory', pos: geoToMap([[60.1625, 24.9490]])[0], district: 'kaivopuisto' },
+        { name: 'Seurasaari Open-Air Museum', pos: geoToMap([[60.1830, 24.8990]])[0], district: null },
+        { name: 'Lauttasaari Beach', pos: geoToMap([[60.1530, 24.880]])[0], district: 'lauttasaari' },
+        { name: 'Munkkiniemi DiscGolf Range', pos: geoToMap([[60.1940, 24.9120]])[0], district: 'toolo' },
+        { name: 'Kiasma', pos: geoToMap([[60.1730, 24.9360]])[0], district: 'kamppi' },
     ];
 
     // =========================================================
@@ -1251,31 +1313,92 @@ const HelsinkiDistricts = (() => {
     const islands = [
         {
             name: 'Seurasaari',
+            label: true,
             polygon: geoToMap([
-                // Much larger island — open-air museum
-                [60.185, 24.891],
-                [60.186, 24.888],
-                [60.188, 24.887],
-                [60.190, 24.889],
-                [60.191, 24.892],
-                [60.192, 24.895],
-                [60.191, 24.898],
-                [60.190, 24.900],
-                [60.188, 24.901],
-                [60.186, 24.899],
-                [60.185, 24.896],
-                [60.185, 24.891],
+                // Open-air museum island — in the water between Kuusisaari and Töölö coast
+                [60.178, 24.898],
+                [60.179, 24.897],
+                [60.181, 24.896],
+                [60.183, 24.898],
+                [60.184, 24.900],
+                [60.183, 24.903],
+                [60.181, 24.904],
+                [60.179, 24.903],
+                [60.178, 24.901],
+                [60.178, 24.898],
             ]),
         },
         {
             name: 'Harakka',
+            label: true,
             polygon: geoToMap([
-                [60.150, 24.942],
-                [60.151, 24.940],
-                [60.152, 24.941],
-                [60.152, 24.944],
-                [60.151, 24.945],
-                [60.150, 24.942],
+                // Nature island south of Ullanlinna
+                [60.144, 24.948],
+                [60.145, 24.945],
+                [60.146, 24.944],
+                [60.148, 24.946],
+                [60.148, 24.950],
+                [60.147, 24.953],
+                [60.146, 24.954],
+                [60.145, 24.952],
+                [60.144, 24.948],
+            ]),
+        },
+        {
+            name: 'Sirpalesaari',
+            polygon: geoToMap([
+                // Round island south of Eira
+                [60.145, 24.930],
+                [60.146, 24.928],
+                [60.147, 24.929],
+                [60.148, 24.932],
+                [60.147, 24.935],
+                [60.146, 24.936],
+                [60.145, 24.934],
+                [60.145, 24.930],
+            ]),
+        },
+        {
+            name: 'Liuskasaari',
+            polygon: geoToMap([
+                // Narrow island east of Sirpalesaari
+                [60.145, 24.938],
+                [60.146, 24.936],
+                [60.147, 24.937],
+                [60.148, 24.940],
+                [60.147, 24.942],
+                [60.146, 24.942],
+                [60.145, 24.940],
+                [60.145, 24.938],
+            ]),
+        },
+        {
+            name: 'Uunisaari',
+            polygon: geoToMap([
+                // Island east of Harakka
+                [60.146, 24.955],
+                [60.147, 24.953],
+                [60.149, 24.954],
+                [60.149, 24.958],
+                [60.148, 24.960],
+                [60.146, 24.959],
+                [60.146, 24.955],
+            ]),
+        },
+        {
+            name: 'Särkkä',
+            polygon: geoToMap([
+                // Large island far south-east
+                [60.143, 24.962],
+                [60.144, 24.960],
+                [60.146, 24.961],
+                [60.147, 24.964],
+                [60.148, 24.968],
+                [60.147, 24.972],
+                [60.146, 24.973],
+                [60.144, 24.971],
+                [60.143, 24.968],
+                [60.143, 24.962],
             ]),
         },
         {
@@ -1327,6 +1450,35 @@ const HelsinkiDistricts = (() => {
                 [60.146, 24.988],
                 [60.145, 24.984],
                 [60.146, 24.980],
+            ]),
+        },
+        {
+            name: 'Lighthouse Island',
+            polygon: geoToMap([
+                // Tiny island W of Suomenlinna
+                [60.150, 24.968],
+                [60.151, 24.967],
+                [60.152, 24.968],
+                [60.152, 24.970],
+                [60.151, 24.971],
+                [60.150, 24.970],
+                [60.150, 24.968],
+            ]),
+        },
+        {
+            name: 'Korkeasaari',
+            label: true,
+            polygon: geoToMap([
+                // Zoo island south of Mustikkamaa
+                [60.182, 24.986],
+                [60.183, 24.984],
+                [60.184, 24.985],
+                [60.184, 24.989],
+                [60.183, 24.992],
+                [60.182, 24.993],
+                [60.181, 24.991],
+                [60.181, 24.988],
+                [60.182, 24.986],
             ]),
         },
     ];
