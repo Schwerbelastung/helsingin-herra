@@ -90,13 +90,13 @@
         <div id="action-bar">
             <div id="action-buttons">
                 <button class="action-btn" id="btn-end-turn">End Turn <span class="hotkey">[space]</span></button>
+                <button class="action-btn" id="btn-menu"><u>M</u>enu</button>
                 <button class="action-btn" id="btn-bank"><u>B</u>ank</button>
                 <button class="action-btn" id="btn-stats"><u>S</u>tats</button>
                 <button class="action-btn" id="btn-portfolio">My <u>P</u>rops</button>
                 <button class="action-btn" id="btn-log"><u>L</u>og</button>
                 <button class="action-btn" id="btn-filter"><u>F</u>ilter</button>
                 <button class="action-btn" id="btn-staff">S<u>t</u>aff</button>
-                <button class="action-btn" id="btn-menu"><u>M</u>enu</button>
                 <button class="action-btn" id="btn-undo" disabled><u>U</u>ndo</button>
                 <button class="action-btn" id="btn-help"><u>H</u>elp</button>
                 <button class="action-btn" id="btn-achievements"><u>A</u>chievements</button>
@@ -239,6 +239,7 @@
                     <button class="action-btn menu-cmd" id="menu-load">LOAD MANUAL</button>
                     <button class="action-btn menu-cmd" id="menu-load-auto">LOAD AUTO</button>
                     <button class="action-btn menu-cmd menu-danger" id="menu-delete">DELETE SAVE</button>
+                    <button class="action-btn menu-cmd menu-danger" id="menu-restart">RESTART (MAIN MENU)</button>
                 </div>
                 <div class="menu-section">
                     <label class="menu-label">UI Scale:</label>
@@ -335,6 +336,13 @@
                         <button class="cheat-btn" id="cheat-repair-all">Repair All</button>
                         <button class="cheat-btn" id="cheat-max-upgrade">Max Upgrade All</button>
                     </div>
+                </div>
+                <div class="cheat-section">
+                    <label>Autopilot:</label>
+                    <div class="cheat-buttons">
+                        <button class="cheat-btn" id="cheat-autopilot">AI Autopilot</button>
+                    </div>
+                    <div class="cheat-hint" id="cheat-autopilot-status">OFF — let the AI play for you</div>
                 </div>
                 <div class="cheat-warn">Cheats are for fun — no judgement!</div>
             </div>
@@ -520,7 +528,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.20.0 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v1.1.0 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>

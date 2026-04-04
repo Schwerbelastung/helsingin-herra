@@ -1,0 +1,30 @@
+{
+  "name": "helsingin-herra",
+  "version": "1.1.0",
+  "description": "Helsingin Herra — real estate tycoon set in Helsinki",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.schwerbelastung.helsingin-herra",
+    "productName": "Helsingin Herra",
+    "portable": {
+      "artifactName": "Helsingin-Herra-v1.1.0.exe"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!*.md",
+      "!.git"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}

@@ -72,20 +72,28 @@ const MapRenderer = (() => {
         resize();
         setupEvents();
         // Center camera on Helsinki peninsula
-        camera.x = -HelsinkiDistricts.MAP_WIDTH / 2 + canvas.width / 2;
-        camera.y = -HelsinkiDistricts.MAP_HEIGHT / 2 + canvas.height / 2;
+        camera.x = -HelsinkiDistricts.MAP_WIDTH / 2 + cssWidth / 2;
+        camera.y = -HelsinkiDistricts.MAP_HEIGHT / 2 + cssHeight / 2;
         camera.zoom = Math.min(
-            canvas.width / HelsinkiDistricts.MAP_WIDTH,
-            canvas.height / HelsinkiDistricts.MAP_HEIGHT
+            cssWidth / HelsinkiDistricts.MAP_WIDTH,
+            cssHeight / HelsinkiDistricts.MAP_HEIGHT
         ) * 0.85;
     }
 
+    // Logical (CSS) dimensions — use these for all coordinate math
+    let cssWidth = 0, cssHeight = 0;
+
     function resize() {
         // Use the canvas element's CSS-computed size (set by flex layout)
-        // rather than hardcoded offsets
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        const dpr = window.devicePixelRatio || 1;
+        cssWidth = rect.width;
+        cssHeight = rect.height;
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        // Keep CSS size matching the layout
+        canvas.style.width = rect.width + 'px';
+        canvas.style.height = rect.height + 'px';
     }
 
     function setupEvents() {
@@ -151,6 +159,18 @@ const MapRenderer = (() => {
         if (advisorHideBtnBounds) {
             const b = advisorHideBtnBounds;
             if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+                if (typeof Game !== 'undefined' && Game.isAutopilot && Game.isAutopilot()) {
+                    // During autopilot, hide = stop autopilot with snarky remark
+                    // stopAutopilot sets the snarky quote via setAdvisorQuote;
+                    // then trigger hide but use the departure timer so the quote stays readable
+                    Game.stopAutopilot();
+                    advisorHidden = true;
+                    localStorage.setItem('ht_advisorHidden', 'true');
+                    // Keep the stop quote that was just set as the departure quote
+                    advisorDepartureQuote = advisorActionOverride || advisorQuote;
+                    advisorDepartureTimer = 3000;
+                    return;
+                }
                 hideAdvisor();
                 return;
             }
@@ -319,6 +339,11 @@ const MapRenderer = (() => {
     let seasonBannerAlpha = 0;
     let seasonBannerText = '';
 
+    // Autopilot action banner
+    let autopilotBannerText = '';
+    let autopilotBannerTimer = 0;
+    const AUTOPILOT_BANNER_DURATION = 3000; // ms
+
     const SEASON_NAMES = {
         winter: 'WINTER',
         spring: 'SPRING',
@@ -397,10 +422,14 @@ const MapRenderer = (() => {
     function render() {
         if (!ctx) return;
         const palette = getBlendedPalette();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Scale context to match high-DPI buffer
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         // Clear with deep water color
         ctx.fillStyle = palette.waterDark;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, cssWidth, cssHeight);
 
         ctx.save();
         ctx.translate(camera.x, camera.y);
@@ -429,13 +458,16 @@ const MapRenderer = (() => {
         if (seasonBannerAlpha > 0) {
             drawSeasonBanner();
         }
+        if (autopilotBannerTimer > 0) {
+            drawAutopilotBanner();
+        }
     }
 
     function drawSeasonBanner() {
         const alpha = seasonBannerAlpha * 0.85;
         const bw = 220;
         const bh = 36;
-        const bx = (canvas.width - bw) / 2;
+        const bx = (cssWidth - bw) / 2;
         const by = 60;
 
         // Banner background
@@ -451,7 +483,41 @@ const MapRenderer = (() => {
         ctx.textBaseline = 'middle';
         ctx.fillStyle = `rgba(255, 204, 0, ${alpha})`;
         const icon = SEASON_ICONS[currentSeason] || '';
-        ctx.fillText(`${icon} ${seasonBannerText} ${icon}`, canvas.width / 2, by + bh / 2);
+        ctx.fillText(`${icon} ${seasonBannerText} ${icon}`, cssWidth / 2, by + bh / 2);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    function setAutopilotBanner(text) {
+        autopilotBannerText = text;
+        autopilotBannerTimer = AUTOPILOT_BANNER_DURATION;
+    }
+
+    function drawAutopilotBanner() {
+        if (autopilotBannerTimer <= 0) return;
+        // Tick timer (~60fps)
+        autopilotBannerTimer -= 16;
+        const alpha = autopilotBannerTimer < 500 ? autopilotBannerTimer / 500 : 1;
+        if (alpha <= 0) return;
+
+        const text = autopilotBannerText;
+        ctx.font = '9px "Press Start 2P", monospace';
+        const textWidth = ctx.measureText(text).width;
+        const bw = Math.max(240, textWidth + 32);
+        const bh = 28;
+        const bx = (cssWidth - bw) / 2;
+        const by = seasonBannerAlpha > 0 ? 102 : 60; // below season banner if showing
+
+        ctx.fillStyle = `rgba(10, 26, 10, ${alpha * 0.85})`;
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeStyle = `rgba(100, 255, 100, ${alpha * 0.8})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bx, by, bw, bh);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(100, 255, 100, ${alpha})`;
+        ctx.fillText(text, cssWidth / 2, by + bh / 2);
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
     }
@@ -2652,6 +2718,10 @@ const MapRenderer = (() => {
             if (typeof Game !== 'undefined' && Game.logYearlyEvent) {
                 Game.logYearlyEvent('special_event', 'POLAR BEARS IN HELSINKI!');
             }
+            // Unlock achievement
+            if (typeof Achievements !== 'undefined') {
+                Achievements.onEasterEgg('polar_bears');
+            }
         }
     }
     function forcePolarBears() {
@@ -2720,8 +2790,8 @@ const MapRenderer = (() => {
             name: 'Harakka',
             pos: HelsinkiDistricts.geoToMap([[60.146, 24.949]])[0],
             blurb: [
-                'Harakka — Magpie Island — is Helsinki\'s best-kept secret: a nature reserve sitting just 400 metres from the mainland, in full view of the Kaivopuisto café terrace, yet entirely unreachable except by rowboat or kayak. The island is home to a thriving colony of cormorants, a dozen other bird species, and since 1990, a Helsinki City Art Museum studio where artists work in residence every summer. The birds tolerate this arrangement. The artists find the birds inspiring.',
-                'There is no ferry to Harakka. There is no bridge. The only way is to paddle. Helsinki residents are strangely proud of this. "It\'s right there," they say, pointing at the island from the park. "You just have to row." Whether this qualifies as adventure or inconvenience depends entirely on your relationship with oars and cormorant noise. The cormorants are not subtle.',
+                'Harakka — Magpie Island — is Helsinki\'s best-kept secret: a nature reserve sitting just 400 metres from the mainland, in full view of the Kaivopuisto café terrace, and reachable by a small ferry that runs in summer. The island is home to a thriving colony of cormorants, a dozen other bird species, and since 1990, a Helsinki City Art Museum studio where artists work in residence every summer. The birds tolerate this arrangement. The artists find the birds inspiring.',
+                'The ferry is small. The schedule is optimistic. Helsinki residents are strangely proud of this. "It\'s right there," they say, pointing at the island from the park. "You can practically swim." Whether this qualifies as adventure or inconvenience depends entirely on your relationship with timetables and cormorant noise. The cormorants are not subtle.',
             ],
         },
         {
@@ -3238,7 +3308,7 @@ const MapRenderer = (() => {
         if (!canvas) return;
         // Draw Swedish flag at top-center of screen
         const flagW = 80, flagH = 50;
-        const fx = (canvas.width - flagW) / 2;
+        const fx = (cssWidth - flagW) / 2;
         const fy = 8;
 
         // Gentle wave animation
@@ -3315,8 +3385,8 @@ const MapRenderer = (() => {
         if (progress >= 1) return; // flight done, stays in activeEvents for revenue but no more drawing
 
         // Parabolic arc: left to right, peaking in upper third
-        const w = canvas.width;
-        const h = canvas.height;
+        const w = cssWidth;
+        const h = cssHeight;
         const bx = -60 + (w + 120) * progress;
         const arc = -4 * (progress - 0.5) * (progress - 0.5) + 1; // peaks at 0.5
         const by = h * 0.7 - arc * h * 0.45; // starts low-left, arcs up, lands low-right
@@ -3692,7 +3762,7 @@ const MapRenderer = (() => {
     function drawNorthernLights() {
         if (!canvas) return;
         const t = animTime * 0.0005;
-        const w = canvas.width;
+        const w = cssWidth;
 
         ctx.save();
         // Draw aurora bands across the top of the screen
@@ -3924,6 +3994,112 @@ const MapRenderer = (() => {
         "A wise man once said: 'Buy property.' That wise man was me.",
         "Kluuvi properties cost a fortune. But so does everything at Stockmann.",
         "They keep building in Jätkäsaari. The cranes have cranes.",
+        // --- Batch 2: tips ---
+        "Buy near a tram line. The number 9 alone is worth millions.",
+        "Never let a property hit zero condition. Trust me on this one.",
+        "Your first loan feels scary. Your tenth feels routine. That's growth.",
+        "Staff are investments, not expenses. Especially the accountant.",
+        "If you can't afford to upgrade, at least repair. Half-measures help.",
+        "The Scout tip in the ticker is always worth reading. Always.",
+        "Districts that look boring on the map often have great ROI.",
+        "Rivals focus on type preferences. Use that against them.",
+        "An auction isn't a loss if you drove the price up for your rival.",
+        "Don't sleep on Kulosaari. Exclusive is another word for expensive.",
+        "The bank is most useful when you don't desperately need it.",
+        "Seasonal revenue swings are predictable. Plan around them.",
+        "Condition below 50% is an emergency. Treat it like one.",
+        "If you're cash-heavy in spring, buy before the summer rush.",
+        "Revenue compounds. Upgrade early, thank yourself later.",
+        "Kallio rents are rising. What? That's what I heard.",
+        "Check your net worth in Stats. It's the number that actually matters.",
+        "The log panel is a full confession of your financial decisions.",
+        "Buying in Kruununhaka? You have expensive taste. I approve.",
+        "Market crashes are temporary. Good locations are permanent.",
+        // --- Batch 2: funny ---
+        "The monocle isn't just decorative. It magnifies undervalued assets.",
+        "I once tried to buy Suomenlinna. Apparently it's not for sale. Yet.",
+        "Peter Vesterbacka thinks everything should have a tunnel. I agree about the profit.",
+        "The bear in Korkeasaari looks at the market more calmly than most investors.",
+        "You can undo your last action. You cannot undo bad strategy.",
+        "Every city has its Mayfair. In Helsinki, it's Eira. Go buy something there.",
+        "I've watched this city from this corner for a very long time.",
+        "Technically, I am made of pixels. Financially, I am made of ambition.",
+        "The trams run on time. Your rent collection should too.",
+        "That moose in the north looks like he knows something. Follow his gaze.",
+        "My predecessor advised Swedish tycoons. He didn't last long.",
+        "If you're reading this, you have too much free time. Also, buy something.",
+        "I once forgot to repair a property for three turns. I still have nightmares.",
+        "Hjallis never met a restaurant he didn't want to own. Smart man.",
+        "The Silja Line leaves every evening. Your competition should too.",
+        "I have never once regretted a purchase. I have OFTEN regretted not purchasing.",
+        "The harbour view adds 20% to property value. The Monopoly Man adds dignity.",
+        "Did you know Helsinki has over 300 islands? And I want all of them.",
+        "The polar bears swim past the harbour sometimes. Very distracting.",
+        "Even in silence, Helsinki real estate appreciates. Especially in silence.",
+        "Winter is long in Helsinki. Your income stream shouldn't be.",
+        "My top hat contains an entire market analysis. Don't ask me to prove it.",
+        "Someone in Töölö is always watching you make decisions. Make good ones.",
+        "I have met the rubber duck. We do not speak of this.",
+        "Imagine owning the Olympic Stadium. Now go buy everything around it.",
+        "The tonttu invade every winter. Charge them rent and call it seasonal.",
+        "I respect anyone who upgrades to max level. It's basically performance art.",
+        "Kaivopuisto in summer is delightful. In winter it's a philosophical experience.",
+        "There's no bad property, only bad prices. And you're the one setting the strategy.",
+        "If Risto is buying offices, he knows something. Or thinks he does.",
+        "I've advised kings, captains of industry, and now you. The bar is variable.",
+        "The first year is always the hardest. The second year, you own the first year.",
+        "Loyal tenants are built through consistent maintenance. Don't ghost them.",
+        "Nalle once outbid me at auction. I let him think it was on purpose.",
+        "When in doubt, buy near the market square. That's where everything begins.",
+        // --- Batch 3: tips ---
+        "Properties near parks hold their value through bad markets.",
+        "A slow start with good properties beats a fast start with bad ones.",
+        "The repair cost is always less than the lost revenue. Do the math.",
+        "Bidding wars are chaotic, but the property always goes to someone. Make it you.",
+        "Don't ignore the turn log. It's a full audit trail of your instincts.",
+        "Max-upgraded hotels in summer are basically printing machines.",
+        "The 'Can Afford' filter is for disciplined investors. Use it.",
+        "Every district has a ceiling. Knowing it is worth more than a staff member.",
+        "The accountant saves you more the larger your loan. Scale matters.",
+        "A Property Manager frees an extra action every turn. Permanently.",
+        "Rivals can steal properties you're sitting on. Don't sit too long.",
+        "If you see a bidding war coming, save some cash before end of turn.",
+        "Office buildings in Ruoholahti are Risto's hunting ground. Be faster.",
+        "January newspaper tells you how bad last year was. Or how good. Usually bad.",
+        "Katajanokka waterfront is some of the best real estate in the city.",
+        "The first property you buy sets the tone for your whole campaign.",
+        "Seasonal bonuses can flip a marginal property into a strong one.",
+        "Buy before a district fills up. Rivals crowd out late arrivals.",
+        "End turns with zero actions wasted. Every action is a compounding decision.",
+        "The bank will lend you 2x your net worth. Terrifying and useful.",
+        // --- Batch 3: funny ---
+        "They told me real estate in Hernesaari was risky. They are now renting from me.",
+        "I once advised a man who never read the newspaper. He retired on a park bench.",
+        "The seagulls here have seen empires rise and fall. Mostly rise, if I'm advising.",
+        "Saunas are the one thing Helsinki will never stop building. Invest nearby.",
+        "Peter once pitched me on a Helsinki-Tallinn tunnel. I asked about the rent rolls.",
+        "You can't take it with you. But you can leave it fully upgraded.",
+        "The aurora borealis inspires poets. It inspires me to think about property values.",
+        "Somewhere in Helsinki right now, someone is signing a lease. Make it your lease.",
+        "My monocle is prescription. My investment advice is free. Both are precise.",
+        "I have a cane I never need but carry anyway. The market understands symbolism.",
+        "Oodi Library is a masterpiece. The properties around it are also quite nice.",
+        "Sometimes the market whispers. Sometimes it shouts. I have excellent hearing.",
+        "Nalle disagrees with my strategy. Nalle is also very rich. We manage.",
+        "If a rival quip is aggressive, it usually means they're nervous.",
+        "Owning property in every district feels like being mayor, but profitable.",
+        "The Christmas tree on Senate Square is lovely. The ground rent, lovelier.",
+        "They renovated the market hall. Someone always profits from renovation.",
+        "I was born in a waistcoat. Metaphorically. The mustache is real.",
+        "The ferry to Suomenlinna runs on schedule. Your revenue should too.",
+        "Every time you end a turn, somewhere in Helsinki a rent cheque clears.",
+        "Some investors wait for the perfect moment. The perfect moment was last turn.",
+        "I once missed an auction by one turn. I still wake up in a cold sweat.",
+        "A loan at 5% against a 15% ROI property is just arithmetic. Beautiful arithmetic.",
+        "Töölönlahti freezes in winter. Your ambition shouldn't.",
+        "The view from the top of your portfolio is worth every negotiation.",
+        "Hjallis once sang karaoke at a property closing. The deal still closed.",
+        "I carry a briefcase at all times. It contains nothing. The confidence is free.",
     ];
 
     const ADVISOR_CONTEXT_QUOTES = {
@@ -4086,6 +4262,10 @@ const MapRenderer = (() => {
         advisorActionOverride = quotes[Math.floor(Math.random() * quotes.length)];
     }
 
+    function setAdvisorQuote(text) {
+        advisorActionOverride = text;
+    }
+
     function updateAdvisorQuote() {
         // Action override takes priority (shown until next turn change)
         if (advisorActionOverride) {
@@ -4164,8 +4344,9 @@ const MapRenderer = (() => {
         const btnH = Math.floor(20 * uiScale);
         const btnFontSize = Math.max(7, Math.floor(7 * uiScale));
 
-        // Animate slide offset
-        const slideTarget = advisorHidden && advisorDepartureTimer <= 0 ? 1 : 0;
+        // Animate slide offset — force visible during autopilot
+        const isAutopilotForSlide = typeof Game !== 'undefined' && Game.isAutopilot && Game.isAutopilot();
+        const slideTarget = (advisorHidden && !isAutopilotForSlide && advisorDepartureTimer <= 0) ? 1 : 0;
         const slideSpeed = 0.04;
         if (advisorSlideOffset < slideTarget) {
             advisorSlideOffset = Math.min(slideTarget, advisorSlideOffset + slideSpeed);
@@ -4173,12 +4354,12 @@ const MapRenderer = (() => {
             advisorSlideOffset = Math.max(slideTarget, advisorSlideOffset - slideSpeed);
         }
 
-        // When fully hidden, draw "Show" button in top-right corner
+        // When fully hidden, draw "Show" button in bottom-right corner
         if (advisorSlideOffset >= 1) {
             const showBtnW = Math.floor(50 * uiScale);
             const showBtnH = btnH;
-            const showBtnX = canvas.width - showBtnW - 8;
-            const showBtnY = 8;
+            const showBtnX = cssWidth - showBtnW - 8;
+            const showBtnY = cssHeight - showBtnH - 8;
             advisorShowBtnBounds = { x: showBtnX, y: showBtnY, w: showBtnW, h: showBtnH };
             advisorHideBtnBounds = null;
 
@@ -4199,14 +4380,14 @@ const MapRenderer = (() => {
 
         // Slide the advisor box off to the right
         const slidePixels = Math.floor(advisorSlideOffset * (boxW + 16));
-        const boxX = canvas.width - boxW - 8 + slidePixels;
-        const boxY = 8 + btnH + 2;
+        const boxX = cssWidth - boxW - 8 + slidePixels;
+        const boxY = cssHeight - boxH - btnH - 10;  // bottom-right always
         const p = 1.875 * uiScale;
 
-        // "Hide" button above the advisor box (top-left of box)
+        // "Hide" button at the bottom-left corner of the advisor box
         const hideBtnW = Math.floor(50 * uiScale);
         const hideBtnX = boxX;
-        const hideBtnY = 8;
+        const hideBtnY = boxY + boxH + 2;
         advisorHideBtnBounds = { x: hideBtnX, y: hideBtnY, w: hideBtnW, h: btnH };
 
         ctx.fillStyle = 'rgba(10, 10, 26, 0.88)';
@@ -4825,6 +5006,125 @@ const MapRenderer = (() => {
 
     // === PLAYER PORTRAITS ===
 
+    function drawAdvisorPortraitOnCanvas(canvasEl) {
+        const c = canvasEl.getContext('2d');
+        const w = canvasEl.width;
+        const h = canvasEl.height;
+        c.clearRect(0, 0, w, h);
+        c.imageSmoothingEnabled = false;
+        const s = w / 48;
+        c.save();
+        c.scale(s, s);
+        drawAdvisorPortrait(c);
+        c.restore();
+    }
+
+    function drawAdvisorPortrait(c) {
+        // Background — dark navy
+        c.fillStyle = '#0a0a1a';
+        c.fillRect(0, 0, 48, 48);
+
+        // Top hat
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(11, 1, 26, 3);  // brim
+        c.fillRect(14, -6, 20, 8); // crown (extends slightly above for drama)
+        c.fillRect(14, 1, 20, 3);  // crown lower
+        // Hat band
+        c.fillStyle = '#ffcc00';
+        c.fillRect(14, 3, 20, 2);
+
+        // Suit body
+        c.fillStyle = '#2a2a4a';
+        c.fillRect(10, 35, 28, 13);
+        // Lapels
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(14, 35, 5, 9);
+        c.fillRect(29, 35, 5, 9);
+        // Red tie
+        c.fillStyle = '#ff4444';
+        c.fillRect(23, 35, 3, 10);
+        c.fillRect(22, 35, 5, 2); // knot
+        // White shirt collar
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 34, 4, 3);
+        c.fillRect(26, 34, 4, 3);
+
+        // Neck
+        c.fillStyle = '#e8c090';
+        c.fillRect(20, 31, 8, 5);
+
+        // Face
+        c.fillStyle = '#e8c090';
+        c.fillRect(13, 10, 22, 23);
+        // Ears
+        c.fillRect(11, 17, 3, 6);
+        c.fillRect(34, 17, 3, 6);
+
+        // Eyes
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(18, 19, 3, 3);  // left eye
+        c.fillRect(27, 19, 3, 3);  // right eye
+        // Eye whites
+        c.fillStyle = '#ffffff';
+        c.fillRect(18, 19, 3, 2);
+        c.fillRect(27, 19, 3, 2);
+        // Pupils
+        c.fillStyle = '#1a1a2e';
+        c.fillRect(19, 19, 2, 2);
+        c.fillRect(28, 19, 2, 2);
+        // Eye highlight
+        c.fillStyle = '#ffffff';
+        c.fillRect(20, 19, 1, 1);
+        c.fillRect(29, 19, 1, 1);
+
+        // Monocle on right eye
+        c.strokeStyle = '#ffcc00';
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.arc(28.5, 20, 4, 0, Math.PI * 2);
+        c.stroke();
+        // Monocle chain
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(32, 21);
+        c.lineTo(35, 28);
+        c.lineTo(34, 35);
+        c.stroke();
+
+        // Eyebrows — arched, distinguished
+        c.fillStyle = '#3a3a3a';
+        c.fillRect(17, 17, 5, 1);
+        c.fillRect(16, 17, 1, 1);
+        c.fillRect(26, 17, 5, 1);
+        c.fillRect(31, 17, 1, 1);
+
+        // Nose
+        c.fillStyle = '#d0a878';
+        c.fillRect(23, 22, 3, 4);
+        c.fillRect(22, 25, 1, 1);
+        c.fillRect(26, 25, 1, 1);
+
+        // Magnificent mustache
+        c.fillStyle = '#3a3a3a';
+        c.fillRect(17, 27, 6, 2);  // left side
+        c.fillRect(25, 27, 6, 2);  // right side
+        c.fillRect(23, 27, 2, 1);  // center
+        // Curled ends
+        c.fillRect(16, 26, 2, 2);
+        c.fillRect(30, 26, 2, 2);
+        c.fillRect(15, 27, 1, 1);
+        c.fillRect(32, 27, 1, 1);
+
+        // Smile
+        c.fillStyle = '#c06060';
+        c.fillRect(21, 29, 6, 1);
+
+        // Gold border around portrait
+        c.strokeStyle = '#ffcc00';
+        c.lineWidth = 2;
+        c.strokeRect(1, 1, 46, 46);
+    }
+
     function drawPlayerPortraitOnCanvas(canvasEl, gender) {
         const c = canvasEl.getContext('2d');
         const w = canvasEl.width;
@@ -5087,8 +5387,10 @@ const MapRenderer = (() => {
             }
 
             // Advisor slide animation needs renders
-            const slideTarget = advisorHidden && advisorDepartureTimer <= 0 ? 1 : 0;
+            const apActive = typeof Game !== 'undefined' && Game.isAutopilot && Game.isAutopilot();
+            const slideTarget = (advisorHidden && !apActive && advisorDepartureTimer <= 0) ? 1 : 0;
             if (advisorSlideOffset !== slideTarget || advisorDepartureTimer > 0) needsRender = true;
+            if (autopilotBannerTimer > 0) needsRender = true;
 
             // Re-render at throttled rate (or always during weather/advisor animation)
             if (!transitionFrom && (now - lastRenderTime > RENDER_INTERVAL || needsRender)) {
@@ -5119,8 +5421,8 @@ const MapRenderer = (() => {
 
     function spawnWeatherParticle() {
         weatherParticles.push({
-            x: Math.random() * (canvas ? canvas.width : 800),
-            y: Math.random() * (canvas ? canvas.height : 600) - 50,
+            x: Math.random() * (canvas ? cssWidth : 800),
+            y: Math.random() * (canvas ? cssHeight : 600) - 50,
             vx: weatherType === 'rain' ? -0.5 : (weatherType === 'snow' ? (Math.random() - 0.5) * 0.3 : 0),
             vy: weatherType === 'rain' ? 3 + Math.random() * 2 : (weatherType === 'snow' ? 0.5 + Math.random() * 0.5 : -0.3),
             size: weatherType === 'snow' ? 1.5 + Math.random() * 2 : (weatherType === 'sun' ? 2 + Math.random() * 3 : 1),
@@ -5140,7 +5442,7 @@ const MapRenderer = (() => {
                 p.alpha = p.life * 0.5;
             }
             // Remove off-screen or dead
-            if (p.y > (canvas ? canvas.height : 600) + 10 || p.x < -10 || p.life <= 0) {
+            if (p.y > (canvas ? cssHeight : 600) + 10 || p.x < -10 || p.life <= 0) {
                 weatherParticles.splice(i, 1);
                 if (weatherActive) spawnWeatherParticle();
             }
@@ -5178,10 +5480,14 @@ const MapRenderer = (() => {
     function render() {
         if (!ctx) return;
         const palette = getBlendedPalette();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Scale context to match high-DPI buffer
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         // Clear with deep water color
         ctx.fillStyle = palette.waterDark;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, cssWidth, cssHeight);
 
         ctx.save();
         ctx.translate(camera.x, camera.y);
@@ -5219,6 +5525,9 @@ const MapRenderer = (() => {
         // Season transition banner
         if (seasonBannerAlpha > 0) {
             drawSeasonBanner();
+        }
+        if (autopilotBannerTimer > 0) {
+            drawAutopilotBanner();
         }
     }
 
@@ -5788,8 +6097,11 @@ const MapRenderer = (() => {
         screenToMap,
         mapToScreen,
         triggerAdvisorAction,
+        setAdvisorQuote,
+        setAutopilotBanner,
         drawRivalPortrait,
         drawPlayerPortrait: drawPlayerPortraitOnCanvas,
+        drawAdvisorPortrait: drawAdvisorPortraitOnCanvas,
         drawNewsIllustration,
         forcePolarBears,
         camera,

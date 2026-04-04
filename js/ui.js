@@ -743,6 +743,9 @@ Good luck — become the Helsingin Herra!`,
         }
 
         textEl.textContent = text;
+        // Shift above the newspaper prompt if it's visible
+        const promptVisible = !document.getElementById('newspaper-prompt').classList.contains('hidden');
+        el.style.bottom = promptVisible ? '140px' : '90px';
         el.classList.remove('hidden');
         requestAnimationFrame(() => {
             requestAnimationFrame(() => el.classList.add('show'));
@@ -1150,6 +1153,53 @@ Good luck — become the Helsingin Herra!`,
             setNewsText('Manual save deleted.');
             updateMenuPanel();
         });
+
+        document.getElementById('menu-restart').addEventListener('click', () => {
+            Sound.playClick();
+            restartToMainMenu();
+        });
+    }
+
+    function restartToMainMenu() {
+        // Stop autopilot if active
+        if (Game.isAutopilot()) Game.stopAutopilot();
+
+        // Stop music/sounds and restore if muted by Finnish Silence
+        Sound.restoreAll();
+        Sound.stopMusic();
+
+        // Hide all panels and overlays
+        const panelIds = [
+            'property-panel', 'landmark-panel', 'log-panel', 'filter-panel',
+            'bank-panel', 'achievements-panel', 'stats-panel', 'menu-panel',
+            'staff-panel', 'portfolio-overlay', 'cheat-panel', 'auction-overlay',
+            'offer-overlay', 'newspaper-overlay', 'newspaper-prompt',
+            'nokia-overlay', 'victory-overlay', 'changelog-overlay',
+            'name-confirm-prompt', 'tutorial-prompt', 'tutorial-overlay',
+        ];
+        panelIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        // Reset game state
+        GameState.gameOver = false;
+        GameState.turn = 1;
+        GameState.month = 0;
+        GameState.year = 2024;
+        GameState.money = 50000;
+        GameState.properties = [];
+        GameState.rivals = [];
+        GameState.activeEvents = [];
+        GameState.staff = [];
+        GameState.loanAmount = 0;
+        GameState.yearlyLog = [];
+        GameState.financeHistory = [];
+        GameState.silenceUntilNextTurn = false;
+
+        // Show start screen and update save info
+        document.getElementById('start-screen').classList.remove('hidden');
+        updateStartScreenSaveInfo();
     }
 
     function setupStatsPanel() {
@@ -1335,6 +1385,20 @@ Good luck — become the Helsingin Herra!`,
             MapRenderer.render();
             setNewsText(`Cheat: maxed upgrades on ${count} properties`);
         });
+
+        document.getElementById('cheat-autopilot').addEventListener('click', () => {
+            const active = Game.isAutopilot();
+            if (active) {
+                Game.stopAutopilot();
+            } else {
+                Game.startAutopilot();
+            }
+            const nowActive = Game.isAutopilot();
+            document.getElementById('cheat-autopilot').classList.toggle('active', nowActive);
+            document.getElementById('cheat-autopilot-status').textContent = nowActive
+                ? 'ON — the advisor is playing for you'
+                : 'OFF — let the AI play for you';
+        });
     }
 
     function isFreeBuyMode() {
@@ -1359,6 +1423,13 @@ Good luck — become the Helsingin Herra!`,
         if (btn) btn.classList.remove('active');
         const status = document.getElementById('cheat-district-status');
         if (status) status.textContent = 'OFF — click a district to buy all its properties';
+    }
+
+    function clearAutopilotUI() {
+        const btn = document.getElementById('cheat-autopilot');
+        if (btn) btn.classList.remove('active');
+        const status = document.getElementById('cheat-autopilot-status');
+        if (status) status.textContent = 'OFF — let the AI play for you';
     }
 
     function formatEventEffect(event) {
@@ -2436,10 +2507,16 @@ Good luck — become the Helsingin Herra!`,
         `;
         participantsEl.appendChild(playerCard);
 
-        // Draw a simple player icon on the player portrait canvas
+        // Draw player or advisor portrait on the auction canvas
         setTimeout(() => {
             const pc = document.getElementById('auction-player-portrait');
-            if (pc) drawPlayerPortrait(pc);
+            if (pc) {
+                if (typeof Game !== 'undefined' && Game.isAutopilot && Game.isAutopilot()) {
+                    MapRenderer.drawAdvisorPortrait(pc);
+                } else {
+                    drawPlayerPortrait(pc);
+                }
+            }
         }, 10);
 
         // Rival cards
@@ -2674,6 +2751,7 @@ Good luck — become the Helsingin Herra!`,
         clearFreeBuyMode,
         isDistrictBuyMode,
         clearDistrictBuyMode,
+        clearAutopilotUI,
         showPendingAchievements,
         showAchievementsPanel,
         showRivalQuip,

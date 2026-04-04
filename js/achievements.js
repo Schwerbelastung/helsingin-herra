@@ -52,6 +52,7 @@ const Achievements = (() => {
         { id: 'play_100_turns', name: 'Marathon Runner', desc: 'Play 100 turns in a single game', icon: '🏃', category: 'Milestones' },
 
         // Strange Events — one for each easter egg event
+        { id: 'seen_bears', name: 'Polar Patrol', desc: 'Spot polar bears swimming in Helsinki harbour', icon: '🐻‍❄️', category: 'Strange Events' },
         { id: 'seen_aliens', name: 'Close Encounter', desc: 'Witness an alien invasion', icon: '👽', category: 'Strange Events' },
         { id: 'seen_tonttu', name: 'Tonttu Whisperer', desc: 'Witness the tonttu invasion', icon: '🎅', category: 'Strange Events' },
         { id: 'seen_moose', name: 'Moose Crossing', desc: 'Witness the great moose stampede', icon: '🫎', category: 'Strange Events' },
@@ -206,6 +207,24 @@ const Achievements = (() => {
     function onSell() { unlock('first_sale'); }
     function onUpgrade() { unlock('first_upgrade'); }
 
+    // Easter egg event unlocks — called immediately when an event is witnessed
+    const EVENT_ACHIEVEMENT_MAP = {
+        polar_bears: 'seen_bears',
+        alien_invasion: 'seen_aliens',
+        tonttu_invasion: 'seen_tonttu',
+        moose_rush_hour: 'seen_moose',
+        nokia_comeback: 'seen_nokia',
+        northern_lights: 'seen_aurora',
+        rubber_duck: 'seen_duck',
+        angry_bird: 'seen_bird',
+        swedish_invasion: 'seen_sweden',
+        finnish_silence: 'seen_silence',
+    };
+    function onEasterEgg(eventId) {
+        const achievementId = EVENT_ACHIEVEMENT_MAP[eventId];
+        if (achievementId) unlock(achievementId);
+    }
+
     // Init
     load();
 
@@ -215,6 +234,7 @@ const Achievements = (() => {
         onBuy,
         onSell,
         onUpgrade,
+        onEasterEgg,
         getAll,
         getUnlockedCount,
         getTotalCount,

@@ -296,7 +296,7 @@ const Events = (() => {
             name: 'ALIEN INVASION!',
             description: 'Aliens have landed in Helsinki! Property values crash, but tourist boom will push them above normal in 6 months.',
             month: -1,
-            chance: 0.012, // ~1.4% per month
+            chance: 0.003,
             duration: 6,
             valueModifier: -0.5, // Immediate 50% drop
             recoveryModifier: 1.5, // Recovers to 150%
@@ -309,7 +309,7 @@ const Events = (() => {
             name: 'TONTTU INVASION!',
             description: 'Finnish house gnomes have appeared on every rooftop! Residents are delighted — residential revenue soars.',
             month: 11, // December
-            chance: 0.10, // 10% chance in December
+            chance: 0.022,
             duration: 2,
             revenueModifier: 0.4,
             affectedTypes: ['residential'],
@@ -322,7 +322,7 @@ const Events = (() => {
             name: 'MOOSE RUSH HOUR!',
             description: 'A herd of moose is stampeding down Mannerheimintie! Some property damage, but tourists go wild.',
             month: -1,
-            chance: 0.014,
+            chance: 0.003,
             duration: 2,
             revenueModifier: 0.25,
             global: true,
@@ -334,7 +334,7 @@ const Events = (() => {
             name: 'NOKIA COMEBACK!',
             description: 'Risto announces Nokia is making phones again! Office property values in tech districts skyrocket.',
             month: -1,
-            chance: 0.014,
+            chance: 0.003,
             duration: 4,
             revenueModifier: 0.5,
             affectedTypes: ['office'],
@@ -348,7 +348,7 @@ const Events = (() => {
             description: 'A rare aurora borealis is visible from Helsinki! Tourists flood the city.',
             month: -1,
             winterOnly: true,
-            chance: 0.055,
+            chance: 0.008,
             duration: 1,
             revenueModifier: 0.3,
             global: true,
@@ -360,7 +360,7 @@ const Events = (() => {
             name: 'GIANT RUBBER DUCK!',
             description: 'A mysterious giant rubber duck has appeared in South Harbour. Nobody knows where it came from.',
             month: -1,
-            chance: 0.017,
+            chance: 0.004,
             duration: 3,
             revenueModifier: 0.1,
             global: true,
@@ -372,7 +372,7 @@ const Events = (() => {
             name: 'ANGRY BIRD!',
             description: 'Something red and round just flew across the Helsinki skyline at incredible speed!',
             month: -1,
-            chance: 0.01,
+            chance: 0.002,
             duration: 1,
             revenueModifier: 0.05,
             global: true,
@@ -384,7 +384,7 @@ const Events = (() => {
             name: 'SWEDISH INVASION!',
             description: 'Sweden has temporarily claimed Helsinki! All district signs have been replaced with Swedish names. Du gamla, du fria...',
             month: -1,
-            chance: 0.012,
+            chance: 0.003,
             duration: 3,
             revenueModifier: 0.15,
             global: true,
@@ -396,7 +396,7 @@ const Events = (() => {
             name: 'THE FINNISH SILENCE',
             description: 'Nothing happened. The city is quiet. This is fine.',
             month: -1,
-            chance: 0.008, // ~1% per month — rare
+            chance: 0.002,
             duration: 1,
             global: true,
             positive: true,
@@ -426,8 +426,11 @@ const Events = (() => {
             // Special events: no easter eggs in the first 6 months
             if (template.special && gameState.turn < 6) continue;
 
-            // Special events: at least 2 months between procs
-            if (template.special && (gameState.turn - gameState.lastSpecialEventTurn) < 3) continue;
+            // Max 1 special event per calendar year
+            if (template.special && gameState.specialEventThisYear) continue;
+
+            // Special events: at least 4 months between procs
+            if (template.special && (gameState.turn - gameState.lastSpecialEventTurn) < 5) continue;
 
             // Check month-specific events
             if (template.month >= 0 && template.month !== month) continue;
@@ -456,6 +459,9 @@ const Events = (() => {
 
             // Roll for chance
             if (Math.random() > effectiveChance) continue;
+
+            // Only one special event per turn — if we already added one, skip further specials
+            if (template.special && newEvents.some(e => e.special)) continue;
 
             // Prevent same special event from firing twice in a row — swap to a different one
             let chosen = template;

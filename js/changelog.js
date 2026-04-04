@@ -1,14 +1,66 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
+const CHANGELOG_MD = `## v1.1.0 — Balance & Polish (2026-04-04)
 
 ### Added
+- **Restart to main menu** — RESTART button in the Menu panel returns to the start screen mid-game
+
+### Changed
+- **Advisor moved to bottom-right** — the advisor now permanently lives in the bottom-right corner; Show button matches the same position
+- **Menu button repositioned** — Menu is now the second button in the action bar, right after End Turn
+- **Easter egg probability rebalanced** — base chances significantly lowered for ~25% combined chance per year; max 1 per year; 4-month cooldown between events (was 2); catchup multiplier capped at 2x (was 4x); no two special events can fire on the same turn
+
+### Fixed
+- **Bidding war winner marked as OUT** — the auction winner is now always correctly highlighted, even when all rivals drop out in the same round
+- **Useless final auction bid** — rivals no longer make a pointless bid when they're the only participant left
+- **Autopilot hide button** — stopping autopilot via Hide now shows the departure quote for 3 seconds before the advisor slides away
+- **Quirk popup hidden by newspaper** — "DID YOU KNOW?" popups now appear above the HS/HBL prompt bar when it's visible
+- **Changelog spoilers removed** — redacted easter egg names, achievement names, and event counts from all changelog entries
+
+---
+
+## v1.0.0 — Helsingin Herra (2026-04-04)
+
+The game is complete! All systems, content, and polish are in place.
+
+### Added
+- **195 advisor quotes** — tripled the monopoly man's idle commentary pool so he repeats far less often
+- **Advisor portrait in auctions** — during autopilot, the monopoly man's face appears in bidding wars instead of the player's portrait
+- **Electron packaging** — the game can now be built as a standalone Windows .exe
+
+### Fixed
+- **Strange event achievement fix** — one easter egg achievement now unlocks correctly during natural gameplay (was only triggering via cheat)
+- **Autopilot repair banner** — condition percentages in the action banner are now rounded to whole numbers instead of showing long decimals
+
+---
+
+## v0.21.0 — The Mustache Takes the Wheel (2026-04-04)
+
+### Added
+- **Autopilot action banner** — a green banner at the top-center of the screen shows each AI decision in real time (buying, upgrading, repairing, ending turn, bidding, accepting/declining offers)
+- **Autopilot advisor remarks** — the advisor comments on his own brilliance every 4 actions, and always reacts to offer accept/decline and auction win/lose with tailored quips
+- **Advisor repositioned during autopilot** — moves to bottom-right so the property panel no longer covers him; Hide button follows directly above
+- **Autopilot Hide = fire the advisor** — clicking Hide during autopilot stops it with a snarky departure quote instead of just hiding
+
+### Fixed
+- **Autopilot auction dialog stuck** — bidding war result screen now auto-closes during autopilot instead of blocking
+- **Harakka description** — corrected to mention the ferry service instead of claiming the island is only reachable by rowboat
+- **Hide button position** — now always sits directly above the advisor box regardless of position, preventing overlap with the property panel
+
+---
+
+## v0.20.0 — The Sound of Silence (2026-04-04)
+
+### Added
+- **AI Autopilot cheat** — press "AI Autopilot" in the cheat panel and let the advisor play for you; buys properties by ROI, upgrades efficiently, repairs damaged buildings, handles rival offers and bidding wars automatically; the advisor moves to the bottom-right and makes periodic remarks about his own genius; an action banner at the top shows each decision in real time; clicking "Hide" during autopilot fires the advisor (and stops autopilot) with a snarky goodbye
 - **District Buy cheat** — new "Buy District" button in the cheat panel; click to enter mode, then click any district on the map to instantly acquire all unowned properties in it for free (separate from the single-property Free Buy mode)
 - **Easter egg cheat cycling** — the Easter Egg button now cycles through all events in a shuffled random order; once every event has been triggered once, the order reshuffles and starts again; the hint text shows how many remain in the current cycle
 
 ### Fixed & Improved
-- **Finnish Silence newspaper** — the special edition now correctly appears as Helsingin Sanomat (HS), not HBL; it also overwrites the last-read HS so the re-read button in the bottom bar reflects it
-- **Finnish Silence duration** — silence now lasts the entire turn and lifts naturally when you press End Turn, instead of fading after 8 seconds
-- **Finnish Silence newspaper content** — enriched with new stories; one may or may not appear depending on your settings
+- **Easter egg newspaper fix** — a certain special edition now correctly appears as the right newspaper; it also overwrites the last-read copy so the re-read button reflects it
+- **Easter egg duration fix** — one easter egg's effect now lasts the entire turn and lifts naturally when you press End Turn, instead of fading too early
+- **Easter egg newspaper content** — enriched with new stories; one may or may not appear depending on your settings
+- **Missing Strange Events achievement** — one easter egg event was missing its achievement entirely since v0.9.3; now added
+- **Easter egg achievements not triggering** — strange event achievements now unlock immediately when the event fires (via cheat or naturally), instead of being lost to a timing issue with event expiry
 
 ---
 
@@ -17,7 +69,7 @@ const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
 ### Added
 - **Peter Vesterbacka** — 4th rival, the red-hooded creator of Angry Birds. Targets waterfront, offices, and anything tunnel-adjacent to Tallinn. Comes with 50 unique quips, a day-1 newspaper intro, 12 filler stories (tunnel pitches, hoodie at state dinners, rollerblading property tours), and a pixel-art portrait complete with red zip hoodie and drawstrings
 - **Clickable map objects** — 7 new clickable decorations with humorous blurbs: Viking Line ferry, Silja Line ferry, Suomenlinna fortress, the Moose in the north, Korkeasaari Zoo, Mustikkamaa blueberry, and Töölönlahti fountain
-- **Finnish Silence in cheat menu** — the Finnish Silence easter egg can now be triggered via the cheat panel like all other easter eggs
+- **New easter egg in cheat menu** — one more easter egg can now be triggered via the cheat panel like all others
 - **Cheat panel easter egg status** — a hint appears below the Easter Egg button when all eggs are currently active
 
 ---
@@ -29,7 +81,7 @@ const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
 - **Property quirks** — 33% chance of a "DID YOU KNOW?" popup when buying a property, with 15 humorous quirks per property type (90 total)
 - **Clickable landmarks** — all 20 landmarks on the map are now clickable, opening a panel with 1–2 humorous paragraphs about the location
 - **Tenant letters to the editor** — 20 new filler stories in Helsingin Sanomat written as letters from disgruntled (and delighted) tenants
-- **Finnish Silence easter egg** — rare event where all sounds stop; special silence-themed newspaper; "The Finnish Way" 🤫 achievement; 10 advisor quotes
+- **New easter egg** — a rare event with its own special newspaper edition, achievement, and advisor quotes
 - **City council vote events** — 10 new district-specific events (rent caps, landmark grants, parking fees, etc.) with 🏛️ ticker icon
 - **HBL "Translate into English"** — Hufvudstadsbladet now has a translate button that opens a side-by-side English edition with the same stories in the same order; close button reads "STÄNG" in Swedish
 - **Tutorial updates** — new "Finding Properties with Filters" tip highlighting the "Can Afford & Available" filter; actions-per-turn now reflects difficulty (5/4/3); removed alien invasion spoiler
@@ -70,7 +122,7 @@ const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
 ## v0.16.4 — Auctions & Achievements (2026-04-03)
 
 ### Added
-- **Strange Events achievements** — 8 new achievements tracking easter egg encounters, in a dedicated section
+- **Strange Events achievements** — new achievements tracking easter egg encounters, in a dedicated section
 - **Achievement categories** — achievements now grouped under section headers
 
 ### Changed
@@ -221,11 +273,10 @@ const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
 ## v0.12.0 — Mysteries of Helsinki (2026-04-03)
 
 ### Added
-- **8 rare special events** — strange and wonderful things may happen in Helsinki when you least expect them
+- **Rare special events** — strange and wonderful things may happen in Helsinki when you least expect them
   - Some appear only in certain seasons or months
   - Some affect the whole city, others target specific districts or property types
   - Each has unique animated visuals and sound effects
-  - One features a press release dialog with a familiar face
 - **2-month cooldown** between special events — no more clustering
 - **One-time events** — certain surprises can only happen once per campaign
 - **Seasonal cheat protection** — trying to cheat a seasonal event out of season gives a cryptic hint

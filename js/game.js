@@ -24,7 +24,7 @@ const GameState = {
     usedRivalFillerIndices: {}, // track which rival filler stories have been shown per rival
     gameOver: false,
     nokiaHasOccurred: false, // Nokia Comeback can only trigger once per campaign
-    lastSpecialEventTurn: -3, // turn when last special event triggered (cooldown: 2 months)
+    lastSpecialEventTurn: -5, // turn when last special event triggered (cooldown: 4 months)
     specialEventMultiplier: 1.0, // dynamic easter egg chance multiplier (halved on proc, doubled if dry year)
     specialEventThisYear: false, // tracks if any special event fired this calendar year
     specialEventOccurrences: {}, // tracks how many times each special event has fired (max 3, 1 for Nokia)
@@ -59,7 +59,7 @@ const Game = (() => {
         GameState.usedFillerIndices = [];
         GameState.usedRivalFillerIndices = {};
         GameState.nokiaHasOccurred = false;
-        GameState.lastSpecialEventTurn = -3;
+        GameState.lastSpecialEventTurn = -5;
         GameState.specialEventMultiplier = 1.0;
         GameState.specialEventThisYear = false;
         GameState.specialEventOccurrences = {};
@@ -174,6 +174,9 @@ const Game = (() => {
                 GameState.lastSpecialEventId = event.id;
             }
 
+            // Unlock achievement immediately for this easter egg
+            Achievements.onEasterEgg(event.id);
+
             // Play event sound and show Swedish newspaper
             if (event.id === 'finnish_silence') {
                 Sound.silenceAll();
@@ -246,8 +249,8 @@ const Game = (() => {
                 // Had an event last year — reset to baseline
                 GameState.specialEventMultiplier = 1.0;
             } else {
-                // Dry year — double the chances (capped at 4x)
-                GameState.specialEventMultiplier = Math.min(4.0, GameState.specialEventMultiplier * 2);
+                // Dry year — double the chances (capped at 2x)
+                GameState.specialEventMultiplier = Math.min(2.0, GameState.specialEventMultiplier * 2);
             }
             GameState.specialEventThisYear = false;
             GameState.auctionThisYear = false;
@@ -542,6 +545,13 @@ const Game = (() => {
                 return;
             }
 
+            // If only 0-1 active rivals remain, end immediately — no useless extra bid
+            const preActiveRivals = a.bidders.filter(b => b.active);
+            if (preActiveRivals.length <= 1) {
+                resolveDropoutWinner();
+                return;
+            }
+
             a.round++;
             const results = Rivals.processAuctionRound(a);
 
@@ -591,6 +601,21 @@ const Game = (() => {
             if (activeRivals.length > 0) {
                 a.leader = activeRivals[0].rival.id;
                 a.currentBid = activeRivals[0].lastBid || a.currentBid;
+            } else {
+                // All rivals dropped — the last one to have bid highest wins
+                // Find the bidder with the highest lastBid
+                let bestBidder = null;
+                let bestBid = 0;
+                for (const b of a.bidders) {
+                    if (b.lastBid && b.lastBid > bestBid) {
+                        bestBid = b.lastBid;
+                        bestBidder = b;
+                    }
+                }
+                if (bestBidder) {
+                    a.leader = bestBidder.rival.id;
+                    a.currentBid = bestBid;
+                }
             }
             finishAuction();
         }
@@ -617,6 +642,10 @@ const Game = (() => {
             GameState.money -= a.currentBid;
             a.property.owner = 'player';
             Sound.playAuctionWin();
+            if (autopilotActive) {
+                autopilotQuote(AUTOPILOT_AUCTION_WIN_QUOTES);
+                MapRenderer.setAutopilotBanner(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}`);
+            }
             UI.showAuctionResult(a, true, `${GameState.playerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}!${loanMsg}`);
             UI.setNewsText(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}!${loanMsg}`);
             UI.addLogAction(`Won auction: ${a.property.name} for €${UI.formatMoney(a.currentBid)}${loanMsg}`);
@@ -630,6 +659,10 @@ const Game = (() => {
                 winner.rival.propertiesOwned++;
             }
             Sound.playAuctionLose();
+            if (autopilotActive) {
+                autopilotQuote(AUTOPILOT_AUCTION_LOSE_QUOTES);
+                MapRenderer.setAutopilotBanner(`Lost auction: ${a.property.name}`);
+            }
             const winnerName = winner ? winner.rival.shortName : 'Unknown';
             UI.showAuctionResult(a, false, `${winnerName} won ${a.property.name} for €${UI.formatMoney(a.currentBid)}.`);
             logYearlyEvent('auction', `${winnerName} outbid the competition for ${a.property.name}, paying €${UI.formatMoney(a.currentBid)}`, { winnerId: winner ? winner.rival.id : null });
@@ -764,6 +797,8 @@ const Game = (() => {
 
         if (pick === 'polar_bears') {
             MapRenderer.forcePolarBears();
+            Achievements.onEasterEgg('polar_bears');
+            UI.showPendingAchievements();
             UI.setNewsText(cheatMessages.polar_bears);
             return;
         }
@@ -791,6 +826,9 @@ const Game = (() => {
 
         GameState.activeEvents.push(event);
 
+        // Unlock achievement immediately
+        Achievements.onEasterEgg(pick);
+
         // Log for newspaper year-in-review
         logYearlyEvent(event.special ? 'special_event' : 'event', event.name);
 
@@ -815,6 +853,7 @@ const Game = (() => {
         UI.updateHUD(GameState);
         MapRenderer.render();
         UI.setNewsText(cheatMessages[pick]);
+        UI.showPendingAchievements();
     }
 
     function buyProperty(property) {
@@ -1163,6 +1202,293 @@ const Game = (() => {
         MapRenderer.render();
     }
 
+    // === AI AUTOPILOT ===
+    let autopilotActive = false;
+    let autopilotTimer = null;
+    let autopilotActionCount = 0;
+
+    const AUTOPILOT_ACTION_QUOTES = [
+        "See? THIS is how you build an empire.",
+        "Another brilliant move, if I do say so myself.",
+        "The mustache knows best.",
+        "You couldn't have done that. I mean, literally.",
+        "I should charge consulting fees for this.",
+        "Watch and learn. Mostly learn.",
+        "Every decision I make is a masterpiece.",
+        "This is almost too easy. Almost.",
+        "I'd tip my hat, but I need both hands for deal-making.",
+        "The portfolio grows. The legend grows.",
+        "Don't take notes — you won't understand them anyway.",
+        "They should teach this at university. The course? Me.",
+    ];
+
+    const AUTOPILOT_OFFER_ACCEPT_QUOTES = [
+        "A deal that benefits ME? I'll take it.",
+        "The mustache senses profit. Deal!",
+        "I've never met a good deal I didn't like.",
+        "This practically sells itself. Because I'm selling it.",
+        "Pleasure doing business. The pleasure is all mine.",
+    ];
+
+    const AUTOPILOT_OFFER_DECLINE_QUOTES = [
+        "Nice try. The mustache isn't fooled.",
+        "I didn't become an advisor by accepting BAD deals.",
+        "Hard pass. I have standards. MONOCLE standards.",
+        "They'll have to do better than that.",
+        "Declined with extreme prejudice and mild amusement.",
+    ];
+
+    const AUTOPILOT_AUCTION_WIN_QUOTES = [
+        "SOLD! To the magnificent gentleman with the top hat!",
+        "Was there ever any doubt? No. No there was not.",
+        "Another property for the collection!",
+        "I love the sound of a gavel. Especially when I win.",
+        "The rivals never stood a chance.",
+    ];
+
+    const AUTOPILOT_AUCTION_LOSE_QUOTES = [
+        "Pfft. I didn't want it anyway.",
+        "I let them have it. Strategy. You wouldn't understand.",
+        "Overpaying is THEIR problem now.",
+        "A tactical retreat. Very different from losing.",
+        "The mustache lives to bid another day.",
+    ];
+
+    function autopilotQuote(quotes) {
+        MapRenderer.setAdvisorQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+    }
+
+    function autopilotPeriodicRemark() {
+        autopilotActionCount++;
+        if (autopilotActionCount % 4 === 0) {
+            autopilotQuote(AUTOPILOT_ACTION_QUOTES);
+        }
+    }
+
+    const AUTOPILOT_QUOTES = [
+        "Step aside — I'LL handle this!",
+        "Finally! You've made the right decision: letting ME play.",
+        "Sit back, relax, and watch a MASTER at work.",
+        "The mustache takes the wheel!",
+        "I've been waiting for this moment my entire career.",
+        "You won't regret this. Well... probably not.",
+        "At last! The tycoon becomes the advisor, and the advisor becomes the TYCOON!",
+        "Don't touch anything. I mean it. NOTHING.",
+        "Time to show you how a REAL monopoly man operates.",
+        "I have a monocle AND a top hat. I'm literally more qualified than you.",
+    ];
+
+    const AUTOPILOT_STOP_QUOTES = [
+        "Fine. Take the reins back. See if I care.",
+        "You're making a mistake. But sure, go ahead.",
+        "The mustache is disappointed, but not surprised.",
+        "Back to watching. Back to JUDGING.",
+        "I was just getting started!",
+        "You'll be back. They always come back.",
+    ];
+
+    function startAutopilot() {
+        if (autopilotActive) return;
+        autopilotActive = true;
+        autopilotActionCount = 0;
+        Sound.playClick();
+        const quote = AUTOPILOT_QUOTES[Math.floor(Math.random() * AUTOPILOT_QUOTES.length)];
+        MapRenderer.setAdvisorQuote(quote);
+        UI.setNewsText('AI Autopilot engaged — the advisor takes over!');
+        UI.addLogAction('AI Autopilot activated');
+        scheduleAutopilot(1500);
+    }
+
+    function stopAutopilot() {
+        if (!autopilotActive) return;
+        autopilotActive = false;
+        if (autopilotTimer) { clearTimeout(autopilotTimer); autopilotTimer = null; }
+        const quote = AUTOPILOT_STOP_QUOTES[Math.floor(Math.random() * AUTOPILOT_STOP_QUOTES.length)];
+        MapRenderer.setAdvisorQuote(quote);
+        UI.setNewsText('AI Autopilot disengaged — you\'re back in control.');
+        UI.addLogAction('AI Autopilot deactivated');
+        UI.clearAutopilotUI();
+    }
+
+    function isAutopilot() { return autopilotActive; }
+
+    function scheduleAutopilot(delay) {
+        if (autopilotTimer) clearTimeout(autopilotTimer);
+        autopilotTimer = setTimeout(autopilotTick, delay);
+    }
+
+    function autopilotTick() {
+        autopilotTimer = null;
+        if (!autopilotActive || GameState.gameOver) {
+            if (GameState.gameOver) stopAutopilot();
+            return;
+        }
+
+        // 1. Handle pending offer
+        if (pendingOffer) {
+            autopilotHandleOffer();
+            scheduleAutopilot(2000);
+            return;
+        }
+
+        // 2. Handle active auction
+        if (activeAuction && activeAuction.finished) {
+            // Auction ended — close the dialog automatically
+            closeAuction();
+            scheduleAutopilot(1500);
+            return;
+        }
+        if (activeAuction && !activeAuction.finished) {
+            autopilotHandleAuction();
+            scheduleAutopilot(2000);
+            return;
+        }
+
+        // 3. Take actions if available
+        if (GameState.actionsRemaining > 0) {
+            const acted = autopilotChooseAction();
+            if (acted) {
+                scheduleAutopilot(1500);
+            } else {
+                MapRenderer.setAutopilotBanner('Ending turn — nothing worth doing');
+                endTurn();
+                scheduleAutopilot(2500);
+            }
+            return;
+        }
+
+        // 4. No actions left — end turn
+        MapRenderer.setAutopilotBanner(`Ending turn ${GameState.turn}`);
+        endTurn();
+        scheduleAutopilot(2500);
+    }
+
+    function autopilotHandleOffer() {
+        if (!pendingOffer) return;
+        const offer = pendingOffer;
+        if (offer.type === 'buy') {
+            if (offer.premium >= 15) {
+                MapRenderer.setAutopilotBanner(`Accepting offer: selling ${offer.property.name} at +${offer.premium}%`);
+                UI.addLogAction(`AI accepted sell offer: ${offer.property.name} at +${offer.premium}%`);
+                autopilotQuote(AUTOPILOT_OFFER_ACCEPT_QUOTES);
+                acceptOffer();
+            } else {
+                MapRenderer.setAutopilotBanner(`Declining offer: ${offer.property.name} (only +${offer.premium}%)`);
+                UI.addLogAction(`AI declined sell offer: ${offer.property.name} (only +${offer.premium}%)`);
+                autopilotQuote(AUTOPILOT_OFFER_DECLINE_QUOTES);
+                declineOffer();
+            }
+        } else {
+            if (offer.discount >= 10 && GameState.money >= offer.price) {
+                MapRenderer.setAutopilotBanner(`Accepting offer: buying ${offer.property.name} at -${offer.discount}%`);
+                UI.addLogAction(`AI accepted buy offer: ${offer.property.name} at -${offer.discount}%`);
+                autopilotQuote(AUTOPILOT_OFFER_ACCEPT_QUOTES);
+                acceptOffer();
+            } else {
+                MapRenderer.setAutopilotBanner(`Declining offer: ${offer.property.name}`);
+                UI.addLogAction(`AI declined buy offer: ${offer.property.name}`);
+                autopilotQuote(AUTOPILOT_OFFER_DECLINE_QUOTES);
+                declineOffer();
+            }
+        }
+    }
+
+    function autopilotHandleAuction() {
+        if (!activeAuction || activeAuction.finished) return;
+        const a = activeAuction;
+        const nextBid = a.currentBid + a.increment;
+        const availableCredit = Economy.getAvailableCredit(GameState);
+        const totalBuyingPower = GameState.money + availableCredit;
+
+        const maxWillingBid = a.property.price * 0.9;
+        const cashReserve = GameState.money * 0.2;
+        if (nextBid <= maxWillingBid && totalBuyingPower >= nextBid + cashReserve) {
+            MapRenderer.setAutopilotBanner(`Raising bid to €${UI.formatMoney(nextBid)}`);
+            UI.addLogAction(`AI raises auction bid to €${UI.formatMoney(nextBid)}`);
+            auctionPlayerRaise();
+        } else {
+            MapRenderer.setAutopilotBanner('Dropping out of auction');
+            UI.addLogAction('AI drops out of auction');
+            auctionPlayerDropout();
+        }
+    }
+
+    function autopilotChooseAction() {
+        const playerProps = GameState.properties.filter(p => p.owner === 'player');
+        const money = GameState.money;
+
+        // Priority 1: Repair severely damaged properties (condition < 50%)
+        const damaged = playerProps
+            .filter(p => p.condition < 50)
+            .sort((a, b) => a.condition - b.condition);
+        for (const prop of damaged) {
+            const cost = Properties.getRepairCost(prop);
+            if (cost > 0 && money >= cost) {
+                MapRenderer.setAutopilotBanner(`Repairing ${prop.name} (${Math.round(prop.condition)}%)`);
+                autopilotPeriodicRemark();
+                repairProperty(prop);
+                return true;
+            }
+        }
+
+        // Priority 2: Upgrade properties with best ROI
+        const upgradeable = playerProps
+            .filter(p => {
+                const cost = Properties.getUpgradeCost(p);
+                return cost !== null && money >= cost;
+            })
+            .map(p => {
+                const cost = Properties.getUpgradeCost(p);
+                const estGain = Math.max(1000, p.revenue * 0.15);
+                return { prop: p, cost, roi: estGain / cost };
+            })
+            .sort((a, b) => b.roi - a.roi);
+        if (upgradeable.length > 0 && upgradeable[0].roi > 0.01) {
+            const u = upgradeable[0];
+            MapRenderer.setAutopilotBanner(`Upgrading ${u.prop.name} (Lv${u.prop.upgradeLevel + 1})`);
+            autopilotPeriodicRemark();
+            upgradeProperty(u.prop);
+            return true;
+        }
+
+        // Priority 3: Buy best available property
+        const netWorth = Economy.calculateNetWorth(GameState);
+        const reserve = Math.max(20000, netWorth * 0.1);
+        const budget = money - reserve;
+        if (budget > 0) {
+            const available = GameState.properties
+                .filter(p => p.owner === null && !p.easterEgg && p.price <= budget)
+                .map(p => ({
+                    prop: p,
+                    roi: p.revenue / p.price,
+                }))
+                .sort((a, b) => b.roi - a.roi);
+            if (available.length > 0 && available[0].roi > 0.003) {
+                const pick = available[0];
+                MapRenderer.setAutopilotBanner(`Buying ${pick.prop.name} (€${UI.formatMoney(pick.prop.price)})`);
+                autopilotPeriodicRemark();
+                buyProperty(pick.prop);
+                return true;
+            }
+        }
+
+        // Priority 4: Repair moderately damaged properties (condition < 75%)
+        const moderate = playerProps
+            .filter(p => p.condition < 75 && p.condition >= 50)
+            .sort((a, b) => a.condition - b.condition);
+        for (const prop of moderate) {
+            const cost = Properties.getRepairCost(prop);
+            if (cost > 0 && money >= cost) {
+                MapRenderer.setAutopilotBanner(`Repairing ${prop.name} (${Math.round(prop.condition)}%)`);
+                autopilotPeriodicRemark();
+                repairProperty(prop);
+                return true;
+            }
+        }
+
+        return false; // nothing worth doing
+    }
+
     return {
         start,
         endTurn,
@@ -1180,6 +1506,9 @@ const Game = (() => {
         cheatRivalOffer,
         cheatEasterEgg,
         cheatBuyDistrict,
+        startAutopilot,
+        stopAutopilot,
+        isAutopilot,
         autoSave,
         saveGame,
         loadGame,
