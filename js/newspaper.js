@@ -1989,6 +1989,68 @@ const Newspaper = (() => {
                 rival: 'risto',
             },
         ],
+        peter: [
+            {
+                title: 'VESTERBACKA PITCHES HELSINKI TUNNEL PROJECT TO THIRD CONSECUTIVE WORLD LEADER',
+                text: 'Peter Vesterbacka held his third pitch meeting in as many months with a sitting head of government, this time presenting his Helsinki–Tallinn tunnel concept to an audience described as "high-level and genuinely curious." The meeting lasted 90 minutes. Vesterbacka emerged wearing his red hoodie and smiling. "It\'s happening," he said simply. When asked for a timeline, he paused. "Faster than anyone expects." The tunnel, if built, would be the longest undersea tunnel in the world. Vesterbacka considers this a minor detail.',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA WEARS RED HOODIE TO STATE DINNER, BECOMES TALKING POINT',
+                text: 'Peter Vesterbacka attended a formal state reception wearing what eyewitnesses confirm was his signature red zip hoodie. Protocol officials reportedly suggested a jacket. Vesterbacka reportedly suggested that protocol was "an opportunity for disruption." He wore the hoodie. Photographs of him at the dinner were widely shared, generating approximately 40,000 social media posts. Three of the posts were from heads of state. "The hoodie is a statement," he told reporters. "The statement is: I\'m here to work."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA ANNOUNCES HELSINKI PROPERTY ACQUISITION IS "PHASE ONE"',
+                text: '"This is Phase One," Peter Vesterbacka told investors at a Slush side event, gesturing at a map of his Helsinki property portfolio. When asked what Phase Two involved, he smiled and mentioned the tunnel. When asked what Phase Three involved, he mentioned "creating a new kind of European city." Attendees described the presentation as "inspiring and somewhat difficult to follow." Vesterbacka described it as "conservative."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA COMPARES HELSINKI TO ANGRY BIRDS: "LEVEL ONE IS ALMOST COMPLETE"',
+                text: 'In an interview with a Finnish business publication, Peter Vesterbacka described his property strategy as "similar to Angry Birds — you master each level before the next one unlocks." Level One, he explained, was building a Helsinki portfolio. Level Two involves the tunnel. Level Three was described only as "what comes after the tunnel." The journalist asked if there was a Level Four. Vesterbacka smiled. "There\'s always a Level Four."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA SPOTTED IN FIVE HELSINKI DISTRICTS IN ONE MORNING',
+                text: 'Property agents in Helsinki have compared notes and confirmed that Peter Vesterbacka visited five separate districts before noon on Tuesday, dressed in his red hoodie and carrying what appeared to be a hand-drawn map. "He seemed to know exactly where he was going," said one agent in Jätkäsaari. "And also somehow simultaneously in Katajanokka," confirmed another. Vesterbacka has not clarified whether there is one of him or whether, as one agent speculated, "he simply moves very fast."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA KEYNOTE AT SLUSH: "HELSINKI IS THE CENTRE OF EVERYTHING"',
+                text: 'Peter Vesterbacka delivered what conference organisers described as "the most enthusiastic keynote we have ever hosted" at Slush, beginning with the claim that Helsinki is "the centre of everything" and ending with an invitation for every person in the audience to invest in the Helsinki–Tallinn tunnel. Applause lasted four minutes. Seventeen audience members requested follow-up meetings. "The world is finally catching up," Vesterbacka said backstage, adjusting his hoodie. "We\'ve always known."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA SENDS POSTCARDS FROM EVERY CITY, ALL SAY "Helsinki IS BETTER"',
+                text: 'Friends and investors of Peter Vesterbacka have reported receiving postcards from his travels — Tokyo, Singapore, San Francisco, Dubai, New York — each featuring a local landmark on the front and a handwritten note on the back reading, in full: "Helsinki is better. — Peter." Those who asked for elaboration received a follow-up postcard. It also said "Helsinki is better." Recipients describe the correspondence as "motivating" and "completely Peter."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA CELEBRATES PROPERTY PURCHASE WITH ANGRY BIRDS REFERENCE',
+                text: 'Following the acquisition of a prime waterfront property in Katajanokka, Peter Vesterbacka released a short video on social media of himself launching a small plush Angry Bird at a scale model of the building. "Direct hit," he narrated. The video was viewed 2.1 million times. Three venture capital firms contacted him within 24 hours. "The physics is good," he commented. "The building has excellent structural fundamentals."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA PROPOSES RENAMING SOUTH HARBOUR "THE LAUNCH PAD"',
+                text: 'Peter Vesterbacka has submitted a formal — or at least enthusiastic — proposal to the City of Helsinki to rename South Harbour "The Launch Pad," citing its status as "the future gateway between Finland and a 100-million-person Baltic market." City planners confirmed receipt of the proposal. They have not committed to a timeline. Vesterbacka considers this progress. "When I first pitched Angry Birds, nobody understood it either," he said.',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA ADDS TWELVE NEW INVESTORS TO TUNNEL PROJECT IN ONE WEEK',
+                text: 'Peter Vesterbacka announced that twelve new institutional investors have signed letters of intent regarding the Helsinki–Tallinn tunnel project, all secured in a single week of meetings conducted primarily from airport lounges. "Geography is temporary," he explained. "The tunnel makes it permanent." When asked if the tunnel has planning permission, Vesterbacka described the question as "Phase Six thinking." He is currently in Phase One.',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA HOSTS PROPERTY TOUR WEARING ROLLERBLADES',
+                text: 'Estate agents accompanying Peter Vesterbacka on a tour of six potential acquisition targets in Jätkäsaari were surprised to find he arrived on rollerblades. "He was faster than our car," confirmed one agent. Vesterbacka covered six properties in 45 minutes, made offers on four, and rollerbladed back to the ferry terminal. "Speed matters," he said at the harbour. "In gaming and real estate both."',
+                rival: 'peter',
+            },
+            {
+                title: 'VESTERBACKA\'S RED HOODIE SELLS OUT AFTER APPEARING IN VIRAL PHOTO',
+                text: 'The specific model of red zip hoodie worn by Peter Vesterbacka in a widely circulated photograph with three tech leaders sold out across Finland within 36 hours. "It\'s the same hoodie I wear every day," Vesterbacka confirmed. "I own seven. This is not a wardrobe strategy. It is a uniform." He declined to name the brand. Online sleuths identified it within two hours. The manufacturer has not commented but their website crashed twice.',
+                rival: 'peter',
+            },
+        ],
     };
 
     // Rival personality descriptions for day 1 newspaper
@@ -2004,6 +2066,10 @@ const Newspaper = (() => {
         risto: {
             name: 'Risto Siilasmaa',
             text: 'The tech visionary and former Nokia chairman brings a data-driven approach to the property race. Siilasmaa has been quietly analyzing Helsinki\'s districts using proprietary algorithms, targeting office spaces and tech corridors with surgical precision. "Real estate is just another system to optimize," he explained, adjusting his glasses. "I\'ve studied the numbers. I like what I see."',
+        },
+        peter: {
+            name: 'Peter Vesterbacka',
+            text: 'The Mighty Eagle has landed. Peter Vesterbacka, creator of Angry Birds and Finland\'s most enthusiastic global ambassador, has pivoted from mobile gaming to real estate — and he\'s already talking about tunnels. "This city is a platform," he declared, wearing the red hoodie that has accompanied him from Rovio boardrooms to meetings with heads of state. "Platforms need to scale." He will focus on harbour-front properties and anything within tunnel-distance of Tallinn.',
         },
     };
 
@@ -2662,12 +2728,23 @@ const Newspaper = (() => {
             { title: 'TRAM RUNS ON SCHEDULE FOR SEVENTH CONSECUTIVE DAY', text: 'The number 9 tram completed all scheduled runs this week without incident. Commuters reported nothing remarkable. This is, in fact, remarkable.' },
             { title: 'LOCAL LIBRARY VERY QUIET', text: 'Staff at Oodi Library noted the building was particularly hushed on Wednesday. "Even the printers," said one librarian. "It was very nice." The moment lasted approximately four minutes before someone started a video call without headphones.' },
             { title: 'NOTHING HAPPENED IN KAIVOPUISTO', text: 'The park was pleasant. People walked their dogs. The dogs were well-behaved. One dog looked at the sea for a long time. Nobody asked why.' },
+            { title: 'SILENCE DESCRIBED AS "DEEPLY COMFORTING"', text: 'Residents across Helsinki reported feeling an unusual sense of well-being today as the city fell completely silent. "This is the most Finnish thing that has ever happened," said a woman in Kallio, whispering so as not to ruin it. Psychologists confirmed that prolonged silence is, in fact, the Finnish ideal state. "Other cultures have music, laughter, conversation," noted Dr. Heikki Laine of the University of Helsinki. "We have this." No complaints were filed.' },
         ];
         const headline = silenceHeadlines[Math.floor(Math.random() * silenceHeadlines.length)];
         const stories = [{ headline: true, ...headline }];
         // Add 2-3 quiet filler stories
         const shuffled = [...silenceFillers].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
         for (const s of shuffled) stories.push(s);
+        // 4th wall break: if the player has manually turned off music or sounds, add a knowing remark
+        if (typeof Sound !== 'undefined' && (!Sound.isMusicEnabled() || !Sound.isSfxEnabled())) {
+            stories.push({
+                title: 'EDITORIAL: ON THE NATURE OF SILENCE',
+                text: 'Our editors could not help but notice that someone — and we are not pointing fingers — appears to have switched off ' +
+                    (!Sound.isMusicEnabled() && !Sound.isSfxEnabled() ? 'all sound entirely' :
+                     !Sound.isMusicEnabled() ? 'the music' : 'the sound effects') +
+                    ' even before today\'s blessed silence descended upon Helsinki. One might say you were ahead of the curve. One might even say you are, in fact, Finnish. We see you. We respect you. We will not speak of this again.',
+            });
+        }
         return {
             date: `${month} ${year} — Special Edition`,
             stories,

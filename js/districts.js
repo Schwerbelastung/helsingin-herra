@@ -1302,7 +1302,7 @@ const HelsinkiDistricts = (() => {
         },
         {
             name: 'Seurasaari Open-Air Museum',
-            pos: geoToMap([[60.1825, 24.9000]])[0],
+            pos: geoToMap([[60.181, 24.900]])[0],
             district: null,
             blurb: ["Seurasaari island houses an open-air museum of traditional Finnish buildings gathered from around the country, because Finland decided the best way to preserve its rural heritage was to move it to an island in Helsinki and let people wander through it on weekends.", "The island is also home to a large population of red squirrels who have decided that museum visitors are an excellent source of food and have no fear whatsoever. They will approach you. This is considered charming by everyone except the person being approached."],
         },
@@ -1566,6 +1566,21 @@ const HelsinkiDistricts = (() => {
                 [60.181, 24.991],
                 [60.181, 24.988],
                 [60.182, 24.986],
+            ]),
+        },
+        {
+            name: 'Possusaari',
+            label: true,
+            polygon: geoToMap([
+                // Small mysterious island — top-right corner of map
+                [60.200, 24.991],
+                [60.201, 24.990],
+                [60.203, 24.991],
+                [60.204, 24.993],
+                [60.203, 24.996],
+                [60.201, 24.997],
+                [60.200, 24.995],
+                [60.200, 24.991],
             ]),
         },
     ];

@@ -17,6 +17,7 @@ const UI = (() => {
 
     // Cheat state
     let freeBuyMode = false;
+    let districtBuyMode = false;
 
     // Pending game start (held while tutorial prompt is shown)
     let pendingStart = null;
@@ -409,6 +410,21 @@ Good luck — become the Helsingin Herra!`,
         document.getElementById('btn-achievements').addEventListener('click', () => {
             Sound.playClick();
             showAchievementsPanel();
+        });
+
+        document.getElementById('btn-newspaper').addEventListener('click', () => {
+            Sound.playClick();
+            if (lastNewspaper && lastSwedishPaper) {
+                // Both available — re-open the prompt so user can choose
+                pendingNewspaper = lastNewspaper;
+                pendingSwedishPaper = lastSwedishPaper;
+                returnToPromptAfterClose = true;
+                showNewspaperPrompt(lastNewspaper, lastSwedishPaper);
+            } else if (lastNewspaper) {
+                showNewspaper(lastNewspaper);
+            } else if (lastSwedishPaper) {
+                showNewspaper(lastSwedishPaper);
+            }
         });
 
         document.getElementById('achievements-close').addEventListener('click', () => {
@@ -1271,6 +1287,15 @@ Good luck — become the Helsingin Herra!`,
             setNewsText(freeBuyMode ? 'Free Buy Mode ON' : 'Free Buy Mode OFF');
         });
 
+        document.getElementById('cheat-district-buy').addEventListener('click', () => {
+            districtBuyMode = !districtBuyMode;
+            document.getElementById('cheat-district-buy').classList.toggle('active', districtBuyMode);
+            document.getElementById('cheat-district-status').textContent = districtBuyMode
+                ? 'ON — click a district on the map'
+                : 'OFF — click a district to buy all its properties';
+            setNewsText(districtBuyMode ? 'District Buy Mode ON — click a district' : 'District Buy Mode OFF');
+        });
+
         document.getElementById('cheat-repair-all').addEventListener('click', () => {
             let count = 0;
             for (const p of GameState.properties) {
@@ -1322,6 +1347,18 @@ Good luck — become the Helsingin Herra!`,
         if (btn) btn.classList.remove('active');
         const status = document.getElementById('cheat-free-status');
         if (status) status.textContent = 'OFF — click a property to buy for free';
+    }
+
+    function isDistrictBuyMode() {
+        return districtBuyMode;
+    }
+
+    function clearDistrictBuyMode() {
+        districtBuyMode = false;
+        const btn = document.getElementById('cheat-district-buy');
+        if (btn) btn.classList.remove('active');
+        const status = document.getElementById('cheat-district-status');
+        if (status) status.textContent = 'OFF — click a district to buy all its properties';
     }
 
     function formatEventEffect(event) {
@@ -2024,10 +2061,32 @@ Good luck — become the Helsingin Herra!`,
     let pendingNewspaper = null; // stored paper data while prompt is showing
     let pendingSwedishPaper = null; // HBL paper during Swedish invasion
     let returnToPromptAfterClose = false; // whether to re-show prompt after closing a paper
+    let lastNewspaper = null;      // most recent HS for re-read button
+    let lastSwedishPaper = null;   // most recent HBL for re-read button
+
+    function updateNewspaperBtn() {
+        const btn = document.getElementById('btn-newspaper');
+        if (!btn) return;
+        if (!lastNewspaper && !lastSwedishPaper) {
+            btn.classList.add('hidden');
+            return;
+        }
+        btn.classList.remove('hidden');
+        if (lastSwedishPaper && lastNewspaper) {
+            btn.textContent = 'HS/HBL';
+        } else if (lastSwedishPaper) {
+            btn.textContent = 'HBL';
+        } else {
+            btn.textContent = 'HS';
+        }
+    }
 
     function showNewspaperPrompt(paper, swedishPaper) {
         pendingNewspaper = paper;
         pendingSwedishPaper = swedishPaper || null;
+        if (paper) lastNewspaper = paper;
+        if (swedishPaper) lastSwedishPaper = swedishPaper;
+        updateNewspaperBtn();
         returnToPromptAfterClose = !!(paper && swedishPaper); // return to prompt if both available
         const prompt = document.getElementById('newspaper-prompt');
         const textEl = document.getElementById('newspaper-prompt-text');
@@ -2613,6 +2672,8 @@ Good luck — become the Helsingin Herra!`,
         addLogAction,
         isFreeBuyMode,
         clearFreeBuyMode,
+        isDistrictBuyMode,
+        clearDistrictBuyMode,
         showPendingAchievements,
         showAchievementsPanel,
         showRivalQuip,

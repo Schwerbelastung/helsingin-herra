@@ -41,6 +41,9 @@ const GameState = {
 // Undo snapshot — stores state before last player action
 let undoSnapshot = null;
 
+// Easter egg cheat cycle — shuffled queue so all events appear before any repeats
+let easterEggQueue = [];
+
 const Game = (() => {
 
     function start(capital, difficulty, mode, rivalCount, target, playerName, playerGender) {
@@ -115,6 +118,12 @@ const Game = (() => {
     function endTurn() {
         if (GameState.gameOver) return;
 
+        // Restore sound if Finnish Silence was active last turn
+        if (GameState.silenceUntilNextTurn) {
+            GameState.silenceUntilNextTurn = false;
+            Sound.restoreAll();
+        }
+
         Sound.playEndTurn();
 
         // 1. Process monthly finances (staff salary deducted here)
@@ -168,12 +177,11 @@ const Game = (() => {
             // Play event sound and show Swedish newspaper
             if (event.id === 'finnish_silence') {
                 Sound.silenceAll();
+                GameState.silenceUntilNextTurn = true;
                 MapRenderer.triggerAdvisorAction('finnish_silence');
-                // Show a special "nothing to report" newspaper immediately
+                // Show a special "nothing to report" HS newspaper immediately
                 const silencePaper = Newspaper.generateSilencePaper(GameState);
-                UI.showNewspaperPrompt(null, silencePaper);
-                // Restore sound after 8 seconds (one turn's worth of silence)
-                setTimeout(() => Sound.restoreAll(), 8000);
+                UI.showNewspaperPrompt(silencePaper, null);
             } else if (event.id === 'swedish_invasion') {
                 Sound.playSwedishAnthem();
                 // Show HBL special edition
@@ -708,14 +716,19 @@ const Game = (() => {
             'polar_bears', 'alien_invasion',
             'tonttu_invasion', 'moose_rush_hour', 'nokia_comeback',
             'northern_lights', 'rubber_duck', 'angry_bird', 'swedish_invasion',
+            'finnish_silence',
         ];
-        // Remove any already active
-        const available = options.filter(id => !GameState.activeEvents.some(e => e.id === id));
-        if (available.length === 0) {
-            UI.setNewsText('All easter eggs are already active!');
-            return;
+        // Refill queue with a fresh shuffle when empty
+        if (easterEggQueue.length === 0) {
+            easterEggQueue = [...options].sort(() => Math.random() - 0.5);
         }
-        const pick = available[Math.floor(Math.random() * available.length)];
+        const pick = easterEggQueue.shift();
+        const easterStatusEl = document.getElementById('cheat-easter-status');
+        if (easterStatusEl) {
+            easterStatusEl.textContent = easterEggQueue.length === 0
+                ? 'Full cycle complete — reshuffling next time'
+                : `${easterEggQueue.length} remaining in cycle`;
+        }
 
         const cheatMessages = {
             polar_bears: 'BREAKING: Polar bears spotted swimming near the coastline! Check the shores of Helsinki!',
@@ -727,6 +740,7 @@ const Game = (() => {
             rubber_duck: 'HARBOUR MYSTERY: Something large and yellow has appeared in South Harbour. What could it be?',
             angry_bird: 'EYEWITNESS: Something red, round, and very angry just launched across the Helsinki sky!',
             swedish_invasion: 'BREAKING: Swedish flags spotted across Helsinki! District signs are being replaced... Du gamla, du fria!',
+            finnish_silence: '...',
         };
 
         // Check if seasonal cheat is out of season
@@ -785,6 +799,12 @@ const Game = (() => {
             Sound.playSwedishAnthem();
             const hblPaper = Newspaper.generateSwedishPaper(GameState);
             UI.showNewspaperPrompt(null, hblPaper);
+        } else if (pick === 'finnish_silence') {
+            Sound.silenceAll();
+            GameState.silenceUntilNextTurn = true;
+            MapRenderer.triggerAdvisorAction('finnish_silence');
+            const silencePaper = Newspaper.generateSilencePaper(GameState);
+            UI.showNewspaperPrompt(silencePaper, null);
         } else {
             Sound.playEventSpecial();
         }
@@ -1122,6 +1142,27 @@ const Game = (() => {
         return getSaveInfo(MANUAL_SAVE_KEY);
     }
 
+    function cheatBuyDistrict(districtId) {
+        const targets = GameState.properties.filter(p => p.owner === null && !p.easterEgg && p.district === districtId);
+        UI.clearDistrictBuyMode();
+        if (targets.length === 0) {
+            UI.setNewsText('No unowned properties in that district!');
+            return;
+        }
+        for (const prop of targets) {
+            prop.owner = 'player';
+            Achievements.onBuy();
+        }
+        Sound.playBuy();
+        MapRenderer.triggerAdvisorAction('buy');
+        UI.updateHUD(GameState);
+        const district = HelsinkiDistricts.districts.find(d => d.id === districtId);
+        const districtName = district ? district.name : districtId;
+        UI.setNewsText(`Bought ${targets.length} properties in ${districtName} for free!`);
+        UI.addLogAction(`Cheat: bought ${targets.length} properties in ${districtName}`);
+        MapRenderer.render();
+    }
+
     return {
         start,
         endTurn,
@@ -1138,6 +1179,7 @@ const Game = (() => {
         cheatBiddingWar,
         cheatRivalOffer,
         cheatEasterEgg,
+        cheatBuyDistrict,
         autoSave,
         saveGame,
         loadGame,

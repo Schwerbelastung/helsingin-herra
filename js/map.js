@@ -187,10 +187,24 @@ const MapRenderer = (() => {
             }
         }
 
+        // Check map clickables (ferries, moose, fountain, etc.)
+        for (const mc of MAP_CLICKABLES) {
+            const mdx = mapPos[0] - mc.pos[0];
+            const mdy = mapPos[1] - mc.pos[1];
+            if (Math.sqrt(mdx * mdx + mdy * mdy) < 16) {
+                if (typeof UI !== 'undefined') UI.showLandmarkPanel(mc);
+                return;
+            }
+        }
+
         // Check districts
         for (const district of HelsinkiDistricts.districts) {
             if (pointInPolygon(mapPos, district.polygon)) {
-                if (typeof UI !== 'undefined') UI.showDistrictInfo(district);
+                if (typeof UI !== 'undefined' && UI.isDistrictBuyMode && UI.isDistrictBuyMode()) {
+                    if (typeof Game !== 'undefined') Game.cheatBuyDistrict(district.id);
+                } else if (typeof UI !== 'undefined') {
+                    UI.showDistrictInfo(district);
+                }
                 return;
             }
         }
@@ -244,6 +258,17 @@ const MapRenderer = (() => {
                 if (Math.sqrt(dx * dx + dy * dy) < 10) {
                     newHoveredLandmark = lm;
                     break;
+                }
+            }
+            // Also check map clickables
+            if (!newHoveredLandmark) {
+                for (const mc of MAP_CLICKABLES) {
+                    const dx = mapPos[0] - mc.pos[0];
+                    const dy = mapPos[1] - mc.pos[1];
+                    if (Math.sqrt(dx * dx + dy * dy) < 14) {
+                        newHoveredLandmark = mc;
+                        break;
+                    }
                 }
             }
         }
@@ -2349,6 +2374,43 @@ const MapRenderer = (() => {
         }
     }
 
+    function drawPig(x, y) {
+        // Body — pink oval approximated with rects
+        ctx.fillStyle = '#ffaabb';
+        ctx.fillRect(x - 7, y - 3, 14, 7);
+        ctx.fillRect(x - 5, y - 5, 10, 3);   // top rounding
+        ctx.fillRect(x - 5, y + 4, 10, 2);   // bottom rounding
+        // Head (pig faces right — toward Helsinki, naturally)
+        ctx.fillStyle = '#ffaabb';
+        ctx.fillRect(x + 5, y - 5, 7, 7);
+        // Ears
+        ctx.fillStyle = '#ff88aa';
+        ctx.fillRect(x + 6, y - 8, 2, 4);
+        ctx.fillRect(x + 9, y - 8, 2, 4);
+        // Snout
+        ctx.fillStyle = '#ff88aa';
+        ctx.fillRect(x + 10, y - 3, 4, 4);
+        // Nostrils
+        ctx.fillStyle = '#cc5577';
+        ctx.fillRect(x + 11, y - 2, 1, 1);
+        ctx.fillRect(x + 13, y - 2, 1, 1);
+        // Eye
+        ctx.fillStyle = '#220011';
+        ctx.fillRect(x + 7, y - 4, 2, 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + 7, y - 4, 1, 1);
+        // Legs
+        ctx.fillStyle = '#ff99bb';
+        ctx.fillRect(x - 4, y + 4, 3, 4);
+        ctx.fillRect(x,     y + 4, 3, 4);
+        ctx.fillRect(x + 4, y + 4, 3, 4);
+        ctx.fillRect(x + 8, y + 4, 3, 4);
+        // Curly tail
+        ctx.fillStyle = '#ff88aa';
+        ctx.fillRect(x - 9, y - 1, 3, 2);
+        ctx.fillRect(x - 10, y - 3, 2, 3);
+    }
+
     // === ZOO / KORKEASAARI SPRITES ===
 
     function drawKorkeasaariDeco(cx, cy, palette) {
@@ -2625,7 +2687,92 @@ const MapRenderer = (() => {
         ],
         moose: HelsinkiDistricts.geoToMap([[60.198, 24.940]])[0],         // Northern green area near Pasila
         lighthouse: HelsinkiDistricts.geoToMap([[60.151, 24.969]])[0],    // Lighthouse Island W of Suomenlinna
+        pig: HelsinkiDistricts.geoToMap([[60.202, 24.993]])[0],           // Siansaari — top-right corner
     };
+
+    // Clickable map decorations — non-landmark items with humorous blurb popups
+    const MAP_CLICKABLES = [
+        {
+            name: 'Viking Line',
+            pos: HelsinkiDistricts.geoToMap([[60.163, 24.965]])[0],
+            blurb: [
+                'The MS Viking Grace looms over South Harbour like a floating apartment block with ambitions. Built to carry 2,500 passengers, 500 cars, and an essentially unlimited quantity of Estonian spirits, Viking Line has been connecting Helsinki to Stockholm and Tallinn since 1963. The red hull is their thing. Nobody else is allowed a red hull. This has never been legally enforced, but Viking Line gives a very pointed look.',
+                'The onboard experience is best described as a Finnish wedding at sea. There is a buffet. There is a casino. There is a disco that begins at 10pm sharp regardless of whether anyone is there. The duty-free shop is the true spiritual centre of the vessel. Finns have been known to calculate entire trip costs based purely on what they save on Koskenkorva. This is considered rational.',
+            ],
+        },
+        {
+            name: 'Silja Line',
+            pos: HelsinkiDistricts.geoToMap([[60.160, 24.958]])[0],
+            blurb: [
+                'The white and blue behemoth of Silja Line has departed from Olympia Terminal since time immemorial — or at least since 1957, which in maritime terms is approximately the same thing. The flagship Silja Serenade is so large it has its own promenade deck, a shopping mall suspended over the Baltic, and a casino that never acknowledges the time of day. Travel writers have called it "a cruise ship that accidentally became a Baltic commuter route."',
+                'Silja Line and Viking Line share South Harbour in a relationship best described as cold professional respect. They are parked roughly 200 metres from each other. The crews do not wave. The captains have been known to have coffee at the same harbour café at the same time, in complete silence, reading different newspapers. This is considered normal.',
+            ],
+        },
+        {
+            name: 'Suomenlinna',
+            pos: HelsinkiDistricts.geoToMap([[60.148, 24.984]])[0],
+            blurb: [
+                'Suomenlinna — the Fortress of Finland — is an 18th-century sea fortress built on six islands by the Swedes in 1748, controlled by the Russians from 1808, returned to Finland in 1917, and listed as a UNESCO World Heritage Site in 1991. It is staffed by approximately 800 permanent residents who chose to live on a fortress island and appear entirely at peace with this decision. They have a kindergarten, a church, a brewery, and absolutely no road access.',
+                'Getting to Suomenlinna requires a 15-minute ferry ride, which is either charming or an inconvenience depending entirely on whether you are a tourist or a resident who forgot milk. The Swedish invasion event tends to be especially dramatic here — locals report it "did not feel particularly different," given that the Swedes built the place. The ferry runs every 20 minutes. There is no excuse for being late, and yet.',
+            ],
+        },
+        {
+            name: 'Harakka',
+            pos: HelsinkiDistricts.geoToMap([[60.146, 24.949]])[0],
+            blurb: [
+                'Harakka — Magpie Island — is Helsinki\'s best-kept secret: a nature reserve sitting just 400 metres from the mainland, in full view of the Kaivopuisto café terrace, yet entirely unreachable except by rowboat or kayak. The island is home to a thriving colony of cormorants, a dozen other bird species, and since 1990, a Helsinki City Art Museum studio where artists work in residence every summer. The birds tolerate this arrangement. The artists find the birds inspiring.',
+                'There is no ferry to Harakka. There is no bridge. The only way is to paddle. Helsinki residents are strangely proud of this. "It\'s right there," they say, pointing at the island from the park. "You just have to row." Whether this qualifies as adventure or inconvenience depends entirely on your relationship with oars and cormorant noise. The cormorants are not subtle.',
+            ],
+        },
+        {
+            name: 'A Moose',
+            pos: HelsinkiDistricts.geoToMap([[60.198, 24.940]])[0],
+            blurb: [
+                'This moose has been observed in the green area north of Pasila for as long as anyone can remember. Nobody is certain how it arrived. The area is urban enough that a moose has absolutely no business being there, and yet. Helsinki\'s relationship with moose is complicated: they are simultaneously a beloved national symbol, a significant traffic hazard, and the subject of the most aggressive warning signs in the Finnish road network.',
+                'Hirvi — the Finnish word for moose — also means horror or terrible thing. This is not a coincidence. A full-grown bull moose weighs 500 kilograms and can cover ground at 55 kilometres per hour. During the Moose Rush Hour event, this particular individual appears to be the ringleader. He has never confirmed this. He has also never denied it. This is consistent with moose communication generally.',
+            ],
+        },
+        {
+            name: 'Korkeasaari Zoo',
+            pos: HelsinkiDistricts.geoToMap([[60.182, 24.990]])[0],
+            blurb: [
+                'Founded in 1889, Korkeasaari is one of the oldest zoos in the world and sits on its own island, accessible by ferry or, in winter, very carefully over the ice. The zoo houses snow leopards, Amur tigers, pygmy hippos, and approximately 200 other species — all of whom have presumably noted that their island enclosure is surrounded by the Baltic Sea and weighed the logistics of escape unfavourably.',
+                'The zoo\'s unofficial mascot is a Siberian tiger who, according to keeper reports, has a strong personality and opinions about visiting hours. Admission is €18 for adults. The gift shop sells stuffed animals of species that are also alive 40 metres away in the same complex. Whether this is reassuring or unsettling is left as an exercise for the visitor.',
+            ],
+        },
+        {
+            name: 'Mustikkamaa',
+            pos: HelsinkiDistricts.geoToMap([[60.187, 24.988]])[0],
+            blurb: [
+                'Mustikka means blueberry in Finnish, and Mustikkamaa — Blueberry Land — takes its name seriously. This island park has been a Helsinki recreational spot since the 1800s, beloved for its beaches, camping areas, and the sheer density of wild blueberries covering the forest floor every August. Picking them is legal, traditional, and considered by many Finns to be a meditative practice requiring no explanation.',
+                'Finns have a powerful relationship with berries: they pick them in quantities suggesting preparation for a siege, freeze them by the bucket, and add them to everything from soup to schnapps. The blueberry is not merely a fruit in Finland. It is a philosophy. The enormous blueberry sculpture here exists because someone decided that a place called Blueberry Land needed a blueberry visible from space. This was not obviously a bad decision.',
+            ],
+        },
+        {
+            name: 'Töölönlahti Fountain',
+            pos: HelsinkiDistricts.geoToMap([[60.180, 24.937]])[0],
+            blurb: [
+                'The fountain at Töölönlahti bay is one of Helsinki\'s most quietly beloved landmarks — a modest jet of water in the middle of a body of water that is already wet, which raises philosophical questions that Finnish pragmatism declines to address. The bay itself is a central park, a jogging route, an outdoor concert venue, and the only body of water in Helsinki that freezes reliably enough for ice skating every January.',
+                'In summer the fountain runs continuously, watched by joggers, swan-pedalo operators, and people eating lunch on the grass in the desperate Finnish manner of someone who cannot be certain the sun will return. In winter the fountain stops. The ice forms. People appear with their skates within hours. The swans have relocated. Nobody knows where they go. This is considered one of Helsinki\'s minor mysteries.',
+            ],
+        },
+        {
+            name: 'The Lighthouse',
+            pos: HelsinkiDistricts.geoToMap([[60.151, 24.969]])[0],
+            blurb: [
+                'The lighthouse on this tiny island west of Suomenlinna has been blinking methodically into the Helsinki night since the 19th century, warning ships away from the rocks with the quiet dedication of someone who has been doing the same job for 150 years and has simply run out of opinions about it. It was automated in 1969. The last lightkeeper walked to the boat and did not look back.',
+                'The lighthouse blinks every four seconds. You can watch it from South Harbour at night. Every four seconds. Tick. Tick. Tick. Maritime historians find this deeply reassuring. Insomniacs find it something else entirely. The lighthouse does not distinguish between audiences. It just blinks. It was built to blink. It will keep blinking.',
+            ],
+        },
+        {
+            name: 'Possu',
+            pos: HelsinkiDistricts.geoToMap([[60.202, 24.993]])[0],
+            blurb: [
+                'Possusaari has exactly one resident: a pink Possu (pig) of unknown origin, unclear purpose, and remarkable composure given the circumstances. Nobody knows how it got here. Possu has declined to comment. It spends its days at the water\'s edge, facing southwest toward Helsinki with an expression that the handful of kayakers who have paddled out to verify its existence describe as "philosophical."',
+                'Close observers have noted that Possu experiences episodes of intense, inexplicable yearning — particularly on Friday evenings. Researchers now believe this is related to an overwhelming desire to attend a LAN party, a theory supported by Possu\'s apparent attempts to drag a small flat rock to the highest point of the island for better line of sight. There are no servers. There is no power. The ping would be catastrophic. Possu stares southwest. Possu persists.',
+            ],
+        },
+    ];
 
     function drawLandDecorations(palette) {
         // Tram
@@ -2663,6 +2810,9 @@ const MapRenderer = (() => {
 
         // Lighthouse on lighthouse island
         drawLighthouse(landDecoPositions.lighthouse[0], landDecoPositions.lighthouse[1], palette);
+
+        // The pig
+        drawPig(landDecoPositions.pig[0], landDecoPositions.pig[1]);
     }
 
     // === PIXEL ART BUILDING SPRITES ===
@@ -4289,6 +4439,7 @@ const MapRenderer = (() => {
         if (rivalId === 'nalle') drawBjornPortrait(c);
         else if (rivalId === 'hjallis') drawHjallisPortrait(c);
         else if (rivalId === 'risto') drawRistoPortrait(c);
+        else if (rivalId === 'peter') drawPeterPortrait(c);
 
         c.restore();
     }
@@ -4550,6 +4701,126 @@ const MapRenderer = (() => {
         c.fillRect(21, 25, 6, 1);
         c.fillStyle = '#c07060';
         c.fillRect(22, 26, 4, 1);
+    }
+
+    function drawPeterPortrait(c) {
+        // Background — dark red-maroon
+        c.fillStyle = '#1a0505';
+        c.fillRect(0, 0, 48, 48);
+
+        // === RED HOODIE (most distinctive feature) ===
+        // Main hoodie body
+        c.fillStyle = '#cc2200';
+        c.fillRect(7, 30, 34, 18);
+        // Hoodie collar/hood rim — slightly darker
+        c.fillStyle = '#aa1800';
+        c.fillRect(10, 27, 28, 7);
+        // Kangaroo pocket
+        c.fillStyle = '#bb1f00';
+        c.fillRect(14, 37, 20, 7);
+        c.fillStyle = '#aa1b00';
+        c.fillRect(14, 37, 20, 1);
+        // Zipper track down center
+        c.fillStyle = '#999999';
+        c.fillRect(23, 28, 2, 20);
+        // Zipper pull
+        c.fillStyle = '#bbbbbb';
+        c.fillRect(22, 32, 4, 2);
+        // White drawstrings
+        c.fillStyle = '#dddddd';
+        c.fillRect(19, 28, 1, 12);
+        c.fillRect(28, 28, 1, 12);
+        // Drawstring ends
+        c.fillStyle = '#cccccc';
+        c.fillRect(18, 40, 3, 2);
+        c.fillRect(27, 40, 3, 2);
+        // Hoodie shoulder shading
+        c.fillStyle = '#bb1e00';
+        c.fillRect(7, 30, 6, 8);
+        c.fillRect(35, 30, 6, 8);
+
+        // Neck
+        c.fillStyle = '#d8b090';
+        c.fillRect(20, 25, 8, 6);
+
+        // === FACE ===
+        c.fillStyle = '#d8b090';
+        c.fillRect(14, 8, 20, 19);
+        // Chin
+        c.fillRect(16, 25, 16, 3);
+        // Round cheeks
+        c.fillStyle = '#d0a888';
+        c.fillRect(13, 17, 2, 7);
+        c.fillRect(33, 17, 2, 7);
+
+        // === HAIR — short, dark, slightly receding ===
+        c.fillStyle = '#2a2020';
+        c.fillRect(15, 5, 18, 5);
+        // Receding temples (skin shows through slightly)
+        c.fillStyle = '#3a2828';
+        c.fillRect(15, 6, 2, 4);
+        c.fillRect(31, 6, 2, 4);
+        // Top of head / crown
+        c.fillStyle = '#221818';
+        c.fillRect(18, 3, 12, 5);
+        // Hair highlight
+        c.fillStyle = '#332222';
+        c.fillRect(20, 3, 6, 2);
+
+        // Ears
+        c.fillStyle = '#c8a080';
+        c.fillRect(12, 15, 2, 5);
+        c.fillRect(34, 15, 2, 5);
+
+        // === EYES — blue-grey, friendly ===
+        c.fillStyle = '#ffffff';
+        c.fillRect(17, 15, 5, 3);
+        c.fillRect(26, 15, 5, 3);
+        c.fillStyle = '#5588aa';
+        c.fillRect(19, 15, 3, 3);
+        c.fillRect(28, 15, 3, 3);
+        c.fillStyle = '#1a1a22';
+        c.fillRect(20, 16, 1, 2);
+        c.fillRect(29, 16, 1, 2);
+        // Eye highlight
+        c.fillStyle = '#aaccdd';
+        c.fillRect(19, 15, 1, 1);
+        c.fillRect(28, 15, 1, 1);
+
+        // Eyebrows — dark, slightly arched (friendly)
+        c.fillStyle = '#2a1818';
+        c.fillRect(17, 13, 6, 1);
+        c.fillRect(26, 13, 6, 1);
+        // Arch
+        c.fillRect(21, 12, 2, 1);
+        c.fillRect(30, 12, 2, 1);
+
+        // Nose
+        c.fillStyle = '#c8a080';
+        c.fillRect(22, 19, 4, 5);
+        c.fillStyle = '#b89068';
+        c.fillRect(21, 23, 2, 1);
+        c.fillRect(25, 23, 2, 1);
+
+        // === SHORT STUBBLE — subtle shadow ===
+        c.fillStyle = 'rgba(40, 15, 10, 0.25)';
+        c.fillRect(15, 22, 18, 5);
+        c.fillStyle = 'rgba(40, 15, 10, 0.15)';
+        c.fillRect(14, 20, 20, 3);
+
+        // === SMILE — friendly, confident ===
+        c.fillStyle = '#c07060';
+        c.fillRect(19, 24, 10, 1);
+        c.fillStyle = '#ffffff';
+        c.fillRect(20, 24, 8, 1);
+        c.fillStyle = '#b06050';
+        c.fillRect(19, 25, 10, 1);
+        c.fillStyle = '#c08070';
+        c.fillRect(20, 26, 8, 1);
+        // Smile lines
+        c.fillStyle = '#c09878';
+        c.fillRect(18, 23, 1, 4);
+        c.fillRect(29, 23, 1, 4);
     }
 
     // === PLAYER PORTRAITS ===

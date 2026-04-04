@@ -1,5 +1,28 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.18.0 — Life in Helsinki (2026-04-04)
+const CHANGELOG_MD = `## v0.20.0 — The Sound of Silence (2026-04-04)
+
+### Added
+- **District Buy cheat** — new "Buy District" button in the cheat panel; click to enter mode, then click any district on the map to instantly acquire all unowned properties in it for free (separate from the single-property Free Buy mode)
+- **Easter egg cheat cycling** — the Easter Egg button now cycles through all events in a shuffled random order; once every event has been triggered once, the order reshuffles and starts again; the hint text shows how many remain in the current cycle
+
+### Fixed & Improved
+- **Finnish Silence newspaper** — the special edition now correctly appears as Helsingin Sanomat (HS), not HBL; it also overwrites the last-read HS so the re-read button in the bottom bar reflects it
+- **Finnish Silence duration** — silence now lasts the entire turn and lifts naturally when you press End Turn, instead of fading after 8 seconds
+- **Finnish Silence newspaper content** — enriched with new stories; one may or may not appear depending on your settings
+
+---
+
+## v0.19.0 — The Mighty Eagle (2026-04-04)
+
+### Added
+- **Peter Vesterbacka** — 4th rival, the red-hooded creator of Angry Birds. Targets waterfront, offices, and anything tunnel-adjacent to Tallinn. Comes with 50 unique quips, a day-1 newspaper intro, 12 filler stories (tunnel pitches, hoodie at state dinners, rollerblading property tours), and a pixel-art portrait complete with red zip hoodie and drawstrings
+- **Clickable map objects** — 7 new clickable decorations with humorous blurbs: Viking Line ferry, Silja Line ferry, Suomenlinna fortress, the Moose in the north, Korkeasaari Zoo, Mustikkamaa blueberry, and Töölönlahti fountain
+- **Finnish Silence in cheat menu** — the Finnish Silence easter egg can now be triggered via the cheat panel like all other easter eggs
+- **Cheat panel easter egg status** — a hint appears below the Easter Egg button when all eggs are currently active
+
+---
+
+## v0.18.0 — Life in Helsinki (2026-04-04)
 
 ### Added
 - **Rival personality quips** — Nalle, Hjallis, and Risto now make personal remarks that appear in the top-left corner with their portrait (50 unique quips each, ~1–2 per year)
