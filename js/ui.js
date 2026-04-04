@@ -274,8 +274,18 @@ After buying, you can:
 Tip: Keep properties in good condition! Below 25% you'll get warnings.`,
         },
         {
+            title: 'Finding Properties with Filters',
+            body: `Press <strong>F</strong> or click the <strong>Filter</strong> button to filter the map by property type, price range, district, or owner.
+
+The most useful quick filter is <strong>"Can Afford &amp; Available"</strong> — it highlights only the properties you can currently buy with your cash on hand. Use it whenever you're not sure what's within your budget.
+
+Other quick filters let you see only <strong>your properties</strong>, <strong>rival-owned</strong> ones, or <strong>unowned</strong> ones at a glance.
+
+Tip: Filters update automatically each turn as your cash changes.`,
+        },
+        {
             title: 'Actions & Turns',
-            body: `Each turn represents one month. You have <strong>3 actions per turn</strong> (4 on Easy).
+            body: `Each turn represents one month. You have <strong>5 actions per turn on Easy, 4 on Normal, 3 on Hard</strong>.
 
 Actions are spent on: buying, selling, upgrading, or repairing.
 
@@ -293,7 +303,7 @@ Each turn:
 
 <strong>Staff</strong> (T): Hire employees — a Maintenance Person auto-repairs, a Manager gives +1 action, an Accountant lowers interest, a Scout reveals deals.
 
-<strong>Events</strong>: Helsinki events like Flow Festival, Slush, and Christmas Markets boost revenue. Watch out for recessions, pipe bursts, and the occasional alien invasion!
+<strong>Events</strong>: Helsinki events like Flow Festival, Slush, and Christmas Markets boost revenue. Watch out for recessions, pipe bursts, and the occasional strange event...
 
 <strong>Seasons</strong> affect revenue: hotels boom in summer, retail peaks in winter.`,
         },
@@ -466,6 +476,7 @@ Good luck — become the Helsingin Herra!`,
                 }
             } else if (key === 'escape') {
                 // Close any open panel
+                hideLandmarkPanel();
                 hidePropertyPanel();
                 hideBankPanel();
                 hideStatsPanel();
@@ -515,6 +526,9 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupPanelClose() {
+        document.getElementById('landmark-panel-close').addEventListener('click', () => {
+            hideLandmarkPanel();
+        });
         document.getElementById('panel-close').addEventListener('click', () => {
             hidePropertyPanel();
         });
@@ -588,6 +602,29 @@ Good luck — become the Helsingin Herra!`,
         }
 
         sb.innerHTML = html;
+    }
+
+    function showLandmarkPanel(landmark) {
+        hideBankPanel();
+        hideStatsPanel();
+        hideStaffPanel();
+        hideMenuPanel();
+        hidePropertyPanel();
+        const panel = document.getElementById('landmark-panel');
+        document.getElementById('landmark-panel-title').textContent = landmark.name.toUpperCase();
+        const body = document.getElementById('landmark-panel-body');
+        body.innerHTML = '';
+        const blurbs = landmark.blurb || ['No information available.'];
+        for (const para of blurbs) {
+            const p = document.createElement('p');
+            p.textContent = para;
+            body.appendChild(p);
+        }
+        panel.classList.remove('hidden');
+    }
+
+    function hideLandmarkPanel() {
+        document.getElementById('landmark-panel').classList.add('hidden');
     }
 
     function showPropertyPanel(property) {
@@ -676,6 +713,65 @@ Good luck — become the Helsingin Herra!`,
                 ticker.classList.add('scrolling');
             }
         });
+    }
+
+    let quirkPopupTimer = null;
+
+    function showQuirkPopup(text) {
+        const el = document.getElementById('quirk-popup');
+        const textEl = document.getElementById('quirk-text');
+
+        if (quirkPopupTimer) {
+            clearTimeout(quirkPopupTimer);
+            quirkPopupTimer = null;
+        }
+
+        textEl.textContent = text;
+        el.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('show'));
+        });
+
+        quirkPopupTimer = setTimeout(() => {
+            el.classList.remove('show');
+            setTimeout(() => el.classList.add('hidden'), 400);
+            quirkPopupTimer = null;
+        }, 5000);
+    }
+
+    let rivalQuipTimer = null;
+
+    function showRivalQuip(rival, text) {
+        const el = document.getElementById('rival-quip');
+        const nameEl = document.getElementById('rival-quip-name');
+        const textEl = document.getElementById('rival-quip-text');
+
+        // Clear any existing timer
+        if (rivalQuipTimer) {
+            clearTimeout(rivalQuipTimer);
+            rivalQuipTimer = null;
+        }
+
+        nameEl.textContent = rival.shortName.toUpperCase();
+        nameEl.style.color = rival.color;
+        el.style.borderColor = rival.color;
+        textEl.textContent = text;
+
+        const portraitCanvas = document.getElementById('rival-quip-portrait');
+        if (portraitCanvas) MapRenderer.drawRivalPortrait(portraitCanvas, rival.id);
+
+        el.classList.remove('hidden');
+        // Trigger animation on next frame
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('show'));
+        });
+
+        // Auto-hide after 6 seconds
+        rivalQuipTimer = setTimeout(() => {
+            el.classList.remove('show');
+            setTimeout(() => el.classList.add('hidden'), 400);
+            rivalQuipTimer = null;
+        }, 6000);
     }
 
     function showBankPanel() {
@@ -1297,7 +1393,7 @@ Good luck — become the Helsingin Herra!`,
 
         if (summary.newEvents && summary.newEvents.length > 0) {
             for (const event of summary.newEvents) {
-                const prefix = event.special ? '👽' : event.positive ? '📈' : '📉';
+                const prefix = event.special ? '👽' : event.councilVote ? (event.positive ? '🏛️' : '🏛️') : event.positive ? '📈' : '📉';
                 const effect = formatEventEffect(event);
                 tickerParts.push(`${prefix} ${event.name}${effect ? ' [' + effect + ']' : ''}`);
             }
@@ -1966,26 +2062,11 @@ Good luck — become the Helsingin Herra!`,
         returnToPromptAfterClose = false;
     }
 
-    function showNewspaper(paper) {
-        if (!paper) paper = pendingNewspaper;
-        if (!paper) return;
-        // Don't clear pending data if we want to return to prompt
-        if (!returnToPromptAfterClose) {
-            hideNewspaperPrompt();
-        } else {
-            document.getElementById('newspaper-prompt').classList.add('hidden');
-        }
+    let currentNewspaper = null; // the paper currently displayed, for translation use
 
-        const overlay = document.getElementById('newspaper-overlay');
-        const mastheadEl = document.getElementById('newspaper-masthead');
-        const dateEl = document.getElementById('newspaper-date');
-        const storiesEl = document.getElementById('newspaper-stories');
-
-        mastheadEl.textContent = paper.isSwedish ? 'HUFVUDSTADSBLADET' : 'HELSINGIN SANOMAT';
-        dateEl.textContent = paper.date;
-
+    function buildStoryHtml(stories, useEnglish) {
         let html = '';
-        for (const story of paper.stories) {
+        for (const story of stories) {
             const isHeadline = story.headline;
             const hasPortrait = !!story.rival;
             const hasIllustration = !!story.illustration;
@@ -1999,15 +2080,18 @@ Good luck — become the Helsingin Herra!`,
                 const ilSize = isHeadline ? 120 : 96;
                 html += `<canvas class="newspaper-illustration${isHeadline ? ' newspaper-illustration-headline' : ''}" data-illustration="${story.illustration}" width="${ilSize}" height="${ilSize}"></canvas>`;
             }
+            const titleText = useEnglish ? (story.titleEn || story.title || story.headline) : (story.title || story.headline);
+            const bodyText = useEnglish ? (story.textEn || story.text) : story.text;
             html += `<div class="newspaper-story-content">`;
-            html += `<div class="newspaper-story-title">${story.title || story.headline}</div>`;
-            html += `<div class="newspaper-story-text">${story.text}</div>`;
+            html += `<div class="newspaper-story-title">${titleText}</div>`;
+            html += `<div class="newspaper-story-text">${bodyText}</div>`;
             html += `</div>`;
             html += `</div>`;
         }
-        storiesEl.innerHTML = html;
+        return html;
+    }
 
-        // Render portraits into canvases
+    function renderPortraitsAndIllustrations(storiesEl) {
         storiesEl.querySelectorAll('.newspaper-portrait').forEach(canvas => {
             const rivalId = canvas.dataset.rival;
             if (rivalId === 'player') {
@@ -2017,22 +2101,74 @@ Good luck — become the Helsingin Herra!`,
                 MapRenderer.drawRivalPortrait(canvas, rivalId);
             }
         });
-
-        // Render illustrations into canvases
         storiesEl.querySelectorAll('.newspaper-illustration').forEach(canvas => {
             const illId = canvas.dataset.illustration;
             if (illId && MapRenderer.drawNewsIllustration) {
                 MapRenderer.drawNewsIllustration(canvas, illId);
             }
         });
+    }
+
+    function showNewspaper(paper) {
+        if (!paper) paper = pendingNewspaper;
+        if (!paper) return;
+        currentNewspaper = paper;
+
+        // Don't clear pending data if we want to return to prompt
+        if (!returnToPromptAfterClose) {
+            hideNewspaperPrompt();
+        } else {
+            document.getElementById('newspaper-prompt').classList.add('hidden');
+        }
+
+        const overlay = document.getElementById('newspaper-overlay');
+        const mastheadEl = document.getElementById('newspaper-masthead');
+        const dateEl = document.getElementById('newspaper-date');
+        const storiesEl = document.getElementById('newspaper-stories');
+        const translateBtn = document.getElementById('newspaper-translate');
+        const closeBtn = document.getElementById('newspaper-close');
+
+        mastheadEl.textContent = paper.isSwedish ? 'HUFVUDSTADSBLADET' : 'HELSINGIN SANOMAT';
+        dateEl.textContent = paper.date;
+
+        storiesEl.innerHTML = buildStoryHtml(paper.stories, false);
+        renderPortraitsAndIllustrations(storiesEl);
+
+        // HBL-specific UI tweaks
+        if (paper.isSwedish) {
+            closeBtn.textContent = 'STÄNG';
+            translateBtn.style.display = 'inline-block';
+        } else {
+            closeBtn.textContent = 'CLOSE';
+            translateBtn.style.display = 'none';
+        }
+
+        // Hide translation panel when opening a fresh paper
+        document.getElementById('newspaper-translation').classList.add('hidden');
 
         overlay.classList.remove('hidden');
-        // Scroll to top
         document.getElementById('newspaper-content').scrollTop = 0;
+    }
+
+    function showNewspaperTranslation() {
+        if (!currentNewspaper || !currentNewspaper.isSwedish) return;
+        const panel = document.getElementById('newspaper-translation');
+        const dateEl = document.getElementById('newspaper-translation-date');
+        const storiesEl = document.getElementById('newspaper-translation-stories');
+
+        dateEl.textContent = currentNewspaper.date;
+        storiesEl.innerHTML = buildStoryHtml(currentNewspaper.stories, true);
+        renderPortraitsAndIllustrations(storiesEl);
+        panel.classList.remove('hidden');
+        panel.scrollTop = 0;
     }
 
     function closeNewspaper() {
         document.getElementById('newspaper-overlay').classList.add('hidden');
+        document.getElementById('newspaper-translation').classList.add('hidden');
+        currentNewspaper = null;
+        // Reset button text for next open
+        document.getElementById('newspaper-close').textContent = 'CLOSE';
         // If both papers were available, return to prompt so user can read the other
         if (returnToPromptAfterClose && (pendingNewspaper || pendingSwedishPaper)) {
             document.getElementById('newspaper-prompt').classList.remove('hidden');
@@ -2423,6 +2559,10 @@ Good luck — become the Helsingin Herra!`,
             Sound.playClick();
             closeNewspaper();
         });
+        document.getElementById('newspaper-translate').addEventListener('click', () => {
+            Sound.playClick();
+            showNewspaperTranslation();
+        });
         document.getElementById('newspaper-prompt-read').addEventListener('click', () => {
             Sound.playClick();
             showNewspaper(pendingNewspaper);
@@ -2475,5 +2615,9 @@ Good luck — become the Helsingin Herra!`,
         clearFreeBuyMode,
         showPendingAchievements,
         showAchievementsPanel,
+        showRivalQuip,
+        showQuirkPopup,
+        showLandmarkPanel,
+        hideLandmarkPanel,
     };
 })();

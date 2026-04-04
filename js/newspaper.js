@@ -1217,6 +1217,88 @@ const Newspaper = (() => {
             title: 'HELSINKI RANKED FIRST IN EUROPE FOR PERCENTAGE OF RESIDENTS WHO OWN WATERPROOF TROUSERS',
             text: 'A pan-European consumer goods survey has found that Helsinki has the highest percentage of residents who own at least one pair of waterproof over-trousers of any European capital, at an estimated 67%. "This is a practical city," noted the report. "When it rains in Helsinki, people continue doing whatever they were doing. They do not go inside. They put on the trousers." The second-ranked city, Oslo, scored 61%. The lowest-ranked capital: Athens. "No comment," said an Athenian city official.',
         },
+
+        // ── LETTERS TO THE EDITOR ───────────────────────────────────────────
+        {
+            title: 'LETTERS TO THE EDITOR: THE HEATING',
+            text: 'The heating works. The neighbour plays kantele at midnight. I have not complained. I am Finnish. — M. Korhonen, Kallio',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE LIFT',
+            text: 'The lift in my building has been broken for eleven months. I am on the sixth floor. My legs have never been better. I have not reported this to anyone. It does not seem necessary. — P. Virtanen, Töölö',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE NEIGHBOURS',
+            text: 'My neighbours moved in three years ago. We have not spoken. Last Tuesday one of them nodded at me. I nodded back. I consider this a strong relationship. — T. Mäkinen, Ullanlinna',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE PIPES',
+            text: 'There is a sound in the pipes every night at 2am. It sounds like someone is slowly dragging a chair across a stone floor. I have investigated. There is no chair. I sleep well regardless. This is my home. — R. Leinonen, Punavuori',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE SAUNA SCHEDULE',
+            text: 'The building sauna is available on Thursdays from 7 to 9pm. I have never used it on a Thursday. I do not know who does. The building committee says it is well-used. I accept this. — K. Salo, Kruununhaka',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE NEW TENANT',
+            text: 'A new tenant moved into the apartment above mine in April. I have heard walking, cooking, and what I believe is furniture arrangement. The furniture arrangement has been ongoing for six months. I have not mentioned this. I admire the commitment. — H. Järvi, Eira',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE WINDOW',
+            text: 'My window faces a wall. I have lived here for fourteen years. The wall is very consistent. I find this reassuring. Property values in this area have apparently risen significantly. I am content. — J. Nieminen, Kamppi',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE STAIRWELL',
+            text: 'Someone has been leaving a single potato on the window ledge of the stairwell every Monday morning since February. I do not know who. The potato is always fresh. I have never taken one. I feel that taking one would cross a boundary that cannot be uncrossed. — A. Mäkelä, Sörnäinen',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE VIEW',
+            text: 'I pay significant rent for a sea view. The sea is there. I look at it occasionally. It is the sea. I am satisfied with this arrangement and do not require it to do anything further. — S. Heikkinen, Kaivopuisto',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE SMELL',
+            text: 'Since March, the hallway smells faintly of cardamom. This is not unpleasant. I have asked no one about it. I do not need to know. Some things are better left as small mysteries. — L. Korhonen, Hakaniemi',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE BUILDING COMMITTEE',
+            text: 'I attended the building committee meeting for the first time in seven years. There was a dispute about the compost bin placement that has apparently been ongoing since 2018. I voted in favour of the east wall position. I do not know the full history of the conflict. I stand by my vote. — O. Virtanen, Lauttasaari',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE BALCONY',
+            text: 'I have a balcony. I have used it twice: once in 2019, and once this July when I wanted to see if I would. Both times were satisfactory. The balcony is still there. I consider this a good investment. — M. Lähteenmäki, Ruoholahti',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE MATTER OF THE KEY',
+            text: 'My spare key has been missing since Easter. I replaced the lock in May. In September, the key appeared on my kitchen table. I live alone. I have changed the lock again. I am not frightened. I am Finnish. — V. Koskinen, Katajanokka',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE COMMUNAL GARDEN',
+            text: 'The building has a small communal garden. No one uses it. Every spring someone mows it. No one has ever been seen mowing it. The grass is always cut. I find this to be one of the most civilised aspects of city life. — E. Leppänen, Kallio',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE PARKING SPACE',
+            text: 'I do not own a car. I have a designated parking space. For three years, no one has used it. This week, a bicycle appeared in it. The bicycle was polite about it. I have decided to allow this. — I. Toivonen, Jätkäsaari',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE POST BOX',
+            text: 'I receive mail addressed to a Paavo Koistinen. Paavo Koistinen has not lived here since at least 2004. I have been forwarding Paavo\'s mail to what I believe is his current address for six years. We have never met. I feel a quiet responsibility for Paavo. — N. Peltonen, Kruununhaka',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE CAT',
+            text: 'The building has a cat. The cat is not officially anyone\'s cat. The cat appears to receive adequate care, warmth, and food. The building committee has not discussed the cat. The cat has been here for four years. I believe the cat understands the situation perfectly. — T. Saarinen, Töölö',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE LIGHT IN THE STAIRWELL',
+            text: 'The motion sensor light in the stairwell turns off after twelve seconds. I have timed this. In twelve seconds I can descend two floors. I live on the fourth floor. I do not mind doing the last two floors in the dark. I know every step. I always have. — P. Niskanen, Punavuori',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE SUMMER',
+            text: 'Summer has been good. I spent most of it indoors because it was too hot, then outside because it was perfect, then indoors again because it rained, then outside because it was good again. This lasted six weeks. I am now prepared for winter. Winter is also fine. — U. Korhonen, Hietaniemi',
+        },
+        {
+            title: 'LETTERS TO THE EDITOR: THE MATTER IS RESOLVED',
+            text: 'In last year\'s letters I raised concerns about the timing of the stairwell cleaning schedule. I wish to inform readers that the matter has been resolved to a degree I consider satisfactory. I will not be writing again. — H. Mäkinen, Eira',
+        },
     ];
 
     // Rival-specific filler stories — about the tycoons' personal lives and antics
@@ -2376,22 +2458,32 @@ const Newspaper = (() => {
         {
             title: 'SVENSKA SPRÅKET TAR ÖVER HELSINGFORS — "ÄR DET 1812 IGEN?"',
             text: 'I vad som kan beskrivas som den mest överraskande kulturella händelsen på årtionden har svenska språket plötsligt tagit över Helsingfors stadslandskap. Gatunamn, distriktsskyltar och till och med menyer på lokala restauranger har växlat till svenska. "Jag vaknade och trodde jag var i Stockholm," sa en förvirrad invånare i Berghäll — förlåt, Kallio. Stadsfullmäktige har utfärdat ett uttalande som beskriver situationen som "lingvistiskt fascinerande." Turismen har ökat med 40 procent.',
+            titleEn: 'SWEDISH LANGUAGE TAKES OVER HELSINKI — "IS IT 1812 AGAIN?"',
+            textEn: 'In what can only be described as the most surprising cultural event in decades, the Swedish language has suddenly taken over Helsinki\'s urban landscape. Street names, district signs, and even menus at local restaurants have switched to Swedish. "I woke up and thought I was in Stockholm," said a bewildered resident of Berghäll — sorry, Kallio. The City Council has issued a statement describing the situation as "linguistically fascinating." Tourism has increased by 40 percent.',
         },
         {
             title: 'HELSINGFORS TALAR SVENSKA: EN HISTORISK VECKA I HUVUDSTADEN',
             text: 'Det har gått tre dagar sedan svenska flaggor hissades över Helsingfors och stadens invånare fortfarande anpassar sig till den nya tvåspråkiga verkligheten. Salutorget — nu Salutorget officiellt — rapporterar rekordsiffror för turister, varav många är förbryllade svenskar som trodde att de hade korsat Östersjön utan att märka det. "Vi har alltid varit tvåspråkiga," påpekar en lokal historiker. "Det här är bara lite mer... synligt."',
+            titleEn: 'HELSINKI SPEAKS SWEDISH: A HISTORIC WEEK IN THE CAPITAL',
+            textEn: 'Three days have passed since Swedish flags were raised over Helsinki and the city\'s residents are still adjusting to the new bilingual reality. Market Square — now officially Salutorget — reports record tourist numbers, many of them bewildered Swedes who thought they had crossed the Baltic without noticing. "We have always been bilingual," notes a local historian. "This is just a bit more... visible."',
         },
         {
             title: 'FLAGGAN VAJAR: SVERIGE ÅTERTAR HELSINGFORS — SYMBOLISKT',
             text: 'En stor svensk flagga vajar nu stolt i hjärtat av Helsingfors, och invånarna vet inte riktigt om de ska applådera eller ringa polisen. "Tekniskt sett är detta inte en invasion," klargjorde en diplomatisk talesman. "Det är mer av en... kulturell omfamning." Restauranger i Kronohagen har börjat servera köttbullar och lingonsylt som solidaritetsgest. Försäljningen av knäckebröd har fyrfaldigats.',
+            titleEn: 'THE FLAG WAVES: SWEDEN RECLAIMS HELSINKI — SYMBOLICALLY',
+            textEn: 'A large Swedish flag now flies proudly in the heart of Helsinki, and residents are not quite sure whether to applaud or call the police. "Technically this is not an invasion," clarified a diplomatic spokesperson. "It is more of a... cultural embrace." Restaurants in Kruununhaka have begun serving meatballs and lingonberry jam as a solidarity gesture. Sales of crispbread have quadrupled.',
         },
         {
             title: 'BERGHÄLL, KAMPEN, TÖLÖ: HELSINGFORS NYA GAMLA NAMN',
             text: 'Invånarna i Helsingfors har vaknat upp till ett stadslandskap som deras farföräldrar skulle ha känt igen. Kallio heter nu officiellt Berghäll, Kamppi har blivit Kampen, och Töölö stavas äntligen Tölö. "Äntligen!" utbrast en pensionerad svensklärare med tårar i ögonen. "Jag har väntat på detta i fyrtio år." Postverket meddelar att brev adresserade till båda namnen kommer att levereras utan fördröjning.',
+            titleEn: 'BERGHÄLL, KAMPEN, TÖLÖ: HELSINKI\'S NEW OLD NAMES',
+            textEn: 'Helsinki residents have woken up to an urban landscape their grandparents would have recognised. Kallio is now officially Berghäll, Kamppi has become Kampen, and Töölö is finally spelled Tölö. "At last!" exclaimed a retired Swedish teacher with tears in her eyes. "I have been waiting forty years for this." The postal service announces that letters addressed to either name will be delivered without delay.',
         },
         {
             title: '"DU GAMLA, DU FRIA" EKAR ÖVER SALUTORGET',
             text: 'De omistliga tonerna av den svenska nationalsången hördes tydligt över Helsingfors Salutorg i morse, vilket fick fiskhandlarna att tappa sina sillar och turisterna att resa sig i spontan respekt. Musikkritiker kallade framförandet "överraskande rörande" medan stadsorkesterns dirigent erkände att han "kanske sjöng med lite." Händelsen markerar kulmen av en vecka som Helsingfors aldrig kommer att glömma — eller fullt ut kunna förklara.',
+            titleEn: '"DU GAMLA, DU FRIA" ECHOES OVER MARKET SQUARE',
+            textEn: 'The unmistakeable notes of the Swedish national anthem were heard clearly over Helsinki\'s Market Square this morning, causing fishmongers to drop their herring and tourists to rise in spontaneous respect. Music critics called the performance "surprisingly moving" while the city orchestra\'s conductor admitted he had "perhaps sung along a little." The event marks the culmination of a week that Helsinki will never forget — or fully explain.',
         },
     ];
 
@@ -2399,86 +2491,128 @@ const Newspaper = (() => {
         {
             title: 'FÖLISÖN LOCKADE REKORDANTAL BESÖKARE TROTS "INVASIONEN"',
             text: 'Seurasaari — eller Fölisön som ön nu kallas — rapporterar ett rekordantal besökare som alla vill uppleva den tillfälliga namnbytet på plats. "De kommer för namnet, de stannar för ekorrarna," sa parkförvaltaren. Kaféet har tillfälligt bytt namn till "Fölisöns Fika" och serverar kanelbullar till självkostnadspris.',
+            titleEn: 'FÖLISÖN DREW RECORD VISITORS DESPITE "THE INVASION"',
+            textEn: 'Seurasaari — or Fölisön as the island is now called — reports a record number of visitors all wanting to experience the temporary name change in person. "They come for the name, they stay for the squirrels," said the park manager. The café has temporarily renamed itself "Fölisön Fika" and is serving cinnamon buns at cost price.',
         },
         {
             title: 'SVEABORG FIRAR ATT FÄSTNINGENS URSPRUNGLIGA NAMN ÅTERVÄNDER',
             text: 'Invånarna på Suomenlinna — nu åter Sveaborg — firade med en improviserad fest i den gamla fästningen. "Det här var alltid Sveaborg," sa en stolt guide. "Svenskarna byggde den 1748. Vi lånar bara den." Färjan dit har tillfälligt döpts om till "Sveaborgsfärjan" och kaptenens utropsmeddelanden görs uteslutande på svenska.',
+            titleEn: 'SVEABORG CELEBRATES AS THE FORTRESS\'S ORIGINAL NAME RETURNS',
+            textEn: 'Residents of Suomenlinna — now Sveaborg again — celebrated with an impromptu party in the old fortress. "This was always Sveaborg," said a proud guide. "The Swedes built it in 1748. We are merely borrowing it." The ferry there has been temporarily renamed "Sveaborgsfärjan" and the captain\'s announcements are made exclusively in Swedish.',
         },
         {
             title: 'BRUNNSPARKEN RAPPORTERAR ÖKAD PICKNICKTRAFIK',
             text: 'Kaivopuisto — förlåt, Brunnsparken — har sett en markant ökning av parkbesökare sedan distriktet fick tillbaka sitt svenska namn. "Det låter finare," medgav en jogger som sprang förbi. "Brunnsparken. Det rullar bättre på tungan." Glassförsäljningen i parken har ökat med 300 procent, vilket experter tillskriver "den allmänna känslan av festlighet."',
+            titleEn: 'BRUNNSPARKEN REPORTS INCREASED PICNIC TRAFFIC',
+            textEn: 'Kaivopuisto — pardon, Brunnsparken — has seen a marked increase in park visitors since the district recovered its Swedish name. "It sounds nicer," admitted a passing jogger. "Brunnsparken. It rolls off the tongue better." Ice cream sales in the park have increased 300 percent, which experts attribute to "the general sense of festivity."',
         },
         {
             title: 'KROGARNA I RÖDBERGEN LANSERAR SVENSKA MENYER',
             text: 'Restaurangerna i Punavuori — nu Rödbergen — har snabbt anpassat sig till den nya ordningen genom att lansera helt svenskspråkiga menyer. "Gravad lax, köttbullar, Janssons frestelse," räknade upp en kock. "Vi har alltid haft dessa rätter. Nu har vi bara rätt namn på dem." En vegansk restaurang erbjuder "havrebullar med lingon" och hävdar att det är "traditionell nordisk mat, fast utan djuren."',
+            titleEn: 'RÖDBERGEN RESTAURANTS LAUNCH SWEDISH MENUS',
+            textEn: 'Restaurants in Punavuori — now Rödbergen — have quickly adapted to the new order by launching fully Swedish-language menus. "Gravad lax, meatballs, Jansson\'s Temptation," listed one chef. "We have always had these dishes. Now we just have the right names for them." A vegan restaurant offers "oat balls with lingonberry" and claims it is "traditional Nordic food, minus the animals."',
         },
         {
             title: 'TÖLÖVIKEN LOCKAR KONSTINTRESSERADE TILL STRANDEN',
             text: 'Töölönlahti — numera Tölöviken — har blivit en magnet för friluftsartister som inspirerats av det poetiska svenska namnet. "Tölöviken låter som en tavla av Bruno Liljefors," sa en akvarellmålare som satt vid vattnet. "Töölönlahti låter som en motorväg." Stadsplanerare överväger att permanent behålla det svenska namnet, "om det hjälper med fastighetsvärdena."',
+            titleEn: 'TÖLÖVIKEN ATTRACTS ART LOVERS TO THE SHORE',
+            textEn: 'Töölönlahti — now Tölöviken — has become a magnet for outdoor artists inspired by the poetic Swedish name. "Tölöviken sounds like a painting by Bruno Liljefors," said a watercolour artist sitting by the water. "Töölönlahti sounds like a motorway." City planners are considering permanently keeping the Swedish name, "if it helps with property values."',
         },
         {
             title: 'HAGNÄS SALUHALLAR: "NU HETER DET HAGNÄS, SOM DET SKA"',
             text: 'Fiskhandlarna i Hakaniemis saluhall — nu Hagnäs Saluhall — har välkomnat namnbytet med öppna armar. "Min farfar kallade det alltid Hagnäs," berättade Risto, tredje generationens fiskhandlare. "Han vore stolt." Laxpriserna har höjts med 10 procent, "för att fira," förklarade Risto utan att blinka.',
+            titleEn: 'HAGNÄS MARKET HALL: "NOW IT\'S CALLED HAGNÄS, AS IT SHOULD BE"',
+            textEn: 'Fishmongers at Hakaniemi market hall — now Hagnäs Market Hall — have welcomed the name change with open arms. "My grandfather always called it Hagnäs," said Risto, a third-generation fishmonger. "He would be proud." Salmon prices have been raised by 10 percent, "to celebrate," explained Risto without blinking.',
         },
         {
             title: 'STUDENTERNA I GLOET FÖRVIRRADE AV NYTT GATUNAMN',
             text: 'Studenter vid Helsingfors universitet i Kluuvi — nu Gloet — har uttryckt mild förvirring över namnbytet. "Jag berättade för min mamma att jag bor i Gloet och hon trodde att jag hade flyttat till Sverige," sa en biologistudent. Universitetet har utfärdat ett officiellt meddelande: "Föreläsningarna hålls på samma plats oavsett vad distriktet kallas."',
+            titleEn: 'STUDENTS IN GLOET CONFUSED BY NEW DISTRICT NAME',
+            textEn: 'Students at the University of Helsinki in Kluuvi — now Gloet — have expressed mild confusion about the name change. "I told my mother I live in Gloet and she thought I had moved to Sweden," said a biology student. The university has issued an official statement: "Lectures are held in the same place regardless of what the district is called."',
         },
         {
             title: 'BUSHOLMENS BYGGARBETSPLATSER FORTSÄTTER OAVSETT NAMNBYTE',
             text: 'Byggarbetarna i Jätkäsaari — numera Busholmen — har meddelat att de "inte bryr sig om vad stadsdelen heter så länge lönerna kommer i tid." Projekledaren noterade dock att det svenska namnet "låter mer exotiskt, vilket kanske ökar bostadspriserna." En lyftkransoperatör på 80 meters höjd rapporterar att han kan se den svenska flaggan från sin hytt. "Den vajar vackert," sa han. "Jobbet är detsamma."',
+            titleEn: 'BUSHOLMEN CONSTRUCTION SITES CONTINUE REGARDLESS OF NAME CHANGE',
+            textEn: 'Construction workers in Jätkäsaari — now Busholmen — have announced that they "don\'t care what the neighbourhood is called as long as the wages arrive on time." The project manager noted, however, that the Swedish name "sounds more exotic, which might raise property prices." A crane operator at 80 metres height reports being able to see the Swedish flag from his cab. "It waves beautifully," he said. "The job is the same."',
         },
         {
             title: 'SÖRNÄS KULTURSCEN: "ÄNTLIGEN ETT NAMN SOM FOLK KAN UTTALA"',
             text: 'Musikerna och konstnärerna i Sörnäinen — nu Sörnäs — har omfamnat det nya namnet med entusiasm. "Sörnäs! Kort, snyggt, enkelt," sa en lokal musiker. "Försök att förklara \'Sörnäinen\' för en utländsk bokningsagent. Det tar fem minuter." Det lokala bryggeriet har lanserat en tillfällig öl kallad "Sörnäs Stout" som redan har sålt slut.',
+            titleEn: 'SÖRNÄS CULTURAL SCENE: "FINALLY A NAME PEOPLE CAN PRONOUNCE"',
+            textEn: 'Musicians and artists in Sörnäinen — now Sörnäs — have embraced the new name with enthusiasm. "Sörnäs! Short, smart, simple," said a local musician. "Try explaining \'Sörnäinen\' to a foreign booking agent. It takes five minutes." The local brewery has launched a temporary beer called "Sörnäs Stout" which has already sold out.',
         },
         {
             title: 'SKATUDDEN: "DET LÅTER SOM EN PIRATSAGA," SÄGER TURISTER',
             text: 'Katajanokka, som nu bär det historiska namnet Skatudden, har blivit en oväntad turistfavorit. "Skatudden! Det låter som en plats där pirater gömde sin skatt," sa en entusiastisk besökare från Malmö. Lokala guider har snabbt anpassat sina turer. "Vi berättar samma historia, men nu på svenska. Det tar 40 procent längre tid på grund av alla sammansatta ord."',
+            titleEn: 'SKATUDDEN: "IT SOUNDS LIKE A PIRATE STORY," SAY TOURISTS',
+            textEn: 'Katajanokka, now bearing the historic name Skatudden, has become an unexpected tourist favourite. "Skatudden! It sounds like a place where pirates hid their treasure," said an enthusiastic visitor from Malmö. Local guides have quickly adapted their tours. "We tell the same story, but now in Swedish. It takes 40 percent longer because of all the compound words."',
         },
         {
             title: 'GARDESSTADEN HEDRAR MILITÄRHISTORIEN MED TILLFÄLLIG UTSTÄLLNING',
             text: 'Kaartinkaupunki — eller Gardesstaden — har öppnat en tillfällig utställning om sin militärhistoria, inspirerad av namnbytet. "Gardesstaden var hemvist för den finska gardesbataljonen," förklarade museidirektören. "De flesta helsingforsare vet inte ens det." Utställningen inkluderar uniformer, kartor och ett oväntat populärt avsnitt om "vad soldaterna åt till frukost."',
+            titleEn: 'GARDESSTADEN HONOURS MILITARY HISTORY WITH TEMPORARY EXHIBITION',
+            textEn: 'Kaartinkaupunki — or Gardesstaden — has opened a temporary exhibition about its military history, inspired by the name change. "Gardesstaden was home to the Finnish Guards Battalion," explained the museum director. "Most Helsinki residents don\'t even know that." The exhibition includes uniforms, maps, and an unexpectedly popular section on "what soldiers ate for breakfast."',
         },
         {
             title: 'GRÖNÖ, LÖVÖ OCH GRANHOLMEN: ÖARNA FIRAR SINA SVENSKA NAMN',
             text: 'De lilla öarna Kaskisaari (Granö), Lehtisaari (Lövö) och Kuusisaari (Granholmen) har firat sina tillfälliga svenska namn med en gemensam grillfest vid strandkanten. "Vi är så små att ingen brukar bry sig om vad vi heter," erkände en Granö-bo. "Men idag är vi Granö och vi grillar korv." Sju personer deltog. Alla var grannar.',
+            titleEn: 'GRANÖ, LÖVÖ AND GRANHOLMEN: THE ISLANDS CELEBRATE THEIR SWEDISH NAMES',
+            textEn: 'The small islands of Kaskisaari (Granö), Lehtisaari (Lövö) and Kuusisaari (Granholmen) have celebrated their temporary Swedish names with a joint barbecue on the shoreline. "We\'re so small that nobody usually cares what we\'re called," admitted a Granö resident. "But today we are Granö and we are grilling sausages." Seven people attended. All were neighbours.',
         },
         {
             title: 'GRÄSVIKENS KONTORSARBETARE NJUTER AV LINGONFIKA',
             text: 'Företagen i Ruoholahti — nu Gräsviken — har infört "fika" som daglig tradition under den svenska perioden. "Två kaffepauser med kanelbullar, det är väl civiliserat," sa en IT-konsult som vanligtvis äter lunch vid datorn. Produktiviteten har enligt uppgift sjunkit med 15 procent, men medarbetarnas tillfredsställelse har ökat med 80. "En acceptabel byteshandel," meddelade en chef.',
+            titleEn: 'GRÄSVIKEN OFFICE WORKERS ENJOY LINGON FIKA',
+            textEn: 'Companies in Ruoholahti — now Gräsviken — have introduced "fika" as a daily tradition during the Swedish period. "Two coffee breaks with cinnamon buns — that\'s civilised," said an IT consultant who usually eats lunch at his computer. Productivity has reportedly fallen by 15 percent, but employee satisfaction has increased by 80. "An acceptable trade-off," announced a manager.',
         },
         {
             title: 'ULRIKASBORG: "LYXENS DISTRIKT HAR ÄNTLIGEN ETT LYXIGT NAMN"',
             text: 'Ullanlinna, som nu kallas Ulrikasborg, har mötts av sitt nya namn med den lugna värdighet man kan förvänta sig av Helsingfors mest exklusiva distrikt. "Ulrikasborg har en viss elegans," medgav en fastighetsägare. "Det låter som en plats där gravar skulle dricka sherry." Fastighetspriserna har inte förändrats, "men det har de aldrig behövt," tillade hon.',
+            titleEn: 'ULRIKASBORG: "THE DISTRICT OF LUXURY FINALLY HAS A LUXURIOUS NAME"',
+            textEn: 'Ullanlinna, now called Ulrikasborg, has greeted its new name with the calm dignity one might expect from Helsinki\'s most exclusive district. "Ulrikasborg has a certain elegance," conceded a property owner. "It sounds like a place where counts would drink sherry." Property prices have not changed, "but they never needed to," she added.',
         },
         {
             title: 'DRUMSÖ BORNA SÄLJER T-SHIRTS MED "ORIGINAL DRUMSÖ" TRYCK',
             text: 'Invånarna på Lauttasaari — nu Drumsö — har snabbt lanserat merchandise med texten "Original Drumsö Since 1936." T-shirtarna, som säljs utanför den lokala mataffären för €25 styck, har blivit en viral sensation. "Vi sålde 400 på tre dagar," berättade arrangören. "Jag har beställt fler, men leveransen sitter fast i Busholmen. Där bygger de fortfarande."',
+            titleEn: 'DRUMSÖ RESIDENTS SELL T-SHIRTS WITH "ORIGINAL DRUMSÖ" PRINT',
+            textEn: 'Residents of Lauttasaari — now Drumsö — have quickly launched merchandise reading "Original Drumsö Since 1936." The T-shirts, sold outside the local grocery store for €25 each, have gone viral. "We sold 400 in three days," said the organiser. "I have ordered more, but the delivery is stuck in Busholmen. They\'re still building there."',
         },
         {
             title: 'MUNKSNÄS SENIORER MINNS NÄR "ALLA PRATADE SVENSKA HÄR"',
             text: 'Äldre invånare i Munkkiniemi — nu Munksnäs — har samlats i det lokala kaféet för att minnas den tid då svenska var vardagsspråket i deras kvarter. "Min mor talade alltid svenska i butikerna," berättade 84-åriga Margit. "Finskan fick vi tala hemma." Kaféägaren har tillfälligt bytt menyn till svenska. "Kaffe och bulle" kostar fortfarande €4,50.',
+            titleEn: 'MUNKSNÄS SENIORS REMEMBER WHEN "EVERYONE SPOKE SWEDISH HERE"',
+            textEn: 'Elderly residents of Munkkiniemi — now Munksnäs — have gathered at the local café to remember the time when Swedish was the everyday language in their neighbourhood. "My mother always spoke Swedish in the shops," recalled 84-year-old Margit. "Finnish we spoke at home." The café owner has temporarily switched the menu to Swedish. "Coffee and a bun" still costs €4.50.',
         },
         {
             title: 'BRÄNDÖ GOLFBANA BYTER TILL SVENSKA HÅLNAMN',
             text: 'Kulosaari — nu Brändö — golfklubb har tillfälligt döpt om alla sina hål till svenska. Hål 7 heter nu "Björken," hål 12 är "Havsvinden," och hål 18 kallas "Slutsvängen." "Det gör spelet lite mer poetiskt," menade klubbens ordförande. En medlem protesterade: "Jag slår lika dåligt oavsett vad hålet heter." Han fick medhåll av alla närvarande.',
+            titleEn: 'BRÄNDÖ GOLF COURSE SWITCHES TO SWEDISH HOLE NAMES',
+            textEn: 'Kulosaari — now Brändö — golf club has temporarily renamed all its holes in Swedish. Hole 7 is now "Björken," hole 12 is "Havsvinden," and hole 18 is called "Slutsvängen." "It makes the game a bit more poetic," said the club president. One member objected: "I play just as badly whatever the hole is called." He was agreed with by everyone present.',
         },
         {
             title: 'ÄRTHOLMENS FRAMTID: "EN STADSDEL SOM FÖRTJÄNAR ETT BÄTTRE NAMN"',
             text: 'Hernesaari — nu Ärtholmen — har fått oväntat positiv uppmärksamhet tack vare sitt svenska namn. "Ärtholmen! Det är charmigt!" utropade en stadsplanerare. "Det låter som en saga. Hernesaari låter som en parkeringsplats." Bostadsutvecklare överväger att permanent marknadsföra området under det svenska namnet. Priserna för nybyggnationer har stigit med 3 procent, "men det kan vara en slump."',
+            titleEn: 'ÄRTHOLMEN\'S FUTURE: "A DISTRICT THAT DESERVES A BETTER NAME"',
+            textEn: 'Hernesaari — now Ärtholmen — has received unexpectedly positive attention thanks to its Swedish name. "Ärtholmen! It\'s charming!" exclaimed a city planner. "It sounds like a fairy tale. Hernesaari sounds like a car park." Property developers are considering permanently marketing the area under its Swedish name. Prices for new builds have risen by 3 percent, "but that may be a coincidence."',
         },
         {
             title: 'HAVSHAGEN: MERIHAKA-BORNA "ALLTID VETAT ATT VI BOR VID HAVET"',
             text: 'Invånarna i Merihaka — nu Havshagen — har tagit namnbytet som en bekräftelse av det de alltid har vetat. "Havshagen. Trädgården vid havet. Det beskriver perfekt vad det här stället är," sa en man som stod och tittade ut över Finska viken från sin balkong på tolfte våningen. "Merihaka sa samma sak, förstås. Men det lät mer som en fiskebåt."',
+            titleEn: 'HAVSHAGEN: MERIHAKA RESIDENTS "ALWAYS KNEW THEY LIVED BY THE SEA"',
+            textEn: 'Residents of Merihaka — now Havshagen — have taken the name change as a confirmation of what they have always known. "Havshagen. The garden by the sea. It perfectly describes what this place is," said a man looking out over the Gulf of Finland from his twelfth-floor balcony. "Merihaka said the same thing, of course. But it sounded more like a fishing boat."',
         },
         {
             title: 'FISKEHAMNEN FÅR BESÖK AV SVENSKA MATBLOGGARE',
             text: 'Kalasatama — numera Fiskehamnen — har blivit en pilgrimsort för svenska matbloggare som lockats av det aptitliga namnet. "Fiskehamnen! Jag förväntar mig nyfångad strömming på varje hörn," skrev en bloggare från Göteborg. Verkligheten — en enorm byggarbetsplats med en mataffär — dämpade inte entusiasmen. "Potentialen finns," konstaterade bloggaren och fotograferade en halvfärdig parkeringsgarage.',
+            titleEn: 'FISKEHAMNEN VISITED BY SWEDISH FOOD BLOGGERS',
+            textEn: 'Kalasatama — now Fiskehamnen — has become a pilgrimage site for Swedish food bloggers drawn by the appetising name. "Fiskehamnen! I expect freshly caught Baltic herring on every corner," wrote one blogger from Gothenburg. The reality — a vast construction site with a supermarket — did not dampen enthusiasm. "The potential is there," the blogger observed, photographing a half-finished car park.',
         },
         {
             title: 'SOMPAHOLMEN: "FINNS DET EN HOLME? VAR FINNS HOLMEN?"',
             text: 'Sompasaari — nu Sompaholmen — har förvirrat besökare som letar efter den utlovade holmen. "Det heter Sompaholmen men det är mest betong," noterade en turist. Lokalbefolkningen förklarar tålmodigt att det ursprungligen var en ö innan uppfyllnadsarbeten förenade den med fastlandet. "Tekniskt sett är vi en halvö," medgav en boende. "Men Sompahalvön hade inte samma klang."',
+            titleEn: '"IS THERE AN ISLAND? WHERE IS THE ISLAND?" — VISITORS TO SOMPAHOLMEN',
+            textEn: 'Sompasaari — now Sompaholmen — has confused visitors looking for the promised island. "It\'s called Sompaholmen but it\'s mostly concrete," noted a tourist. Locals patiently explain that it was originally an island before landfill works connected it to the mainland. "Technically we\'re a peninsula," admitted a resident. "But Sompahalvön didn\'t have the same ring to it."',
         },
     ];
 
@@ -2511,10 +2645,41 @@ const Newspaper = (() => {
         };
     }
 
+    function generateSilencePaper(gameState) {
+        const year = gameState.year;
+        const month = MONTH_NAMES[gameState.month] || 'January';
+        const silenceHeadlines = [
+            { title: 'NOTHING TO REPORT', text: 'A good day.' },
+            { title: 'ALL QUIET IN HELSINKI', text: 'Nothing occurred. This is not a misprint.' },
+            { title: 'NO NEWS TODAY', text: 'The city is calm. The editors considered leaving this page blank. They decided against it, but only barely.' },
+            { title: 'HELSINKI: PEACEFUL', text: 'There is nothing to report. The weather is fine. The trams ran on time. The sea is still there. That is all.' },
+            { title: 'THIS PAGE INTENTIONALLY LEFT ALMOST EMPTY', text: 'A quiet week. Even the letters to the editor contained no strong opinions. Finland is doing well.' },
+        ];
+        const silenceFillers = [
+            { title: 'A LOCAL MAN SAT QUIETLY', text: 'A man in Töölö sat on a bench for forty minutes without looking at his phone. Nobody knows why. No one asked. The bench was also quiet.' },
+            { title: 'BIRDS OBSERVED DOING NORMAL BIRD THINGS', text: 'Birds were spotted in Helsinki this week. They flew. They sat. One appeared to be waiting for something. Nothing happened. The bird flew away.' },
+            { title: 'CAFÉ REPORTS PLEASANT TUESDAY', text: '"People came in," said owner Aino Virtanen. "They had coffee. They left. It was a Tuesday. I have no complaints." The café was full by 9am.' },
+            { title: 'TRAM RUNS ON SCHEDULE FOR SEVENTH CONSECUTIVE DAY', text: 'The number 9 tram completed all scheduled runs this week without incident. Commuters reported nothing remarkable. This is, in fact, remarkable.' },
+            { title: 'LOCAL LIBRARY VERY QUIET', text: 'Staff at Oodi Library noted the building was particularly hushed on Wednesday. "Even the printers," said one librarian. "It was very nice." The moment lasted approximately four minutes before someone started a video call without headphones.' },
+            { title: 'NOTHING HAPPENED IN KAIVOPUISTO', text: 'The park was pleasant. People walked their dogs. The dogs were well-behaved. One dog looked at the sea for a long time. Nobody asked why.' },
+        ];
+        const headline = silenceHeadlines[Math.floor(Math.random() * silenceHeadlines.length)];
+        const stories = [{ headline: true, ...headline }];
+        // Add 2-3 quiet filler stories
+        const shuffled = [...silenceFillers].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+        for (const s of shuffled) stories.push(s);
+        return {
+            date: `${month} ${year} — Special Edition`,
+            stories,
+            isSilence: true,
+        };
+    }
+
     return {
         generateDay1Paper,
         generateYearlyPaper,
         generateSwedishPaper,
+        generateSilencePaper,
         MONTH_NAMES,
     };
 })();

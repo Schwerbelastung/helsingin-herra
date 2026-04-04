@@ -39,6 +39,30 @@
         <!-- Main map canvas -->
         <canvas id="map-canvas"></canvas>
 
+        <!-- Property quirk popup -->
+        <div id="quirk-popup" class="hidden">
+            <div id="quirk-label">DID YOU KNOW?</div>
+            <div id="quirk-text"></div>
+        </div>
+
+        <!-- Rival quip bubble -->
+        <div id="rival-quip" class="hidden">
+            <canvas id="rival-quip-portrait" width="48" height="48"></canvas>
+            <div id="rival-quip-body">
+                <div id="rival-quip-name"></div>
+                <div id="rival-quip-text"></div>
+            </div>
+        </div>
+
+        <!-- Landmark info panel (hidden by default) -->
+        <div id="landmark-panel" class="panel hidden">
+            <div id="landmark-panel-header" class="panel-header-base">
+                <span id="landmark-panel-title">Landmark</span>
+                <button id="landmark-panel-close">&times;</button>
+            </div>
+            <div id="landmark-panel-body"></div>
+        </div>
+
         <!-- Property info panel (hidden by default) -->
         <div id="property-panel" class="panel hidden">
             <div id="panel-header">
@@ -367,13 +391,23 @@
 
         <!-- Newspaper overlay -->
         <div id="newspaper-overlay" class="overlay hidden">
-            <div id="newspaper-content">
-                <div id="newspaper-masthead">HELSINGIN SANOMAT</div>
-                <div id="newspaper-date"></div>
-                <div id="newspaper-divider"></div>
-                <div id="newspaper-stories"></div>
-                <div id="newspaper-footer">
-                    <button class="newspaper-btn" id="newspaper-close">CLOSE</button>
+            <div id="newspaper-wrapper">
+                <div id="newspaper-content">
+                    <div id="newspaper-masthead">HELSINGIN SANOMAT</div>
+                    <div id="newspaper-date"></div>
+                    <div id="newspaper-divider"></div>
+                    <div id="newspaper-stories"></div>
+                    <div id="newspaper-footer">
+                        <button class="newspaper-btn" id="newspaper-translate" style="display:none">TRANSLATE INTO ENGLISH</button>
+                        <button class="newspaper-btn" id="newspaper-close">CLOSE</button>
+                    </div>
+                </div>
+                <div id="newspaper-translation" class="hidden">
+                    <div id="newspaper-translation-masthead">HUFVUDSTADSBLADET</div>
+                    <div id="newspaper-translation-subtitle">IN ENGLISH</div>
+                    <div id="newspaper-translation-date"></div>
+                    <div id="newspaper-translation-divider"></div>
+                    <div id="newspaper-translation-stories"></div>
                 </div>
             </div>
         </div>
@@ -482,7 +516,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v0.17.1 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v0.18.0 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
@@ -541,20 +575,20 @@
             </div>
         </div>
 
-    <script src="js/districts.js?v=0171"></script>
-    <script src="js/properties.js?v=0171"></script>
-    <script src="js/economy.js?v=0171"></script>
-    <script src="js/events.js?v=0171"></script>
-    <script src="js/seasons.js?v=0171"></script>
-    <script src="js/rivals.js?v=0171"></script>
-    <script src="js/staff.js?v=0171"></script>
-    <script src="js/sound.js?v=0171"></script>
-    <script src="js/achievements.js?v=0171"></script>
-    <script src="js/newspaper.js?v=0171"></script>
-    <script src="js/changelog.js?v=0171"></script>
-    <script src="js/ui.js?v=0171"></script>
-    <script src="js/game.js?v=0171"></script>
-    <script src="js/map.js?v=0171"></script>
-    <script src="js/main.js?v=0171"></script>
+    <script src="js/districts.js?v=0180"></script>
+    <script src="js/properties.js?v=0180"></script>
+    <script src="js/economy.js?v=0180"></script>
+    <script src="js/events.js?v=0180"></script>
+    <script src="js/seasons.js?v=0180"></script>
+    <script src="js/rivals.js?v=0180"></script>
+    <script src="js/staff.js?v=0180"></script>
+    <script src="js/sound.js?v=0180"></script>
+    <script src="js/achievements.js?v=0180"></script>
+    <script src="js/newspaper.js?v=0180"></script>
+    <script src="js/changelog.js?v=0180"></script>
+    <script src="js/ui.js?v=0180"></script>
+    <script src="js/game.js?v=0180"></script>
+    <script src="js/map.js?v=0180"></script>
+    <script src="js/main.js?v=0180"></script>
 </body>
 </html>

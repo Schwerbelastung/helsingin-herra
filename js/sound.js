@@ -758,6 +758,16 @@ const Sound = (() => {
     function isMusicEnabled() { return musicEnabled; }
     function isSfxEnabled() { return sfxEnabled; }
 
+    function silenceAll() {
+        stopMusic();
+        if (masterGain) masterGain.gain.setValueAtTime(0, audioCtx ? audioCtx.currentTime : 0);
+    }
+
+    function restoreAll() {
+        if (masterGain) masterGain.gain.setValueAtTime(0.8, audioCtx ? audioCtx.currentTime : 0);
+        if (musicEnabled) startMusic();
+    }
+
     return {
         init,
         startMusic,
@@ -795,5 +805,7 @@ const Sound = (() => {
         getMusicStyle,
         isMusicEnabled,
         isSfxEnabled,
+        silenceAll,
+        restoreAll,
     };
 })();

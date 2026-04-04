@@ -60,6 +60,7 @@ const Achievements = (() => {
         { id: 'seen_duck', name: 'Quack!', desc: 'Spot the giant rubber duck', icon: '🦆', category: 'Strange Events' },
         { id: 'seen_bird', name: 'Bird Spotter', desc: 'See something red fly across the sky', icon: '🐦', category: 'Strange Events' },
         { id: 'seen_sweden', name: 'Du Gamla, Du Fria', desc: 'Survive the Swedish invasion', icon: '🇸🇪', category: 'Strange Events' },
+        { id: 'seen_silence', name: 'The Finnish Way', desc: 'Experience the Finnish Silence', icon: '🤫', category: 'Strange Events' },
     ];
 
     let unlocked = {}; // { achievementId: timestamp }
@@ -186,6 +187,7 @@ const Achievements = (() => {
         if (activeIds.has('rubber_duck')) unlock('seen_duck');
         if (activeIds.has('angry_bird')) unlock('seen_bird');
         if (activeIds.has('swedish_invasion')) unlock('seen_sweden');
+        if (activeIds.has('finnish_silence')) unlock('seen_silence');
 
         // Easter eggs
         if (playerProps.some(p => p.easterEgg)) unlock('easter_egg');

@@ -33,6 +33,7 @@ const GameState = {
     lastOfferTurn: -10, // turn when last rival offer was shown (cooldown: 2 turns)
     lastAuctionTurn: -10, // turn when last auction occurred (cooldown: 6 turns)
     auctionThisYear: false, // only one auction per calendar year
+    lastQuipTurn: -6, // turn when last rival quip was shown (cooldown: 4 turns)
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
 };
@@ -64,6 +65,7 @@ const Game = (() => {
         GameState.lastOfferTurn = -10;
         GameState.lastAuctionTurn = -10;
         GameState.auctionThisYear = false;
+        GameState.lastQuipTurn = -6;
 
         // Difficulty settings
         const diffSettings = {
@@ -164,7 +166,15 @@ const Game = (() => {
             }
 
             // Play event sound and show Swedish newspaper
-            if (event.id === 'swedish_invasion') {
+            if (event.id === 'finnish_silence') {
+                Sound.silenceAll();
+                MapRenderer.triggerAdvisorAction('finnish_silence');
+                // Show a special "nothing to report" newspaper immediately
+                const silencePaper = Newspaper.generateSilencePaper(GameState);
+                UI.showNewspaperPrompt(null, silencePaper);
+                // Restore sound after 8 seconds (one turn's worth of silence)
+                setTimeout(() => Sound.restoreAll(), 8000);
+            } else if (event.id === 'swedish_invasion') {
                 Sound.playSwedishAnthem();
                 // Show HBL special edition
                 const hblPaper = Newspaper.generateSwedishPaper(GameState);
@@ -285,7 +295,20 @@ const Game = (() => {
         const undoBtn = document.getElementById('btn-undo');
         if (undoBtn) undoBtn.disabled = true;
 
-        // 15. Check for auction or rival offer (not both same turn; none in first 6 months)
+        // 15. Maybe show a rival quip (~1-2 per year, 4-turn cooldown, not in first 3 months)
+        if (!GameState.gameOver && GameState.rivals.length > 0 && GameState.turn >= 3) {
+            const turnsSinceQuip = GameState.turn - GameState.lastQuipTurn;
+            if (turnsSinceQuip >= 4 && Math.random() < 0.14) {
+                const rival = GameState.rivals[Math.floor(Math.random() * GameState.rivals.length)];
+                const quip = Rivals.getRandomQuip(rival.id);
+                if (quip) {
+                    GameState.lastQuipTurn = GameState.turn;
+                    setTimeout(() => UI.showRivalQuip(rival, quip), 1200);
+                }
+            }
+        }
+
+        // 16. Check for auction or rival offer (not both same turn; none in first 6 months)
         if (!GameState.gameOver && GameState.rivals.length > 0 && GameState.turn >= 6) {
             const auction = Rivals.generateAuction(GameState);
             if (auction) {
@@ -806,6 +829,10 @@ const Game = (() => {
         UI.setNewsText(`Bought ${property.name} for €${UI.formatMoney(property.price)}!`);
         UI.addLogAction(`Bought ${property.name} for €${UI.formatMoney(property.price)}`);
         logYearlyEvent('player_buy', `${GameState.playerName} acquired ${property.name} in ${property.districtName || property.district} for €${UI.formatMoney(property.price)}`);
+        if (Math.random() < 0.33) {
+            const quirk = Properties.getRandomQuirk(property.type);
+            setTimeout(() => UI.showQuirkPopup(quirk), 600);
+        }
         MapRenderer.render();
     }
 
@@ -962,6 +989,7 @@ const Game = (() => {
             lastOfferTurn: GameState.lastOfferTurn,
             lastAuctionTurn: GameState.lastAuctionTurn,
             auctionThisYear: GameState.auctionThisYear,
+            lastQuipTurn: GameState.lastQuipTurn,
         };
     }
 
@@ -1013,6 +1041,7 @@ const Game = (() => {
             GameState.lastOfferTurn = data.lastOfferTurn != null ? data.lastOfferTurn : -10;
             GameState.lastAuctionTurn = data.lastAuctionTurn != null ? data.lastAuctionTurn : -10;
             GameState.auctionThisYear = data.auctionThisYear || false;
+            GameState.lastQuipTurn = data.lastQuipTurn != null ? data.lastQuipTurn : -6;
             GameState.financeHistory = data.financeHistory || [];
 
             // Update visuals

@@ -177,6 +177,16 @@ const MapRenderer = (() => {
             }
         }
 
+        // Check landmarks
+        for (const lm of HelsinkiDistricts.landmarks) {
+            const ldx = mapPos[0] - lm.pos[0];
+            const ldy = mapPos[1] - lm.pos[1];
+            if (Math.sqrt(ldx * ldx + ldy * ldy) < 12) {
+                if (typeof UI !== 'undefined') UI.showLandmarkPanel(lm);
+                return;
+            }
+        }
+
         // Check districts
         for (const district of HelsinkiDistricts.districts) {
             if (pointInPolygon(mapPos, district.polygon)) {
@@ -185,7 +195,10 @@ const MapRenderer = (() => {
             }
         }
 
-        if (typeof UI !== 'undefined') UI.hidePropertyPanel();
+        if (typeof UI !== 'undefined') {
+            UI.hidePropertyPanel();
+            UI.hideLandmarkPanel();
+        }
     }
 
     function screenToMap(sx, sy) {
@@ -3864,6 +3877,18 @@ const MapRenderer = (() => {
             "Patched up and ready to earn!",
             "Your maintenance person would be proud.",
             "Crisis averted. Back to making money.",
+        ],
+        finnish_silence: [
+            "Ah. Silence. This is fine.",
+            "Nothing to report. Remarkable.",
+            "The city breathes. No one speaks.",
+            "Even the trams are quiet. Cherish this.",
+            "Silence. The most Finnish thing that can happen.",
+            "Not every moment needs a comment. Even mine.",
+            "Helsinki rests. The property market does not.",
+            "Peace. For now.",
+            "This is what Finns call a good day.",
+            "Complete silence. I have never felt more at home.",
         ],
     };
 

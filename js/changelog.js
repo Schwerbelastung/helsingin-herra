@@ -1,5 +1,19 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v0.17.1 — Bugfixes (2026-04-03)
+const CHANGELOG_MD = `## v0.18.0 — Life in Helsinki (2026-04-04)
+
+### Added
+- **Rival personality quips** — Nalle, Hjallis, and Risto now make personal remarks that appear in the top-left corner with their portrait (50 unique quips each, ~1–2 per year)
+- **Property quirks** — 33% chance of a "DID YOU KNOW?" popup when buying a property, with 15 humorous quirks per property type (90 total)
+- **Clickable landmarks** — all 20 landmarks on the map are now clickable, opening a panel with 1–2 humorous paragraphs about the location
+- **Tenant letters to the editor** — 20 new filler stories in Helsingin Sanomat written as letters from disgruntled (and delighted) tenants
+- **Finnish Silence easter egg** — rare event where all sounds stop; special silence-themed newspaper; "The Finnish Way" 🤫 achievement; 10 advisor quotes
+- **City council vote events** — 10 new district-specific events (rent caps, landmark grants, parking fees, etc.) with 🏛️ ticker icon
+- **HBL "Translate into English"** — Hufvudstadsbladet now has a translate button that opens a side-by-side English edition with the same stories in the same order; close button reads "STÄNG" in Swedish
+- **Tutorial updates** — new "Finding Properties with Filters" tip highlighting the "Can Afford & Available" filter; actions-per-turn now reflects difficulty (5/4/3); removed alien invasion spoiler
+
+---
+
+## v0.17.1 — Bugfixes (2026-04-03)
 
 ### Fixed
 - **Portfolio panel scaling** — "My Props" window now scales with UI scale

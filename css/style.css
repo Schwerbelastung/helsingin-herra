@@ -231,6 +231,45 @@ html {
     display: none;
 }
 
+/* === Landmark Panel === */
+#landmark-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-panel-hover);
+    border-bottom: 2px solid var(--border-color);
+}
+
+#landmark-panel-title {
+    font-size: 9px;
+    color: var(--text-accent);
+}
+
+#landmark-panel-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#landmark-panel-close:hover {
+    color: var(--text-danger);
+}
+
+#landmark-panel-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    line-height: 1.8;
+    font-size: 7px;
+    color: var(--text-primary);
+}
+
+/* === Property Panel === */
 #panel-header {
     display: flex;
     justify-content: space-between;
@@ -758,18 +797,81 @@ html {
 #newspaper-overlay {
     z-index: 270;
     background: rgba(5, 5, 10, 0.92);
+    align-items: flex-start;
+    padding-top: 4vh;
+    overflow-y: auto;
+}
+#newspaper-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 95vw;
 }
 #newspaper-content {
     background: #f5f0e0;
     border: 3px solid #8a7a5a;
     padding: 0;
     max-width: 580px;
-    width: 92%;
-    max-height: calc(85vh / min(var(--ui-scale), 1.25));
+    width: 580px;
+    max-height: calc(88vh / min(var(--ui-scale), 1.25));
     overflow-y: auto;
     color: #1a1a0a;
     image-rendering: auto;
     zoom: min(var(--ui-scale), 1.25);
+    flex-shrink: 0;
+}
+#newspaper-translation {
+    background: #f5f0e0;
+    border: 3px solid #8a7a5a;
+    padding: 0;
+    max-width: 520px;
+    width: 520px;
+    max-height: calc(88vh / min(var(--ui-scale), 1.25));
+    overflow-y: auto;
+    color: #1a1a0a;
+    image-rendering: auto;
+    zoom: min(var(--ui-scale), 1.25);
+    flex-shrink: 0;
+}
+#newspaper-translation.hidden {
+    display: none;
+}
+#newspaper-translation-masthead {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #1a1a0a;
+    padding: 12px 20px 2px;
+    letter-spacing: 3px;
+    border-bottom: 1px solid #1a1a0a;
+}
+#newspaper-translation-subtitle {
+    font-family: var(--font-pixel);
+    font-size: 7px;
+    text-align: center;
+    color: #5a5a3a;
+    padding: 3px 0 3px;
+    letter-spacing: 3px;
+    border-bottom: 3px double #1a1a0a;
+}
+#newspaper-translation-date {
+    font-family: var(--font-pixel);
+    font-size: 7px;
+    text-align: center;
+    color: #5a5a3a;
+    padding: 4px 0 8px;
+    letter-spacing: 2px;
+}
+#newspaper-translation-divider {
+    height: 2px;
+    background: #1a1a0a;
+    margin: 0 20px 12px;
+}
+#newspaper-translation-stories {
+    padding: 0 20px 12px;
 }
 #newspaper-masthead {
     font-family: Georgia, 'Times New Roman', serif;
@@ -1956,6 +2058,99 @@ html {
 .toast-name {
     font-size: 8px;
     color: var(--text-primary);
+}
+
+/* === Property Quirk Popup === */
+#quirk-popup {
+    position: absolute;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    max-width: 360px;
+    width: max-content;
+    background: rgba(10, 10, 26, 0.95);
+    border: 2px solid var(--text-accent);
+    padding: 10px 16px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+    zoom: var(--ui-scale);
+    text-align: center;
+}
+
+#quirk-popup.hidden {
+    display: none;
+}
+
+#quirk-popup.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+#quirk-label {
+    font-size: 6px;
+    color: var(--text-accent);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+}
+
+#quirk-text {
+    font-size: 7px;
+    color: var(--text-primary);
+    line-height: 1.7;
+}
+
+/* === Rival Quip Bubble === */
+#rival-quip {
+    position: absolute;
+    left: 16px;
+    top: 80px;
+    max-width: 300px;
+    background: rgba(10, 10, 26, 0.92);
+    border: 2px solid var(--border-color);
+    padding: 8px 12px;
+    z-index: 50;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+    zoom: var(--ui-scale);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#rival-quip.hidden {
+    display: none;
+}
+
+#rival-quip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#rival-quip-portrait {
+    flex-shrink: 0;
+    image-rendering: pixelated;
+}
+
+#rival-quip-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+#rival-quip-name {
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+#rival-quip-text {
+    font-size: 7px;
+    color: var(--text-primary);
+    line-height: 1.6;
 }
 
 /* === Achievements Panel === */
