@@ -28,7 +28,7 @@ const UI = (() => {
         Sound.playStartGame();
         const s = pendingStart;
         pendingStart = null;
-        Game.start(s.capital, s.difficulty, s.mode, s.rivalCount, s.target, s.playerName, s.playerGender);
+        Game.start(s.capital, s.difficulty, s.mode, s.rivalCount, s.target, s.playerName, s.playerGender, s.playerPortrait);
     }
 
     function init() {
@@ -47,7 +47,51 @@ const UI = (() => {
         setupOfferAndUndo();
         setupPlayerOffer();
         setupNewsTicker();
+        setupNoActionsFeedback();
         initDraggablePanels();
+    }
+
+    function showNoActionsToast() {
+        const toast = document.getElementById('no-actions-toast');
+        toast.classList.remove('hidden');
+        // Force reflow so transition plays even if already visible
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        Sound.playEventNegative();
+        clearTimeout(toast._hideTimer);
+        toast._hideTimer = setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 2000);
+    }
+
+    function setupNoActionsFeedback() {
+        const actionBtnIds = ['btn-buy', 'btn-sell', 'btn-upgrade', 'btn-repair', 'btn-make-offer'];
+
+        // pointerdown fires on disabled buttons (unlike click)
+        const panel = document.getElementById('property-panel');
+        if (panel) {
+            panel.addEventListener('pointerdown', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn || !btn.disabled) return;
+                if (!actionBtnIds.includes(btn.id)) return;
+                if (GameState.actionsRemaining > 0) return;
+                hidePropertyPanel();
+                showNoActionsToast();
+            });
+        }
+
+        // Portfolio panel upgrade/repair buttons
+        const statsPanel = document.getElementById('stats-panel');
+        if (statsPanel) {
+            statsPanel.addEventListener('pointerdown', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn || !btn.disabled) return;
+                if (!btn.classList.contains('portfolio-upgrade-btn') && !btn.classList.contains('portfolio-repair-btn')) return;
+                if (GameState.actionsRemaining > 0) return;
+                showNoActionsToast();
+            });
+        }
     }
 
     function setupNewsTicker() {
@@ -85,9 +129,33 @@ const UI = (() => {
                             targetSection.classList.remove('hidden');
                         }
                     }
+
+                    // Re-render portrait previews when gender changes
+                    if (btn.dataset.gender) {
+                        renderPortraitPreviews(btn.dataset.gender);
+                    }
                 });
             });
         });
+
+        // Portrait picker
+        function renderPortraitPreviews(gender) {
+            document.querySelectorAll('#portrait-picker .portrait-option').forEach(canvas => {
+                const variant = parseInt(canvas.dataset.portrait);
+                MapRenderer.drawPlayerPortrait(canvas, gender, variant);
+            });
+        }
+
+        document.querySelectorAll('#portrait-picker .portrait-option').forEach(canvas => {
+            canvas.addEventListener('click', () => {
+                document.querySelectorAll('#portrait-picker .portrait-option').forEach(c => c.classList.remove('selected'));
+                canvas.classList.add('selected');
+                Sound.playClick();
+            });
+        });
+
+        // Initial render of portrait previews
+        renderPortraitPreviews('male');
 
         // Start game button
         document.getElementById('btn-start-game').addEventListener('click', () => {
@@ -101,6 +169,7 @@ const UI = (() => {
             pendingStart = {
                 playerName,
                 playerGender: document.querySelector('.option-btn.selected[data-gender]')?.dataset.gender || 'male',
+                playerPortrait: parseInt(document.querySelector('#portrait-picker .portrait-option.selected')?.dataset.portrait || '1'),
                 capital: document.querySelector('.option-btn.selected[data-capital]')?.dataset.capital || 'small',
                 difficulty: document.querySelector('.option-btn.selected[data-difficulty]')?.dataset.difficulty || 'normal',
                 rivalCount: parseInt(document.querySelector('.option-btn.selected[data-rivals]')?.dataset.rivals ?? '3'),
@@ -774,6 +843,28 @@ Good luck — become the Helsingin Herra!`,
                 ticker.classList.add('scrolling');
             }
         });
+
+        // Glow pulse on important messages
+        ticker.classList.remove('ticker-pulse');
+        void ticker.offsetWidth; // reflow to restart animation
+        ticker.classList.add('ticker-pulse');
+
+        // First-game nudge: show on turns 1-3, only once ever
+        if (GameState.turn <= 3 && !localStorage.getItem('ht_ticker_nudge_seen')) {
+            showTickerNudge();
+        }
+    }
+
+    let tickerNudgeTimer = null;
+    function showTickerNudge() {
+        const nudge = document.getElementById('ticker-nudge');
+        if (!nudge) return;
+        localStorage.setItem('ht_ticker_nudge_seen', '1');
+        nudge.classList.add('show');
+        clearTimeout(tickerNudgeTimer);
+        tickerNudgeTimer = setTimeout(() => {
+            nudge.classList.remove('show');
+        }, 4000);
     }
 
     let quirkPopupTimer = null;
@@ -2524,7 +2615,8 @@ Good luck — become the Helsingin Herra!`,
             const rivalId = canvas.dataset.rival;
             if (rivalId === 'player') {
                 const gender = (typeof GameState !== 'undefined' && GameState.playerGender) || 'male';
-                MapRenderer.drawPlayerPortrait(canvas, gender);
+                const portrait = (typeof GameState !== 'undefined' && GameState.playerPortrait) || 1;
+                MapRenderer.drawPlayerPortrait(canvas, gender, portrait);
             } else if (rivalId && MapRenderer.drawRivalPortrait) {
                 MapRenderer.drawRivalPortrait(canvas, rivalId);
             }
@@ -2848,7 +2940,8 @@ Good luck — become the Helsingin Herra!`,
 
     function drawPlayerPortrait(canvasEl) {
         const gender = (typeof GameState !== 'undefined' && GameState.playerGender) || 'male';
-        MapRenderer.drawPlayerPortrait(canvasEl, gender);
+        const portrait = (typeof GameState !== 'undefined' && GameState.playerPortrait) || 1;
+        MapRenderer.drawPlayerPortrait(canvasEl, gender, portrait);
     }
 
     function updateAuctionRound(auction, rivalResults) {

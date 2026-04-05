@@ -1,5 +1,19 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v1.5.3 — Draggable Panels & Window Controls (2026-04-05)
+const CHANGELOG_MD = `## v1.5.4 — Portrait Selection & UX Polish (2026-04-05)
+
+### Added
+- **Portrait picker** — choose from 3 distinct character portraits per gender on the start screen; each variant has unique suit/blazer color, hair color, and skin tone (saved/loaded with game)
+- **No actions popup** — clicking a greyed-out action button when out of actions now shows a centered red warning toast and plays a sound, instead of silently doing nothing
+- **News ticker glow pulse** — the ticker border briefly glows when it updates, drawing attention to new information
+- **First-game ticker nudge** — new players see a "check the news ticker" tooltip during turns 1–3 (shown once, tracked via localStorage)
+- **Panel z-index stacking** — last clicked/dragged panel now stays on top when panels overlap
+
+### Fixed
+- **Hotel St. George location** — moved to correct position southeast of Forum, west of Sharetribe Office
+
+---
+
+## v1.5.3 — Draggable Panels & Window Controls (2026-04-05)
 
 ### Added
 - **Draggable panels** — all panels (staff, bank, properties, filters, log, etc.) can now be freely repositioned by dragging their header; positions persist across sessions via localStorage

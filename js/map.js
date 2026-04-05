@@ -713,6 +713,34 @@ const MapRenderer = (() => {
         ctx.globalAlpha = 1;
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'miter';
+
+        // Railway tracks — Pasila station north to map edge
+        const station = HelsinkiDistricts.landmarks.find(l => l.name === 'Pasila Railway Station');
+        if (station) {
+            const [sx, sy] = station.pos;
+            const trackGap = 4;  // distance between the two rails
+            const tieSpacing = 8;
+
+            // Sleepers (wooden ties)
+            ctx.fillStyle = palette.snow ? '#8a7a6a' : '#7a6a50';
+            ctx.globalAlpha = 0.35;
+            for (let ty = 0; ty < sy; ty += tieSpacing) {
+                ctx.fillRect(sx - trackGap - 2, ty, trackGap * 2 + 4, 2);
+            }
+
+            // Two parallel steel rails
+            ctx.strokeStyle = palette.snow ? '#888888' : '#777777';
+            ctx.lineWidth = 1.2;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.moveTo(sx - trackGap / 2, 0);
+            ctx.lineTo(sx - trackGap / 2, sy);
+            ctx.moveTo(sx + trackGap / 2, 0);
+            ctx.lineTo(sx + trackGap / 2, sy);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1;
+        }
     }
 
     function drawLandmarks(palette) {
@@ -761,6 +789,10 @@ const MapRenderer = (() => {
                 drawFinlandiaHallSprite(x, y, palette);
             } else if (lm.name === 'Oodi Library') {
                 drawOodiLibrarySprite(x, y, palette);
+            } else if (lm.name === 'Pasila Railway Station') {
+                drawScaledSprite(x, y, 1.25, () => drawRailwayStationSprite(0, 0, palette));
+            } else if (lm.name === 'Hietaniemi Cemetery') {
+                drawCemeterySprite(x, y, palette);
             } else {
                 // Default shapes
                 const isChurch = lm.name.includes('Cathedral') || lm.name.includes('Church');
@@ -1995,6 +2027,112 @@ const MapRenderer = (() => {
         }
     }
 
+    function drawRailwayStationSprite(x, y, palette) {
+        // Pasila railway station — long platform with canopy, rails, and clock tower
+
+        // Railway tracks (two parallel lines)
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 14, y + 4); ctx.lineTo(x + 14, y + 4);
+        ctx.moveTo(x - 14, y + 6); ctx.lineTo(x + 14, y + 6);
+        ctx.stroke();
+        // Rail ties (sleepers)
+        ctx.fillStyle = '#8a7a60';
+        for (let tx = -13; tx <= 12; tx += 3) {
+            ctx.fillRect(x + tx, y + 3, 2, 4);
+        }
+
+        // Platform (raised concrete slab)
+        ctx.fillStyle = '#b0aaa0';
+        ctx.fillRect(x - 12, y - 2, 24, 5);
+
+        // Platform canopy — metal roof over the platform
+        ctx.fillStyle = '#778888';
+        ctx.fillRect(x - 11, y - 7, 22, 2);
+        // Canopy supports (thin pillars)
+        ctx.fillStyle = '#667777';
+        ctx.fillRect(x - 10, y - 5, 1, 3);
+        ctx.fillRect(x - 4, y - 5, 1, 3);
+        ctx.fillRect(x + 3, y - 5, 1, 3);
+        ctx.fillRect(x + 9, y - 5, 1, 3);
+
+        // Station building (right side, taller)
+        ctx.fillStyle = '#c0b8a8';
+        ctx.fillRect(x + 6, y - 12, 8, 10);
+        // Building windows
+        ctx.fillStyle = '#88aacc';
+        ctx.fillRect(x + 7, y - 10, 2, 2);
+        ctx.fillRect(x + 11, y - 10, 2, 2);
+        ctx.fillRect(x + 7, y - 6, 2, 2);
+        ctx.fillRect(x + 11, y - 6, 2, 2);
+        // Building entrance
+        ctx.fillStyle = '#556677';
+        ctx.fillRect(x + 9, y - 3, 3, 3);
+
+        // Clock tower on station building
+        ctx.fillStyle = '#b0a898';
+        ctx.fillRect(x + 9, y - 17, 4, 5);
+        // Clock face
+        ctx.fillStyle = '#f0eeea';
+        ctx.beginPath();
+        ctx.arc(x + 11, y - 15, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Clock hands
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 11, y - 15);
+        ctx.lineTo(x + 11, y - 16.2);
+        ctx.moveTo(x + 11, y - 15);
+        ctx.lineTo(x + 11.8, y - 14.5);
+        ctx.stroke();
+
+        // Snow on canopy and tower
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            ctx.fillRect(x - 11, y - 8, 22, 1);
+            ctx.fillRect(x + 6, y - 13, 8, 1);
+            ctx.fillRect(x + 9, y - 18, 4, 1);
+        }
+    }
+
+    function drawCemeterySprite(x, y, palette) {
+        // Ground — grassy plot
+        ctx.fillStyle = palette.snow ? '#c0c8c0' : '#6a8a5a';
+        ctx.fillRect(x - 10, y, 20, 3);
+
+        // Gravestones — a row of small headstones
+        const stones = [-7, -3, 1, 5];
+        const heights = [7, 9, 6, 8];
+        for (let i = 0; i < stones.length; i++) {
+            const sx = stones[i];
+            const h = heights[i];
+            // Stone
+            ctx.fillStyle = '#aaa8a0';
+            ctx.fillRect(x + sx, y - h, 3, h);
+            // Rounded top
+            ctx.beginPath();
+            ctx.arc(x + sx + 1.5, y - h, 1.5, Math.PI, 0);
+            ctx.fill();
+        }
+
+        // Central cross (taller, more prominent)
+        ctx.fillStyle = '#888480';
+        ctx.fillRect(x - 0.5, y - 12, 2, 12);
+        ctx.fillRect(x - 3, y - 10, 7, 2);
+
+        // Snow on tops
+        if (palette.snow) {
+            ctx.fillStyle = '#e8e8f0';
+            for (let i = 0; i < stones.length; i++) {
+                ctx.fillRect(x + stones[i] - 0.5, y - heights[i] - 1.5, 4, 1);
+            }
+            ctx.fillRect(x - 3.5, y - 11, 8, 1);
+            ctx.fillRect(x - 1, y - 13, 3, 1);
+        }
+    }
+
     function drawHelsinkiWheel(x, y, palette) {
         const r = 10;
         // Support structure
@@ -3127,7 +3265,9 @@ const MapRenderer = (() => {
 
             // Draw the pixel art sprite
             const color = prop.color || typeColors[prop.type] || '#888888';
-            if (prop.name === 'Löyly') {
+            if (prop.name === 'Mall of Tripla') {
+                drawScaledSprite(sx, sy, 2, () => drawRetailSprite(0, 0, color, prop.upgradeLevel));
+            } else if (prop.name === 'Löyly') {
                 drawSaunaSprite(sx, sy, palette);
             } else if (prop.name.includes('Food Truck')) {
                 drawFoodTruckSprite(sx, sy, palette);
@@ -5155,124 +5295,138 @@ const MapRenderer = (() => {
         c.strokeRect(1, 1, 46, 46);
     }
 
-    function drawPlayerPortraitOnCanvas(canvasEl, gender) {
+    const playerPortraitVariants = {
+        male: [
+            { suit: '#224422', suitLight: '#2a5a2a', shirt: '#aaccaa', tie: '#338833', tiePin: '#ffdd44', pocket: '#44ff44', hair: '#443322', hairLight: '#554433', brow: '#443322', skin: '#d0a888', skinShadow: '#c89878', eye: '#336633', nose: '#c09878', lip: '#b06050' },
+            { suit: '#1a2244', suitLight: '#223366', shirt: '#aabbdd', tie: '#2244aa', tiePin: '#ffdd44', pocket: '#4488ff', hair: '#ccaa55', hairLight: '#ddbb66', brow: '#aa8833', skin: '#e0b898', skinShadow: '#d0a080', eye: '#3355aa', nose: '#d09878', lip: '#b06050' },
+            { suit: '#441a22', suitLight: '#662233', shirt: '#ddaabb', tie: '#882244', tiePin: '#ffdd44', pocket: '#ff4466', hair: '#1a1a22', hairLight: '#2a2a33', brow: '#1a1a22', skin: '#c09070', skinShadow: '#a87860', eye: '#443322', nose: '#b08060', lip: '#a05040' },
+        ],
+        female: [
+            { blazer: '#1a3a2a', blazerLight: '#225533', blouse: '#55aa77', necklace: '#ffcc44', pendant: '#ffdd44', hair: '#8a3322', hairLight: '#aa4433', brow: '#7a3322', skin: '#d8b098', eye: '#337744', nose: '#c8a088', lip: '#cc6666', lipLight: '#dd7777', blush: 'rgba(220, 140, 140, 0.15)', lash: '#553333' },
+            { blazer: '#2a1a3a', blazerLight: '#3a2255', blouse: '#aa77cc', necklace: '#ffcc44', pendant: '#ffdd44', hair: '#ccaa55', hairLight: '#ddbb66', brow: '#aa8833', skin: '#e0b898', eye: '#6644aa', nose: '#d09878', lip: '#cc66aa', lipLight: '#dd77bb', blush: 'rgba(200, 140, 200, 0.15)', lash: '#554433' },
+            { blazer: '#1a2244', blazerLight: '#223355', blouse: '#7799cc', necklace: '#ffcc44', pendant: '#ffdd44', hair: '#1a1a22', hairLight: '#2a2a33', brow: '#1a1a22', skin: '#c09070', eye: '#334455', nose: '#b08060', lip: '#cc5555', lipLight: '#dd6666', blush: 'rgba(200, 130, 130, 0.15)', lash: '#332222' },
+        ],
+    };
+
+    function drawPlayerPortraitOnCanvas(canvasEl, gender, variant) {
         const c = canvasEl.getContext('2d');
         const w = canvasEl.width;
         const h = canvasEl.height;
         c.clearRect(0, 0, w, h);
         c.imageSmoothingEnabled = false;
         const s = w / 48;
+        const vi = Math.max(0, Math.min(2, (variant || 1) - 1));
         c.save();
         c.scale(s, s);
-        if (gender === 'female') drawPlayerFemalePortrait(c);
-        else drawPlayerMalePortrait(c);
+        if (gender === 'female') drawPlayerFemalePortrait(c, playerPortraitVariants.female[vi]);
+        else drawPlayerMalePortrait(c, playerPortraitVariants.male[vi]);
         c.restore();
     }
 
-    function drawPlayerMalePortrait(c) {
+    function drawPlayerMalePortrait(c, v) {
         // Background
         c.fillStyle = '#1a1a2e';
         c.fillRect(0, 0, 48, 48);
-        // Green suit jacket
-        c.fillStyle = '#224422';
+        // Suit jacket
+        c.fillStyle = v.suit;
         c.fillRect(10, 33, 28, 15);
         // Lapels
-        c.fillStyle = '#2a5a2a';
+        c.fillStyle = v.suitLight;
         c.fillRect(14, 33, 4, 8);
         c.fillRect(30, 33, 4, 8);
-        // White shirt
-        c.fillStyle = '#aaccaa';
+        // Shirt
+        c.fillStyle = v.shirt;
         c.fillRect(18, 31, 12, 8);
-        // Green tie
-        c.fillStyle = '#338833';
+        // Tie
+        c.fillStyle = v.tie;
         c.fillRect(23, 33, 3, 8);
         // € tie pin
-        c.fillStyle = '#ffdd44';
+        c.fillStyle = v.tiePin;
         c.fillRect(24, 35, 1, 1);
         // Pocket square
-        c.fillStyle = '#44ff44';
+        c.fillStyle = v.pocket;
         c.fillRect(12, 35, 3, 2);
         // Neck
-        c.fillStyle = '#d0a888';
+        c.fillStyle = v.skin;
         c.fillRect(20, 28, 8, 5);
         // Face
-        c.fillStyle = '#d0a888';
+        c.fillStyle = v.skin;
         c.fillRect(15, 10, 18, 20);
         c.fillRect(17, 28, 14, 2);
-        // Jaw line (slightly wider face)
-        c.fillStyle = '#c89878';
+        // Jaw line
+        c.fillStyle = v.skinShadow;
         c.fillRect(15, 26, 1, 3);
         c.fillRect(32, 26, 1, 3);
-        // Hair (dark brown, short styled)
-        c.fillStyle = '#443322';
+        // Hair
+        c.fillStyle = v.hair;
         c.fillRect(14, 5, 20, 7);
         c.fillRect(13, 7, 2, 8);
         c.fillRect(34, 7, 1, 6);
         // Hair highlight
-        c.fillStyle = '#554433';
+        c.fillStyle = v.hairLight;
         c.fillRect(16, 6, 8, 2);
         // Eyebrows
-        c.fillStyle = '#443322';
+        c.fillStyle = v.brow;
         c.fillRect(18, 15, 4, 1);
         c.fillRect(26, 15, 4, 1);
         // Eyes
         c.fillStyle = '#ffffff';
         c.fillRect(18, 17, 4, 3);
         c.fillRect(26, 17, 4, 3);
-        c.fillStyle = '#336633';
+        c.fillStyle = v.eye;
         c.fillRect(20, 17, 2, 3);
         c.fillRect(28, 17, 2, 3);
         c.fillStyle = '#1a1a22';
         c.fillRect(20, 18, 1, 2);
         c.fillRect(28, 18, 1, 2);
         // Nose
-        c.fillStyle = '#c09878';
+        c.fillStyle = v.nose;
         c.fillRect(23, 20, 3, 4);
         // Confident smile
-        c.fillStyle = '#b06050';
+        c.fillStyle = v.lip;
         c.fillRect(20, 25, 8, 1);
         c.fillRect(21, 26, 6, 1);
         // € symbol on pocket
-        c.fillStyle = '#44ff44';
+        c.fillStyle = v.pocket;
         c.font = '6px monospace';
         c.fillText('€', 12, 41);
     }
 
-    function drawPlayerFemalePortrait(c) {
+    function drawPlayerFemalePortrait(c, v) {
         // Background
         c.fillStyle = '#1a1a2e';
         c.fillRect(0, 0, 48, 48);
-        // Dark green blazer
-        c.fillStyle = '#1a3a2a';
+        // Blazer
+        c.fillStyle = v.blazer;
         c.fillRect(10, 33, 28, 15);
         // Blazer lapels
-        c.fillStyle = '#225533';
+        c.fillStyle = v.blazerLight;
         c.fillRect(14, 33, 4, 8);
         c.fillRect(30, 33, 4, 8);
-        // Emerald blouse
-        c.fillStyle = '#55aa77';
+        // Blouse
+        c.fillStyle = v.blouse;
         c.fillRect(17, 31, 14, 8);
         // Necklace (gold)
-        c.fillStyle = '#ffcc44';
+        c.fillStyle = v.necklace;
         c.fillRect(19, 31, 2, 1);
         c.fillRect(21, 32, 1, 1);
         c.fillRect(26, 32, 1, 1);
         c.fillRect(27, 31, 2, 1);
         // Gold pendant
-        c.fillStyle = '#ffdd44';
+        c.fillStyle = v.pendant;
         c.fillRect(23, 33, 2, 2);
         // Neck
-        c.fillStyle = '#d8b098';
+        c.fillStyle = v.skin;
         c.fillRect(20, 27, 8, 5);
         // Face (slightly softer shape)
-        c.fillStyle = '#d8b098';
+        c.fillStyle = v.skin;
         c.fillRect(15, 10, 18, 20);
         c.fillRect(17, 28, 14, 2);
         // Softer chin
-        c.fillStyle = '#d8b098';
+        c.fillStyle = v.skin;
         c.fillRect(16, 27, 16, 2);
-        // Hair (auburn, longer with volume)
-        c.fillStyle = '#8a3322';
+        // Hair (longer with volume)
+        c.fillStyle = v.hair;
         c.fillRect(13, 4, 22, 8);
         c.fillRect(12, 7, 3, 18);
         c.fillRect(33, 7, 3, 18);
@@ -5280,14 +5434,14 @@ const MapRenderer = (() => {
         c.fillRect(12, 25, 3, 8);
         c.fillRect(33, 25, 3, 8);
         // Hair highlight
-        c.fillStyle = '#aa4433';
+        c.fillStyle = v.hairLight;
         c.fillRect(15, 5, 6, 2);
         c.fillRect(26, 5, 6, 2);
         // Top volume
-        c.fillStyle = '#8a3322';
+        c.fillStyle = v.hair;
         c.fillRect(14, 3, 20, 3);
         // Eyebrows (thinner, arched upward — friendly)
-        c.fillStyle = '#7a3322';
+        c.fillStyle = v.brow;
         c.fillRect(19, 15, 3, 1);
         c.fillRect(18, 16, 1, 1);
         c.fillRect(28, 15, 3, 1);
@@ -5296,7 +5450,7 @@ const MapRenderer = (() => {
         c.fillStyle = '#ffffff';
         c.fillRect(18, 17, 5, 3);
         c.fillRect(26, 17, 5, 3);
-        c.fillStyle = '#337744';
+        c.fillStyle = v.eye;
         c.fillRect(20, 17, 3, 3);
         c.fillRect(28, 17, 3, 3);
         c.fillStyle = '#1a1a22';
@@ -5306,26 +5460,26 @@ const MapRenderer = (() => {
         c.fillStyle = '#ffffff';
         c.fillRect(20, 17, 1, 1);
         c.fillRect(28, 17, 1, 1);
-        // Eyelashes (lighter, less heavy)
-        c.fillStyle = '#553333';
+        // Eyelashes
+        c.fillStyle = v.lash;
         c.fillRect(18, 16, 5, 1);
         c.fillRect(26, 16, 5, 1);
         // Nose (smaller)
-        c.fillStyle = '#c8a088';
+        c.fillStyle = v.nose;
         c.fillRect(23, 20, 2, 3);
         // Warm smile (wider, upturned)
-        c.fillStyle = '#cc6666';
+        c.fillStyle = v.lip;
         c.fillRect(20, 25, 8, 1);
         c.fillRect(21, 26, 6, 1);
         // Upper lip highlight
-        c.fillStyle = '#dd7777';
+        c.fillStyle = v.lipLight;
         c.fillRect(22, 24, 4, 1);
         // Subtle blush
-        c.fillStyle = 'rgba(220, 140, 140, 0.15)';
+        c.fillStyle = v.blush;
         c.fillRect(16, 22, 4, 3);
         c.fillRect(28, 22, 4, 3);
         // € brooch on blazer
-        c.fillStyle = '#44ff44';
+        c.fillStyle = v.blouse;
         c.font = '6px monospace';
         c.fillText('€', 12, 41);
     }

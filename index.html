@@ -110,6 +110,7 @@
         <div id="news-ticker">
             <span id="news-text">Welcome to Helsingin Herra! Start building your real estate empire.</span>
         </div>
+        <div id="ticker-nudge" class="ticker-nudge">↓ Check the news ticker for updates and tips ↓</div>
 
         <!-- Turn log panel (hidden by default) -->
         <div id="log-panel" class="log-panel hidden">
@@ -207,6 +208,9 @@
 
         <!-- Achievement notification toast -->
         <div id="achievement-toast" class="achievement-toast hidden"></div>
+
+        <!-- No actions warning toast -->
+        <div id="no-actions-toast" class="no-actions-toast hidden">⚠️ No actions left! End your turn to continue.</div>
 
         <!-- Achievements panel -->
         <div id="achievements-panel" class="overlay hidden">
@@ -506,9 +510,14 @@
 
                 <div class="start-section">
                     <label>Portrait:</label>
-                    <div class="option-group">
+                    <div class="option-group" id="gender-toggle">
                         <button class="option-btn selected" data-gender="male">Male</button>
                         <button class="option-btn" data-gender="female">Female</button>
+                    </div>
+                    <div class="portrait-picker" id="portrait-picker">
+                        <canvas class="portrait-option selected" data-portrait="1" width="48" height="48"></canvas>
+                        <canvas class="portrait-option" data-portrait="2" width="48" height="48"></canvas>
+                        <canvas class="portrait-option" data-portrait="3" width="48" height="48"></canvas>
                     </div>
                 </div>
 
@@ -556,7 +565,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v1.5.3 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v1.5.4 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>

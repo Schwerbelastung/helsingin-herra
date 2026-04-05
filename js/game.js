@@ -20,6 +20,7 @@ const GameState = {
     winTarget: 50000000,
     playerName: 'The Tycoon of Helsinki',
     playerGender: 'male', // 'male' or 'female'
+    playerPortrait: 1, // 1, 2, or 3
     yearlyLog: [], // { type, text, month } entries for newspaper generation
     usedFillerIndices: [], // track which filler stories have been shown
     usedRivalFillerIndices: {}, // track which rival filler stories have been shown per rival
@@ -48,11 +49,12 @@ let easterEggQueue = [];
 
 const Game = (() => {
 
-    function start(capital, difficulty, mode, rivalCount, target, playerName, playerGender) {
+    function start(capital, difficulty, mode, rivalCount, target, playerName, playerGender, playerPortrait) {
         // Set starting money
         GameState.money = capital === 'wealthy' ? 2000000 : 200000;
         GameState.playerName = playerName || 'The Tycoon of Helsinki';
         GameState.playerGender = playerGender || 'male';
+        GameState.playerPortrait = playerPortrait || 1;
         GameState.difficulty = difficulty;
         GameState.mode = mode;
         GameState.staff = [];
@@ -1149,6 +1151,7 @@ const Game = (() => {
             financeHistory: GameState.financeHistory.map(h => ({ ...h })),
             playerName: GameState.playerName,
             playerGender: GameState.playerGender,
+            playerPortrait: GameState.playerPortrait,
             yearlyLog: GameState.yearlyLog,
             usedFillerIndices: GameState.usedFillerIndices,
             usedRivalFillerIndices: GameState.usedRivalFillerIndices,
@@ -1201,6 +1204,7 @@ const Game = (() => {
             GameState.staff = data.staff || [];
             GameState.playerName = data.playerName || 'The Tycoon of Helsinki';
             GameState.playerGender = data.playerGender || 'male';
+            GameState.playerPortrait = data.playerPortrait || 1;
             GameState.yearlyLog = data.yearlyLog || [];
             GameState.usedFillerIndices = data.usedFillerIndices || [];
             GameState.usedRivalFillerIndices = data.usedRivalFillerIndices || {};

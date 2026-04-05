@@ -1,5 +1,39 @@
 # Helsingin Herra - Changelog
 
+## v1.6.0 — Alppila & Pasila Districts (2026-04-05)
+
+### Added
+- **Two new districts** — Alppila (north of Kallio, west of Sörnäinen) and Pasila (large northern district reaching the map edge)
+- **Pasila Railway Station** landmark with dedicated pixel art sprite (platform, canopy, clock tower, rail tracks)
+- **Railway tracks** running north from Pasila station to the map edge
+- **Mall of Tripla** — purchaseable mega-mall (€40M) with 2x-size sprite, connected to the railway station
+- **Pasila Government Agency Center** landmark with flavor text about Finnish bureaucracy
+- **Messukeskus** (convention centre) — purchaseable landmark in Pasila
+- **Hietaniemi Cemetery** landmark with gravestone sprite and flavor text about Finland's most prestigious resting place
+- Pasila office generation, street names, and procedural residential properties
+- Alppila street names, starter restaurants, and procedural properties
+- Linnanmäki reassigned from Kallio to Alppila (its real-world location)
+
+### Changed
+- Removed Northern Green park overlay from the top of the map to make room for Pasila
+- Simplified coastline around Lapinlahti bay
+
+---
+
+## v1.5.4 — Portrait Selection & UX Polish (2026-04-05)
+
+### Added
+- **Portrait picker** — choose from 3 distinct character portraits per gender on the start screen; each variant has unique suit/blazer color, hair color, and skin tone (saved/loaded with game)
+- **No actions popup** — clicking a greyed-out action button (Buy, Sell, Upgrade, Repair, Make Offer) when out of actions now shows a centered red warning toast and plays a sound, instead of silently doing nothing
+- **News ticker glow pulse** — the ticker border briefly glows when it updates, drawing attention to new information
+- **First-game ticker nudge** — new players see a "check the news ticker" tooltip during turns 1–3 (shown once, tracked via localStorage)
+- **Panel z-index stacking** — last clicked/dragged panel now stays on top when panels overlap
+
+### Fixed
+- **Hotel St. George location** — moved to its correct position southeast of Forum, west of Sharetribe Office
+
+---
+
 ## v1.5.3 — Draggable Panels & Window Controls (2026-04-05)
 
 ### Added

@@ -160,18 +160,9 @@ const HelsinkiDistricts = (() => {
         [60.163, 24.901],
         [60.165, 24.902],
 
-        // --- LAPINLAHTI BAY (Lappviken) — a deep bay ---
-        // Bay entrance south
+        // --- LAPINLAHTI BAY (Lappviken) — coast skips bay (internal water body handles it) ---
         [60.167, 24.903],
-        [60.168, 24.905],
-        // Bay goes inland (northeast)
-        [60.169, 24.908],
-        [60.170, 24.910],   // bay head (deepest point)
-        [60.171, 24.909],
-        // Bay north shore coming back west
-        [60.172, 24.907],
-        [60.173, 24.905],
-        // Bay entrance north
+        [60.170, 24.903],
         [60.174, 24.904],
 
         // --- HIETANIEMI COAST ---
@@ -440,20 +431,6 @@ const HelsinkiDistricts = (() => {
                 [60.163, 24.950],
                 [60.161, 24.950],
                 [60.161, 24.945],
-            ]),
-        },
-        {
-            // Large green area north of the city — Keskuspuisto / northern forests
-            name: 'Northern Green',
-            polygon: geoToMap([
-                [60.194, 24.906],
-                [60.195, 24.920],
-                [60.196, 24.935],
-                [60.197, 24.950],
-                [60.198, 24.960],
-                [60.205, 24.960],
-                [60.205, 24.906],
-                [60.194, 24.906],
             ]),
         },
         {
@@ -1204,6 +1181,57 @@ const HelsinkiDistricts = (() => {
             prestige: 5,
             propertyDensity: 'low',
         },
+        {
+            id: 'alppila',
+            name: 'Alppila',
+            polygon: geoToMap([
+                // South border — follows Kallio's north edge
+                [60.188, 24.936],   // SW — east of Töölönlahti
+                [60.188, 24.946],   // S — shared with Kallio north
+                [60.191, 24.950],   // SE — Kallio NE vertex
+                // East border — alongside Sörnäinen's west
+                [60.191, 24.955],   // E
+                [60.193, 24.958],   // NE — shared with Sörnäinen NW
+                // North border
+                [60.194, 24.950],   // N
+                [60.194, 24.940],   // NW
+                // West border — east of Töölönlahti
+                [60.191, 24.935],   // W
+                [60.188, 24.936],   // close
+            ]),
+            center: geoToMap([[60.191, 24.945]])[0],
+            color: '#7a6a5a',
+            description: 'Linnanmäki amusement park, residential area',
+            prestige: 3,
+            propertyDensity: 'medium',
+        },
+        {
+            id: 'pasila',
+            name: 'Pasila',
+            polygon: geoToMap([
+                // Top edge — flat horizontal line at map border
+                [60.205, 24.910],   // NW at map edge
+                [60.205, 24.958],   // NE at map edge
+                // Right side descends
+                [60.200, 24.958],
+                [60.197, 24.955],
+                [60.195, 24.950],   // SE — near Alppila/Sörnäinen north
+                // Bottom of U — curves west
+                [60.194, 24.945],
+                [60.193, 24.938],   // bottom center of U
+                [60.194, 24.930],
+                [60.195, 24.924],   // SW — near Töölö NE
+                // Left side ascends
+                [60.197, 24.918],
+                [60.200, 24.912],
+                [60.205, 24.910],   // close at NW
+            ]),
+            center: geoToMap([[60.202, 24.942]])[0],
+            color: '#6a5a7a',
+            description: 'Railway hub, Tripla mall, Messukeskus',
+            prestige: 3,
+            propertyDensity: 'medium',
+        },
     ];
 
     // =========================================================
@@ -1285,7 +1313,7 @@ const HelsinkiDistricts = (() => {
         {
             name: 'Linnanmäki',
             pos: geoToMap([[60.1880, 24.9400]])[0],
-            district: 'kallio',
+            district: 'alppila',
             blurb: ["Helsinki's beloved amusement park has been in operation since 1950, and the wooden roller coaster has been terrifying visitors for nearly as long. It is the kind of ride that looks charming from the ground and genuinely alarming from the top.", "All proceeds from Linnanmäki go to child welfare organisations, which means every screaming descent is technically an act of charity. This is perhaps the most Finnish way imaginable to run an amusement park."],
         },
         {
@@ -1329,6 +1357,24 @@ const HelsinkiDistricts = (() => {
             pos: geoToMap([[60.167, 24.962]])[0],
             district: 'katajanokka',
             blurb: ["The Helsinki Wheel sits on the South Harbour waterfront and offers 360-degree views of the city, the sea, and several other ferries that are significantly larger than the gondola you are sitting in. A full rotation takes about 15 minutes, which is enough time to spot most of the landmarks you just walked past.", "The wheel operates year-round, including in Finnish winter, which means that on particularly cold evenings you can watch the city lights reflect on the ice while sitting in a slowly rotating glass bubble. This is, genuinely, quite beautiful."],
+        },
+        {
+            name: 'Pasila Railway Station',
+            pos: geoToMap([[60.2010, 24.9335]])[0],
+            district: 'pasila',
+            blurb: ["Pasila station is Helsinki's second-busiest railway station, a concrete monument to the Finnish conviction that public transport should be efficient, punctual, and aesthetically indifferent. Commuters pass through daily with the grim resolve of people who have memorised the timetable.", "The station connects directly to the Mall of Tripla, whose name remains one of Finland's great linguistic mysteries. 'Mall' is English. 'Tripla' is... Finnish? Latin? A marketing executive's fever dream? Nobody knows, nobody asked, and 250 shops opened anyway. The Finns shrugged and went shopping."],
+        },
+        {
+            name: 'Pasila Government Agency Center',
+            pos: geoToMap([[60.1985, 24.9380]])[0],
+            district: 'pasila',
+            blurb: ["A cluster of government office buildings where a significant portion of Finland's bureaucracy happens in orderly silence. The Tax Administration, the Patent and Registration Office, and various other agencies operate here with the quiet efficiency that Finns expect from their institutions.", "The buildings are functional in the way that only Nordic government architecture can be — neither ugly enough to complain about nor beautiful enough to photograph. Visitors take a number, wait their turn, and leave with their paperwork sorted. The system works. Nobody is excited about this."],
+        },
+        {
+            name: 'Hietaniemi Cemetery',
+            pos: geoToMap([[60.170, 24.910]])[0],
+            district: 'toolo',
+            blurb: ["Finland's most prestigious cemetery, where presidents, composers, architects, and war heroes rest in carefully maintained silence. Mannerheim is here. Sibelius is not — he chose Ainola, his country house, presumably to avoid the neighbours. Alvar Aalto is here, and his grave is, naturally, architecturally significant.", "The cemetery sits next to the beach, which means that on a summer Saturday, sunbathers and the deceased are separated by approximately one hedge. Helsinkians see no contradiction in this. Life, death, and a decent tan are all part of the same afternoon."],
         },
     ];
 

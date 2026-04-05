@@ -33,7 +33,7 @@ const Properties = (() => {
         { name: 'Hotel Haven', type: 'hotel', district: 'katajanokka', price: 12000000, revenue: 300000, description: 'Boutique hotel by the harbour', lat: 60.168, lon: 24.958 },
         { name: 'Scandic Grand Marina', type: 'hotel', district: 'katajanokka', price: 15000000, revenue: 360000, description: 'Large hotel in converted warehouse', lat: 60.170, lon: 24.968 },
         { name: 'Radisson Blu Plaza', type: 'hotel', district: 'kluuvi', price: 18000000, revenue: 450000, description: 'Hotel next to Railway Station', lat: 60.172, lon: 24.942 },
-        { name: 'Hotel St. George', type: 'hotel', district: 'kamppi', price: 16000000, revenue: 390000, description: 'Design hotel on Yrjönkatu', lat: 60.168, lon: 24.928 },
+        { name: 'Hotel St. George', type: 'hotel', district: 'kamppi', price: 16000000, revenue: 390000, description: 'Design hotel on Yrjönkatu', lat: 60.166, lon: 24.934 },
         { name: 'Clarion Hotel Helsinki', type: 'hotel', district: 'jatkasaari', price: 14000000, revenue: 330000, description: 'Modern hotel in Jätkäsaari', lat: 60.158, lon: 24.907 },
         { name: 'Hotel Lilla Roberts', type: 'hotel', district: 'punavuori', price: 10000000, revenue: 255000, description: 'Boutique hotel in art deco building', lat: 60.163, lon: 24.925 },
 
@@ -114,6 +114,16 @@ const Properties = (() => {
         { name: 'Ruoholahti Sauna Club', type: 'retail', district: 'ruoholahti', price: 140000, revenue: 8400, description: 'Small private sauna rental space', lat: 60.165, lon: 24.908 },
         { name: 'Kruununhaka Vintage Shop', type: 'retail', district: 'kruununhaka', price: 55000, revenue: 3300, description: 'Charming antique shop in Old Town', lat: 60.173, lon: 24.954 },
 
+        // === PASILA ===
+        { name: 'Mall of Tripla', type: 'retail', district: 'pasila', price: 40000000, revenue: 960000, description: 'Massive shopping centre with 250 shops, built into Pasila station', lat: 60.1985, lon: 24.9335 },
+        { name: 'Pasila Tower Office', type: 'office', district: 'pasila', price: 10000000, revenue: 240000, description: 'Modern office tower in central Pasila', lat: 60.199, lon: 24.930 },
+        { name: 'Messukeskus', type: 'landmark', district: 'pasila', price: 18000000, revenue: 360000, description: 'Helsinki Expo and Convention Centre', lat: 60.200, lon: 24.940 },
+        { name: 'Pasila R-kioski', type: 'retail', district: 'pasila', price: 50000, revenue: 3000, description: 'Kiosk by the railway station', lat: 60.198, lon: 24.936 },
+
+        // === ALPPILA ===
+        { name: 'Alppila Corner Pub', type: 'restaurant', district: 'alppila', price: 100000, revenue: 6000, description: 'Neighborhood pub near Linnanmäki', lat: 60.190, lon: 24.943 },
+        { name: 'Alppila Kebab & Pizza', type: 'restaurant', district: 'alppila', price: 80000, revenue: 4800, description: 'Late-night spot for amusement park visitors', lat: 60.189, lon: 24.946 },
+
         // === EASTER EGGS ===
         { name: 'Schwerbelastung\'s Penthouse', type: 'residential', district: 'jatkasaari', price: 300000, revenue: 15000, description: 'A mysterious developer\'s luxury penthouse with a suspiciously good Wi-Fi setup', lat: 60.150, lon: 24.899, color: '#cc44ff', easterEgg: true },
         { name: 'Sharetribe Office', type: 'office', district: 'kaartinkaupunki', price: 500000, revenue: 24000, description: 'Marketplace platform company HQ in the heart of Helsinki', lat: 60.166, lon: 24.938, color: '#ff8800', easterEgg: true },
@@ -170,6 +180,8 @@ const Properties = (() => {
         kaivopuisto: ['Itäinen Puistotie', 'Ehrenströmintie', 'Kalliolinnantie'],
         kuusisaari: ['Kuusisaarentie'],
         kulosaari: ['Hopeasalmentie', 'Kulosaaren puistotie', 'Svinhufvudintie'],
+        alppila: ['Alppiharjuntie', 'Viipurinkatu', 'Hämeentie', 'Linnanmäentie'],
+        pasila: ['Pasilankatu', 'Ratapihantie', 'Teollisuuskatu', 'Fredikanterassi'],
     };
 
     function randomInRange(min, max) {
@@ -339,7 +351,7 @@ const Properties = (() => {
             }
 
             // Office for select districts
-            if (['ruoholahti', 'kamppi', 'kluuvi', 'sornainen', 'jatkasaari', 'hernesaari', 'kalasatama', 'sompasaari'].includes(district.id)) {
+            if (['ruoholahti', 'kamppi', 'kluuvi', 'sornainen', 'jatkasaari', 'hernesaari', 'kalasatama', 'sompasaari', 'pasila'].includes(district.id)) {
                 const offTemplate = OFFICE_TEMPLATES[Math.floor(Math.random() * OFFICE_TEMPLATES.length)];
                 const officeName = offTemplate.template.replace('{district}', district.name);
                 const price = randomInRange(offTemplate.priceRange[0], offTemplate.priceRange[1]);

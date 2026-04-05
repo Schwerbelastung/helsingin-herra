@@ -424,6 +424,39 @@ html {
     100% { transform: translateX(-50%); }
 }
 
+#news-ticker.ticker-pulse {
+    animation: ticker-glow 1.5s ease-out;
+}
+
+@keyframes ticker-glow {
+    0% { border-color: var(--text-accent); box-shadow: 0 0 8px var(--text-accent); }
+    100% { border-color: var(--border-color); box-shadow: none; }
+}
+
+.ticker-nudge {
+    position: absolute;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background: rgba(10, 10, 26, 0.95);
+    border: 1px solid var(--text-accent);
+    color: var(--text-accent);
+    padding: 6px 14px;
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.4s, transform 0.4s;
+    pointer-events: none;
+    zoom: var(--ui-scale);
+    white-space: nowrap;
+}
+
+.ticker-nudge.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1462,6 +1495,32 @@ html {
     color: #ccc;
 }
 
+.portrait-picker {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.portrait-option {
+    width: 64px;
+    height: 64px;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    image-rendering: pixelated;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.portrait-option:hover {
+    border-color: var(--btn-hover);
+    transform: scale(1.05);
+}
+
+.portrait-option.selected {
+    border-color: var(--text-accent);
+    box-shadow: 0 0 6px var(--text-accent);
+}
+
 .start-btn {
     font-family: var(--font-pixel);
     font-size: 14px;
@@ -2351,6 +2410,35 @@ html {
 .achievement-toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+}
+
+.no-actions-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(40, 10, 10, 0.95);
+    border: 2px solid #cc4444;
+    color: #ff8888;
+    padding: 14px 24px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    zoom: var(--ui-scale);
+    text-align: center;
+}
+
+.no-actions-toast.hidden {
+    display: none;
+}
+
+.no-actions-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
 }
 
 .toast-icon {
