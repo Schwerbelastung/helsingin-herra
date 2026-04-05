@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win portable",
+    "postbuild": "cp dist/Helsingin-Herra-v*.exe ."
   },
   "build": {
     "appId": "com.schwerbelastung.helsingin-herra",
