@@ -56,18 +56,16 @@
 
         <!-- Landmark info panel (hidden by default) -->
         <div id="landmark-panel" class="panel hidden">
-            <div id="landmark-panel-header" class="panel-header-base">
+            <div id="landmark-panel-header" class="panel-header-base panel-drag-handle">
                 <span id="landmark-panel-title">Landmark</span>
-                <button id="landmark-panel-close">&times;</button>
             </div>
             <div id="landmark-panel-body"></div>
         </div>
 
         <!-- Property info panel (hidden by default) -->
         <div id="property-panel" class="panel hidden">
-            <div id="panel-header">
+            <div id="panel-header" class="panel-drag-handle">
                 <span id="panel-title">Property Name</span>
-                <button id="panel-close">&times;</button>
             </div>
             <div id="panel-body">
                 <div id="panel-type"></div>
@@ -83,6 +81,7 @@
                 <button id="btn-sell" class="action-btn hidden">Sell <span class="hotkey">[2]</span></button>
                 <button id="btn-upgrade" class="action-btn hidden">Upgrade <span class="hotkey">[3]</span></button>
                 <button id="btn-repair" class="action-btn hidden">Repair <span class="hotkey">[4]</span></button>
+                <button id="btn-make-offer" class="action-btn hidden">Make Offer <span class="hotkey">[5]</span></button>
             </div>
         </div>
 
@@ -114,18 +113,16 @@
 
         <!-- Turn log panel (hidden by default) -->
         <div id="log-panel" class="log-panel hidden">
-            <div class="log-header">
+            <div class="log-header panel-drag-handle">
                 <span>TURN LOG</span>
-                <button id="log-close">&times;</button>
             </div>
             <div id="log-entries" class="log-entries"></div>
         </div>
 
         <!-- Filter panel (hidden by default) -->
         <div id="filter-panel" class="filter-panel hidden">
-            <div class="filter-header">
+            <div class="filter-header panel-drag-handle">
                 <span>MAP FILTERS</span>
-                <button id="filter-close">&times;</button>
             </div>
             <div class="filter-section">
                 <label>Property Type:</label>
@@ -164,13 +161,19 @@
                     <button class="filter-btn" data-affordable="yes">Can Afford &amp; Available</button>
                 </div>
             </div>
+            <div class="filter-section">
+                <label>Display:</label>
+                <div class="filter-group" id="filter-landmarks">
+                    <button class="filter-btn" data-landmarks="show">Show Landmarks</button>
+                    <button class="filter-btn" data-landmarks="fade">Fade Landmarks</button>
+                </div>
+            </div>
         </div>
 
         <!-- Bank panel -->
         <div id="bank-panel" class="bank-panel hidden">
-            <div class="bank-header">
+            <div class="bank-header panel-drag-handle">
                 <span>HELSINKI BANK</span>
-                <button id="bank-close">&times;</button>
             </div>
             <div class="bank-body">
                 <div class="bank-info">
@@ -219,18 +222,16 @@
 
         <!-- Stats panel -->
         <div id="stats-panel" class="side-panel hidden">
-            <div class="side-panel-header">
+            <div class="side-panel-header panel-drag-handle">
                 <span>STATISTICS</span>
-                <button id="stats-close">&times;</button>
             </div>
             <div id="stats-body" class="side-panel-body"></div>
         </div>
 
         <!-- Menu panel -->
         <div id="menu-panel" class="side-panel hidden">
-            <div class="side-panel-header">
+            <div class="side-panel-header panel-drag-handle">
                 <span>MENU</span>
-                <button id="menu-close">&times;</button>
             </div>
             <div class="side-panel-body">
                 <div id="menu-info" class="menu-info"></div>
@@ -261,9 +262,8 @@
 
         <!-- Staff panel -->
         <div id="staff-panel" class="side-panel hidden">
-            <div class="side-panel-header">
+            <div class="side-panel-header panel-drag-handle">
                 <span>STAFF</span>
-                <button id="staff-close">&times;</button>
             </div>
             <div id="staff-body" class="side-panel-body"></div>
         </div>
@@ -288,7 +288,9 @@
                                 <th data-sort="roi">ROI%</th>
                                 <th data-sort="condition">Cond</th>
                                 <th data-sort="upgradeLevel">Upg</th>
+                                <th>Upgrade</th>
                                 <th>Repair</th>
+                                <th>Go</th>
                             </tr>
                         </thead>
                         <tbody id="portfolio-tbody"></tbody>
@@ -299,9 +301,8 @@
 
         <!-- Cheat panel -->
         <div id="cheat-panel" class="cheat-panel hidden">
-            <div class="cheat-header">
+            <div class="cheat-header panel-drag-handle">
                 <span>CHEATS</span>
-                <button id="cheat-close">&times;</button>
             </div>
             <div class="cheat-body">
                 <div class="cheat-section">
@@ -397,6 +398,33 @@
                 <div id="offer-buttons">
                     <button class="offer-btn" id="offer-accept">ACCEPT</button>
                     <button class="offer-btn" id="offer-decline">DECLINE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player offer overlay -->
+        <div id="player-offer-overlay" class="overlay hidden">
+            <div id="player-offer-content">
+                <div id="player-offer-header">MAKE AN OFFER</div>
+                <div id="player-offer-body">
+                    <canvas id="player-offer-portrait" width="64" height="64"></canvas>
+                    <div id="player-offer-details">
+                        <div id="player-offer-prop-name"></div>
+                        <div id="player-offer-prop-info"></div>
+                        <div id="player-offer-market">Market value: <span id="player-offer-market-val"></span></div>
+                        <div id="player-offer-price-row">
+                            <button class="offer-adj-btn" id="player-offer-minus-10">-10%</button>
+                            <button class="offer-adj-btn" id="player-offer-minus-5">-5%</button>
+                            <span id="player-offer-price">€0</span>
+                            <button class="offer-adj-btn" id="player-offer-plus-5">+5%</button>
+                            <button class="offer-adj-btn" id="player-offer-plus-10">+10%</button>
+                        </div>
+                        <div id="player-offer-pct"></div>
+                    </div>
+                </div>
+                <div id="player-offer-buttons">
+                    <button class="offer-btn" id="player-offer-submit">SUBMIT OFFER</button>
+                    <button class="offer-btn" id="player-offer-cancel">CANCEL</button>
                 </div>
             </div>
         </div>
@@ -528,7 +556,7 @@
                     </div>
                 </div>
 
-                <div class="start-meta">v1.1.0 &mdash; by Schwerbelastung</div>
+                <div class="start-meta">v1.5.3 &mdash; by Schwerbelastung</div>
                 <button id="btn-start-game" class="start-btn">START GAME</button>
                 <button id="btn-continue-game" class="start-btn continue-btn hidden">CONTINUE</button>
                 <div id="save-info" class="save-info hidden"></div>
@@ -582,7 +610,7 @@
                 <div class="tutorial-nav">
                     <button id="tutorial-prev" class="tutorial-btn">BACK</button>
                     <button id="tutorial-next" class="tutorial-btn">NEXT</button>
-                    <button id="tutorial-skip" class="tutorial-btn tutorial-skip">SKIP</button>
+                    <button id="tutorial-skip" class="tutorial-btn tutorial-skip">CLOSE</button>
                 </div>
             </div>
         </div>
@@ -594,6 +622,7 @@
     <script src="js/seasons.js?v=0190"></script>
     <script src="js/rivals.js?v=0190"></script>
     <script src="js/staff.js?v=0190"></script>
+    <script src="js/diagnostics.js?v=0190"></script>
     <script src="js/sound.js?v=0190"></script>
     <script src="js/achievements.js?v=0190"></script>
     <script src="js/newspaper.js?v=0190"></script>

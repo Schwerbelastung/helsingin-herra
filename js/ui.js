@@ -13,6 +13,7 @@ const UI = (() => {
         price: 'all',   // 'all' or a price range key
         owner: 'all',   // 'all', 'forsale', 'player', 'rival'
         affordable: false, // true = show only unowned properties the player can afford
+        fadeLandmarks: false, // true = fade landmark visibility
     };
 
     // Cheat state
@@ -44,6 +45,25 @@ const UI = (() => {
         setupCheats();
         setupHotkeys();
         setupOfferAndUndo();
+        setupPlayerOffer();
+        setupNewsTicker();
+        initDraggablePanels();
+    }
+
+    function setupNewsTicker() {
+        const ticker = document.getElementById('news-ticker');
+        if (ticker) {
+            ticker.addEventListener('click', () => {
+                if (currentScoutProperty) {
+                    // Jump to scout property
+                    MapRenderer.zoomToProperty(currentScoutProperty);
+                    showPropertyPanel(currentScoutProperty);
+                    Sound.playClick();
+                }
+            });
+            // Show clickable cursor when scout tip is available
+            ticker.style.cursor = currentScoutProperty ? 'pointer' : 'default';
+        }
     }
 
     function setupStartScreen() {
@@ -481,10 +501,10 @@ Good luck — become the Helsingin Herra!`,
             } else if (key === 'a') {
                 Sound.playClick();
                 showAchievementsPanel();
-            } else if ((key === '1' || key === '2' || key === '3' || key === '4') &&
+            } else if ((key === '1' || key === '2' || key === '3' || key === '4' || key === '5') &&
                        !document.getElementById('property-panel').classList.contains('hidden')) {
                 // Property panel hotkeys
-                const btnMap = { '1': 'btn-buy', '2': 'btn-sell', '3': 'btn-upgrade', '4': 'btn-repair' };
+                const btnMap = { '1': 'btn-buy', '2': 'btn-sell', '3': 'btn-upgrade', '4': 'btn-repair', '5': 'btn-make-offer' };
                 const btn = document.getElementById(btnMap[key]);
                 if (btn && !btn.classList.contains('hidden') && !btn.disabled) {
                     Sound.playClick();
@@ -502,6 +522,10 @@ Good luck — become the Helsingin Herra!`,
                 document.getElementById('filter-panel').classList.add('hidden');
                 document.getElementById('btn-filter').classList.remove('filter-active');
                 document.getElementById('portfolio-overlay').classList.add('hidden');
+                // Close player offer dialog on escape
+                if (!document.getElementById('player-offer-overlay').classList.contains('hidden')) {
+                    hidePlayerOfferDialog();
+                }
                 // Decline offer on escape
                 if (!document.getElementById('offer-overlay').classList.contains('hidden')) {
                     Game.declineOffer();
@@ -542,15 +566,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupPanelClose() {
-        document.getElementById('landmark-panel-close').addEventListener('click', () => {
-            hideLandmarkPanel();
-        });
-        document.getElementById('panel-close').addEventListener('click', () => {
-            hidePropertyPanel();
-        });
-        document.getElementById('log-close').addEventListener('click', () => {
-            document.getElementById('log-panel').classList.add('hidden');
-        });
+        // landmark-panel-close, panel-close, log-close removed — handled by injected window controls
         document.getElementById('portfolio-close').addEventListener('click', () => {
             document.getElementById('portfolio-overlay').classList.add('hidden');
         });
@@ -617,15 +633,21 @@ Good luck — become the Helsingin Herra!`,
             html += `</div>`;
         }
 
+        // Show win target in campaign mode
+        if (gameState.mode === 'campaign' && gameState.winTarget) {
+            html += `<span class="sb-separator">|</span>`;
+            html += `<span class="sb-goal">GOAL: €${formatMoney(gameState.winTarget)}</span>`;
+        }
+
         sb.innerHTML = html;
     }
 
     function showLandmarkPanel(landmark) {
-        hideBankPanel();
-        hideStatsPanel();
-        hideStaffPanel();
-        hideMenuPanel();
-        hidePropertyPanel();
+        if (!isPanelPinned('bank-panel')) hideBankPanel();
+        if (!isPanelPinned('stats-panel')) hideStatsPanel();
+        if (!isPanelPinned('staff-panel')) hideStaffPanel();
+        if (!isPanelPinned('menu-panel')) hideMenuPanel();
+        if (!isPanelPinned('property-panel')) hidePropertyPanel();
         const panel = document.getElementById('landmark-panel');
         document.getElementById('landmark-panel-title').textContent = landmark.name.toUpperCase();
         const body = document.getElementById('landmark-panel-body');
@@ -637,6 +659,7 @@ Good luck — become the Helsingin Herra!`,
             body.appendChild(p);
         }
         panel.classList.remove('hidden');
+        applyPanelPosition('landmark-panel');
     }
 
     function hideLandmarkPanel() {
@@ -644,13 +667,14 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function showPropertyPanel(property) {
-        hideBankPanel(); // close right-side panels to avoid overlap
-        hideStatsPanel();
-        hideStaffPanel();
-        hideMenuPanel();
+        if (!isPanelPinned('bank-panel')) hideBankPanel();
+        if (!isPanelPinned('stats-panel')) hideStatsPanel();
+        if (!isPanelPinned('staff-panel')) hideStaffPanel();
+        if (!isPanelPinned('menu-panel')) hideMenuPanel();
         currentPanelProperty = property;
         const panel = document.getElementById('property-panel');
         panel.classList.remove('hidden');
+        applyPanelPosition('property-panel');
 
         document.getElementById('panel-title').textContent = property.name;
         document.getElementById('panel-type').innerHTML = `<span>Type:</span><span>${property.type}</span>`;
@@ -667,6 +691,8 @@ Good luck — become the Helsingin Herra!`,
         const btnUpgrade = document.getElementById('btn-upgrade');
         const btnRepair = document.getElementById('btn-repair');
 
+        const btnOffer = document.getElementById('btn-make-offer');
+
         if (property.owner === null) {
             btnBuy.classList.remove('hidden');
             btnBuy.disabled = (!freeBuyMode && GameState.money < property.price) || GameState.actionsRemaining <= 0;
@@ -674,6 +700,7 @@ Good luck — become the Helsingin Herra!`,
             btnSell.classList.add('hidden');
             btnUpgrade.classList.add('hidden');
             btnRepair.classList.add('hidden');
+            btnOffer.classList.add('hidden');
         } else if (property.owner === 'player') {
             btnBuy.classList.add('hidden');
             btnSell.classList.remove('hidden');
@@ -682,19 +709,35 @@ Good luck — become the Helsingin Herra!`,
             btnUpgrade.classList.remove('hidden');
             const upgCost = Properties.getUpgradeCost(property);
             btnUpgrade.disabled = !upgCost || GameState.money < upgCost || GameState.actionsRemaining <= 0;
-            btnUpgrade.innerHTML = upgCost ? `Upgrade (€${formatMoney(upgCost)}) <span class="hotkey">[3]</span>` : 'MAX';
+            if (upgCost) {
+                // Calculate projected upgrade values
+                const newLevel = property.upgradeLevel + 1;
+                const projRevenue = Math.floor(property.baseRevenue * (1 + (newLevel - 1) * 0.2));
+                const projPrice = Math.floor(property.basePrice * (1 + (newLevel - 1) * 0.15));
+                const revIncrease = projRevenue - property.revenue;
+                btnUpgrade.innerHTML = `Upgrade (€${formatMoney(upgCost)}) <span class="hotkey">[3]</span>`;
+                btnUpgrade.title = `+€${formatMoney(revIncrease)}/mo revenue, +€${formatMoney(projPrice - property.price)} value`;
+            } else {
+                btnUpgrade.innerHTML = 'MAX';
+                btnUpgrade.title = 'Already fully upgraded';
+            }
             btnUpgrade.onclick = () => Game.upgradeProperty(property);
             btnRepair.classList.remove('hidden');
             const repCost = Properties.getRepairCost(property);
             btnRepair.disabled = property.condition >= 95 || GameState.money < repCost || GameState.actionsRemaining <= 0;
             btnRepair.innerHTML = `Repair (€${formatMoney(repCost)}) <span class="hotkey">[4]</span>`;
             btnRepair.onclick = () => Game.repairProperty(property);
+            btnOffer.classList.add('hidden');
         } else {
-            // Rival-owned
+            // Rival-owned — show Make Offer button
             btnBuy.classList.add('hidden');
             btnSell.classList.add('hidden');
             btnUpgrade.classList.add('hidden');
             btnRepair.classList.add('hidden');
+            const btnOffer = document.getElementById('btn-make-offer');
+            btnOffer.classList.remove('hidden');
+            btnOffer.disabled = GameState.actionsRemaining <= 0;
+            btnOffer.onclick = () => showPlayerOfferDialog(property);
         }
     }
 
@@ -718,6 +761,8 @@ Good luck — become the Helsingin Herra!`,
         // Reset to measure natural width
         ticker.classList.remove('scrolling');
         span.textContent = text;
+        // Update cursor based on scout property availability
+        ticker.style.cursor = currentScoutProperty ? 'pointer' : 'default';
         // Check if text overflows the ticker
         requestAnimationFrame(() => {
             if (span.scrollWidth > ticker.clientWidth) {
@@ -800,12 +845,13 @@ Good luck — become the Helsingin Herra!`,
             panel.classList.add('hidden');
             return;
         }
-        // Close other right-side panels
-        hidePropertyPanel();
-        hideStatsPanel();
-        hideStaffPanel();
-        hideMenuPanel();
+        // Close other right-side panels (unless pinned)
+        if (!isPanelPinned('property-panel')) hidePropertyPanel();
+        if (!isPanelPinned('stats-panel')) hideStatsPanel();
+        if (!isPanelPinned('staff-panel')) hideStaffPanel();
+        if (!isPanelPinned('menu-panel')) hideMenuPanel();
         panel.classList.remove('hidden');
+        applyPanelPosition('bank-panel');
         updateBankPanel();
     }
 
@@ -866,7 +912,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupBankPanel() {
-        document.getElementById('bank-close').addEventListener('click', hideBankPanel);
+        // bank-close removed — handled by injected window controls
 
         // Withdraw buttons
         document.querySelectorAll('.bank-withdraw').forEach(btn => {
@@ -917,12 +963,13 @@ Good luck — become the Helsingin Herra!`,
             panel.classList.add('hidden');
             return;
         }
-        // Close other right-side panels
-        hidePropertyPanel();
-        hideBankPanel();
-        hideStaffPanel();
-        hideMenuPanel();
+        // Close other right-side panels (unless pinned)
+        if (!isPanelPinned('property-panel')) hidePropertyPanel();
+        if (!isPanelPinned('bank-panel')) hideBankPanel();
+        if (!isPanelPinned('staff-panel')) hideStaffPanel();
+        if (!isPanelPinned('menu-panel')) hideMenuPanel();
         panel.classList.remove('hidden');
+        applyPanelPosition('stats-panel');
         updateStatsPanel();
     }
 
@@ -1047,12 +1094,13 @@ Good luck — become the Helsingin Herra!`,
             panel.classList.add('hidden');
             return;
         }
-        // Close other right-side panels
-        hidePropertyPanel();
-        hideBankPanel();
-        hideStatsPanel();
-        hideStaffPanel();
+        // Close other right-side panels (unless pinned)
+        if (!isPanelPinned('property-panel')) hidePropertyPanel();
+        if (!isPanelPinned('bank-panel')) hideBankPanel();
+        if (!isPanelPinned('stats-panel')) hideStatsPanel();
+        if (!isPanelPinned('staff-panel')) hideStaffPanel();
         panel.classList.remove('hidden');
+        applyPanelPosition('menu-panel');
         updateMenuPanel();
     }
 
@@ -1109,7 +1157,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupMenuPanel() {
-        document.getElementById('menu-close').addEventListener('click', hideMenuPanel);
+        // menu-close removed — handled by injected window controls
 
         // UI Scale buttons
         document.querySelectorAll('.menu-scale-btn').forEach(btn => {
@@ -1173,7 +1221,7 @@ Good luck — become the Helsingin Herra!`,
             'property-panel', 'landmark-panel', 'log-panel', 'filter-panel',
             'bank-panel', 'achievements-panel', 'stats-panel', 'menu-panel',
             'staff-panel', 'portfolio-overlay', 'cheat-panel', 'auction-overlay',
-            'offer-overlay', 'newspaper-overlay', 'newspaper-prompt',
+            'offer-overlay', 'player-offer-overlay', 'newspaper-overlay', 'newspaper-prompt',
             'nokia-overlay', 'victory-overlay', 'changelog-overlay',
             'name-confirm-prompt', 'tutorial-prompt', 'tutorial-overlay',
         ];
@@ -1184,6 +1232,7 @@ Good luck — become the Helsingin Herra!`,
 
         // Reset game state
         GameState.gameOver = false;
+        GameState.victoryScreenShown = false;
         GameState.turn = 1;
         GameState.month = 0;
         GameState.year = 2024;
@@ -1203,7 +1252,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupStatsPanel() {
-        document.getElementById('stats-close').addEventListener('click', hideStatsPanel);
+        // stats-close removed — handled by injected window controls
     }
 
     function showStaffPanel() {
@@ -1212,11 +1261,12 @@ Good luck — become the Helsingin Herra!`,
             panel.classList.add('hidden');
             return;
         }
-        hidePropertyPanel();
-        hideBankPanel();
-        hideStatsPanel();
-        hideMenuPanel();
+        if (!isPanelPinned('property-panel')) hidePropertyPanel();
+        if (!isPanelPinned('bank-panel')) hideBankPanel();
+        if (!isPanelPinned('stats-panel')) hideStatsPanel();
+        if (!isPanelPinned('menu-panel')) hideMenuPanel();
         panel.classList.remove('hidden');
+        applyPanelPosition('staff-panel');
         updateStaffPanel();
     }
 
@@ -1231,10 +1281,45 @@ Good luck — become the Helsingin Herra!`,
         const totalSalary = Staff.getTotalSalaries(GameState);
         let html = '';
 
-        if (GameState.staff.length > 0) {
+        // Salary scaling explanation
+        html += `<div class="staff-panel-info">Salaries scale by 15% per year — staff become more expensive but more valuable over time.</div>`;
+
+        if (GameState.staff.length > 0 || GameState.maintenanceTier > 0) {
             html += `<div class="staff-salary-total">Monthly salaries: <span>€${formatMoney(totalSalary)}</span></div>`;
         }
 
+        // Maintenance Worker Widget
+        html += `<div class="staff-section-title">Maintenance Worker</div>`;
+        html += `<div class="maintenance-desc">Each tier repairs that exact number of damaged properties per turn at 50% cost. Tier 1 repairs 1, Tier 2 repairs 2, up to Tier 5 repairing 5—all fully repaired to 100% condition.</div>`;
+        html += `<div class="maintenance-widget">`;
+        const currentTier = Staff.getMaintenanceTier(GameState);
+        for (let tier = 1; tier <= 5; tier++) {
+            const tierDef = Staff.getMaintenanceTierDef(tier);
+            const hired = currentTier === tier;
+            const salary = Staff.getMaintenanceSalary(tier, GameState.turn);
+            const hireCost = Staff.getMaintenanceHireCost(tier);
+            const canAfford = GameState.money >= hireCost;
+
+            html += `<div class="maintenance-row ${hired ? 'active' : ''}">`;
+            html += `<div class="maint-tier-label">Tier ${tier}${hired ? ' ✓' : ''}</div>`;
+            html += `<div class="maint-tier-costs">`;
+            if (hired) {
+                html += `<div>Salary: <span>€${formatMoney(salary)}/mo</span></div>`;
+            } else {
+                html += `<div>Hire: <span>€${formatMoney(hireCost)}</span> | <span>€${formatMoney(salary)}/mo</span></div>`;
+            }
+            html += `</div>`;
+            if (hired) {
+                html += `<button class="staff-fire-btn" data-maintenance-tier="${tier}">FIRE</button>`;
+            } else {
+                html += `<button class="staff-hire-btn" data-maintenance-tier="${tier}" ${canAfford ? '' : 'disabled'}>HIRE</button>`;
+            }
+            html += `</div>`;
+        }
+        html += `</div>`;
+
+        // Other Staff
+        html += `<div class="staff-section-title">Support Staff</div>`;
         for (const def of Staff.getDefinitions()) {
             const hired = Staff.isHired(GameState, def.id);
             const salary = Staff.getSalary(def.id, GameState.turn);
@@ -1261,8 +1346,38 @@ Good luck — become the Helsingin Herra!`,
 
         body.innerHTML = html;
 
-        // Wire up hire buttons
-        body.querySelectorAll('.staff-hire-btn').forEach(btn => {
+        // Wire up maintenance hire buttons
+        body.querySelectorAll('.staff-hire-btn[data-maintenance-tier]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tier = parseInt(btn.dataset.maintenanceTier);
+                if (Staff.hireMaintenanceTier(GameState, tier)) {
+                    Sound.playBuy();
+                    updateHUD(GameState);
+                    updateStaffPanel();
+                    const tierDef = Staff.getMaintenanceTierDef(tier);
+                    setNewsText(`Hired ${tierDef.name}!`);
+                    addLogAction(`Hired ${tierDef.name}`);
+                }
+            });
+        });
+
+        // Wire up maintenance fire buttons
+        body.querySelectorAll('.staff-fire-btn[data-maintenance-tier]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tier = parseInt(btn.dataset.maintenanceTier);
+                const tierDef = Staff.getMaintenanceTierDef(tier);
+                if (Staff.fireMaintenanceTier(GameState)) {
+                    Sound.playSell();
+                    updateHUD(GameState);
+                    updateStaffPanel();
+                    setNewsText(`Fired ${tierDef.name}.`);
+                    addLogAction(`Fired ${tierDef.name}`);
+                }
+            });
+        });
+
+        // Wire up regular hire buttons
+        body.querySelectorAll('.staff-hire-btn[data-staff-id]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.staffId;
                 if (Staff.hire(GameState, id)) {
@@ -1276,8 +1391,8 @@ Good luck — become the Helsingin Herra!`,
             });
         });
 
-        // Wire up fire buttons
-        body.querySelectorAll('.staff-fire-btn').forEach(btn => {
+        // Wire up regular fire buttons
+        body.querySelectorAll('.staff-fire-btn[data-staff-id]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.staffId;
                 if (Staff.fire(GameState, id)) {
@@ -1293,7 +1408,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupStaffPanel() {
-        document.getElementById('staff-close').addEventListener('click', hideStaffPanel);
+        // staff-close removed — handled by injected window controls
     }
 
     // === CHEATS ===
@@ -1303,9 +1418,7 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupCheats() {
-        document.getElementById('cheat-close').addEventListener('click', () => {
-            document.getElementById('cheat-panel').classList.add('hidden');
-        });
+        // cheat-close removed — handled by injected window controls
 
         document.getElementById('cheat-10k').addEventListener('click', () => {
             GameState.money += 10000;
@@ -1489,7 +1602,14 @@ Good luck — become the Helsingin Herra!`,
         // Staff action results
         if (summary.staffResults && summary.staffResults.length > 0) {
             for (const msg of summary.staffResults) {
-                tickerParts.push(msg);
+                if (typeof msg === 'object' && msg.text) {
+                    tickerParts.push(msg.text);
+                    if (msg.scoutProperty) {
+                        currentScoutProperty = msg.scoutProperty;
+                    }
+                } else {
+                    tickerParts.push(msg);
+                }
             }
         }
 
@@ -1537,7 +1657,8 @@ Good luck — become the Helsingin Herra!`,
         // Staff effects
         if (summary.staffResults && summary.staffResults.length > 0) {
             for (const msg of summary.staffResults) {
-                logEntry.lines.push({ text: msg, cls: 'income-positive' });
+                const text = typeof msg === 'object' && msg.text ? msg.text : msg;
+                logEntry.lines.push({ text, cls: 'income-positive' });
             }
         }
 
@@ -1574,15 +1695,17 @@ Good luck — become the Helsingin Herra!`,
 
     function toggleLogPanel() {
         const panel = document.getElementById('log-panel');
-        const filterPanel = document.getElementById('filter-panel');
-        // Close filter panel if open (they share the same screen area)
+        // Close filter panel if open (unless pinned)
         if (!panel.classList.contains('hidden')) {
             panel.classList.add('hidden');
             return;
         }
-        filterPanel.classList.add('hidden');
-        document.getElementById('btn-filter').classList.remove('filter-active');
+        if (!isPanelPinned('filter-panel')) {
+            document.getElementById('filter-panel').classList.add('hidden');
+            document.getElementById('btn-filter').classList.remove('filter-active');
+        }
         panel.classList.remove('hidden');
+        applyPanelPosition('log-panel');
         renderLogPanel();
     }
 
@@ -1753,6 +1876,7 @@ Good luck — become the Helsingin Herra!`,
     // === PORTFOLIO ===
     let portfolioSortKey = 'name';
     let portfolioSortDir = 'asc';
+    let currentScoutProperty = null;
 
     function togglePortfolio() {
         const overlay = document.getElementById('portfolio-overlay');
@@ -1842,14 +1966,38 @@ Good luck — become the Helsingin Herra!`,
             html += `<td>${p.roi.toFixed(1)}%</td>`;
             html += `<td class="${condCls}">${Math.floor(p.condition)}%</td>`;
             html += `<td>Lv.${p.upgradeLevel}/${p.maxUpgrade}</td>`;
+            // Upgrade column
+            const upgCost = Properties.getUpgradeCost(realProp);
+            const canUpgrade = upgCost && GameState.money >= upgCost && GameState.actionsRemaining > 0;
+            if (upgCost) {
+                html += `<td class="portfolio-upgrade-cell"><button class="portfolio-upgrade-btn" data-upgrade-id="${p.id}" ${canUpgrade ? '' : 'disabled'}>€${formatMoney(upgCost)}</button></td>`;
+            } else {
+                html += `<td class="portfolio-upgrade-cell"><span class="cond-good">MAX</span></td>`;
+            }
+            // Repair column
             if (p.condition >= 95) {
                 html += `<td class="portfolio-repair-cell"><span class="cond-good">OK</span></td>`;
             } else {
                 html += `<td class="portfolio-repair-cell"><button class="portfolio-repair-btn" data-repair-id="${p.id}" ${canRepair ? '' : 'disabled'}>€${formatMoney(repCost)}</button></td>`;
             }
+            // Go column
+            html += `<td class="portfolio-go-cell"><button class="portfolio-go-btn" data-go-id="${p.id}">→</button></td>`;
             html += `</tr>`;
         }
         tbody.innerHTML = html;
+
+        // Upgrade buttons
+        tbody.querySelectorAll('.portfolio-upgrade-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // don't trigger row click
+                const propId = btn.dataset.upgradeId;
+                const prop = GameState.properties.find(p => p.id === propId);
+                if (prop) {
+                    Game.upgradeProperty(prop);
+                    renderPortfolio(); // re-render to update upgrade level/buttons
+                }
+            });
+        });
 
         // Repair buttons
         tbody.querySelectorAll('.portfolio-repair-btn').forEach(btn => {
@@ -1860,6 +2008,21 @@ Good luck — become the Helsingin Herra!`,
                 if (prop) {
                     Game.repairProperty(prop);
                     renderPortfolio(); // re-render to update condition/buttons
+                }
+            });
+        });
+
+        // Go-to buttons
+        tbody.querySelectorAll('.portfolio-go-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // don't trigger row click
+                const propId = btn.dataset.goId;
+                const prop = GameState.properties.find(p => p.id === propId);
+                if (prop) {
+                    // Close portfolio, zoom to property, select it
+                    document.getElementById('portfolio-overlay').classList.add('hidden');
+                    MapRenderer.zoomToProperty(prop);
+                    showPropertyPanel(prop);
                 }
             });
         });
@@ -1907,10 +2070,15 @@ Good luck — become the Helsingin Herra!`,
     }
 
     function setupFilters() {
-        document.getElementById('filter-close').addEventListener('click', () => {
-            document.getElementById('filter-panel').classList.add('hidden');
-            document.getElementById('btn-filter').classList.remove('filter-active');
+        // filter-close removed — handled by injected window controls
+        // Watch for filter panel being hidden to also clear the filter-active state
+        const filterPanel = document.getElementById('filter-panel');
+        const filterObserver = new MutationObserver(() => {
+            if (filterPanel.classList.contains('hidden')) {
+                document.getElementById('btn-filter').classList.remove('filter-active');
+            }
         });
+        filterObserver.observe(filterPanel, { attributes: true, attributeFilter: ['class'] });
 
         // Type filter buttons
         document.querySelectorAll('#filter-type .filter-btn').forEach(btn => {
@@ -1940,6 +2108,11 @@ Good luck — become the Helsingin Herra!`,
                 document.querySelectorAll('#filter-owner .filter-btn').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 filters.owner = btn.dataset.owner;
+                // Turn off affordable quick filter when ownership changes
+                if (filters.affordable) {
+                    filters.affordable = false;
+                    document.querySelectorAll('#filter-affordable .filter-btn').forEach(b => b.classList.remove('selected'));
+                }
                 updateFilterButtonState();
                 MapRenderer.render();
             });
@@ -1954,16 +2127,35 @@ Good luck — become the Helsingin Herra!`,
                 MapRenderer.render();
             });
         });
+
+        // Landmark fade filter buttons
+        document.querySelectorAll('#filter-landmarks .filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.landmarks;
+                filters.fadeLandmarks = (mode === 'fade');
+                document.querySelectorAll('#filter-landmarks .filter-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                MapRenderer.render();
+            });
+        });
+
+        // Set default landmark filter button to "Show"
+        document.querySelector('#filter-landmarks .filter-btn[data-landmarks="show"]').classList.add('selected');
     }
 
     function toggleFilterPanel() {
         const panel = document.getElementById('filter-panel');
         const btn = document.getElementById('btn-filter');
         if (panel.classList.contains('hidden')) {
-            // Close log panel if open (they share the same screen area)
-            document.getElementById('log-panel').classList.add('hidden');
+            // Close log panel if open (unless pinned)
+            if (!isPanelPinned('log-panel')) {
+                document.getElementById('log-panel').classList.add('hidden');
+            }
         }
         panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            applyPanelPosition('filter-panel');
+        }
         btn.classList.toggle('filter-active');
     }
 
@@ -2015,8 +2207,14 @@ Good luck — become the Helsingin Herra!`,
         return filters.type !== 'all' || filters.price !== 'all' || filters.owner !== 'all' || filters.affordable;
     }
 
+    function shouldFadeLandmarks() {
+        return filters.fadeLandmarks;
+    }
+
     function formatMoney(amount) {
-        if (amount >= 1000000) {
+        if (amount >= 10000000) {
+            return (amount / 1000000).toFixed(0) + 'M';
+        } else if (amount >= 1000000) {
             return (amount / 1000000).toFixed(1) + 'M';
         } else if (amount >= 1000) {
             return (amount / 1000).toFixed(0) + 'K';
@@ -2115,16 +2313,116 @@ Good luck — become the Helsingin Herra!`,
         nameEl.textContent = offer.rival.name;
         nameEl.style.color = offer.rival.color;
 
+        // Calculate ROI for property details
+        const roi = offer.property.price > 0 ? (offer.property.revenue / offer.property.price * 100).toFixed(1) : '0';
+        const propDetails = `${offer.property.type} • ${offer.property.districtName || offer.property.district} • ${Math.floor(offer.property.condition)}% condition • ${roi}% ROI`;
+
         if (offer.type === 'buy') {
-            textEl.innerHTML = `wants to <span style="color:#ffcc00">BUY</span> your <strong>${offer.property.name}</strong> in ${offer.property.districtName || offer.property.district}.<br><br>Offering <strong>+${offer.premium}% above market value</strong>.`;
+            textEl.innerHTML = `wants to <span style="color:#ffcc00">BUY</span> your <strong>${offer.property.name}</strong>.<br><span style="font-size:9px;color:#aaa">${propDetails}</span><br><br>Offering <strong>+${offer.premium}% above market value</strong>.`;
             priceEl.textContent = `€${formatMoney(offer.price)}`;
         } else {
-            textEl.innerHTML = `offers to <span style="color:#ffcc00">SELL</span> you <strong>${offer.property.name}</strong> in ${offer.property.districtName || offer.property.district}.<br><br>At a <strong>${offer.discount}% discount</strong> below market value.`;
+            textEl.innerHTML = `offers to <span style="color:#ffcc00">SELL</span> you <strong>${offer.property.name}</strong>.<br><span style="font-size:9px;color:#aaa">${propDetails}</span><br><br>At a <strong>${offer.discount}% discount</strong> below market value.`;
             priceEl.textContent = `€${formatMoney(offer.price)}`;
         }
 
         overlay.classList.remove('hidden');
         Sound.playOffer();
+    }
+
+    // === PLAYER OFFER DIALOG ===
+    let playerOfferProperty = null;
+    let playerOfferRival = null;
+    let playerOfferPct = 100; // percentage of market value
+
+    function showPlayerOfferDialog(property) {
+        // Find the rival who owns this property
+        const rival = GameState.rivals.find(r => r.id === property.owner);
+        if (!rival) return;
+
+        playerOfferProperty = property;
+        playerOfferRival = rival;
+        playerOfferPct = 100;
+
+        const overlay = document.getElementById('player-offer-overlay');
+        const portraitCanvas = document.getElementById('player-offer-portrait');
+        const propName = document.getElementById('player-offer-prop-name');
+        const propInfo = document.getElementById('player-offer-prop-info');
+        const marketVal = document.getElementById('player-offer-market-val');
+
+        // Draw rival portrait
+        MapRenderer.drawRivalPortrait(portraitCanvas, rival.id);
+
+        propName.textContent = property.name;
+        propName.style.color = rival.color;
+        propInfo.textContent = `${property.districtName || property.district} — ${property.type} — Lv.${property.upgradeLevel}`;
+        marketVal.textContent = `€${formatMoney(property.price)}`;
+
+        updatePlayerOfferPrice();
+
+        overlay.classList.remove('hidden');
+        Sound.playOffer();
+    }
+
+    function updatePlayerOfferPrice() {
+        const price = Math.floor(playerOfferProperty.price * playerOfferPct / 100);
+        document.getElementById('player-offer-price').textContent = `€${formatMoney(price)}`;
+        const diff = playerOfferPct - 100;
+        const pctEl = document.getElementById('player-offer-pct');
+        if (diff > 0) {
+            pctEl.textContent = `+${diff}% above market`;
+            pctEl.style.color = '#ff6666';
+        } else if (diff < 0) {
+            pctEl.textContent = `${diff}% below market`;
+            pctEl.style.color = '#66ff66';
+        } else {
+            pctEl.textContent = 'At market value';
+            pctEl.style.color = '#ffcc00';
+        }
+
+        // Disable submit if player can't afford
+        const submitBtn = document.getElementById('player-offer-submit');
+        submitBtn.disabled = price > GameState.money;
+    }
+
+    function hidePlayerOfferDialog() {
+        document.getElementById('player-offer-overlay').classList.add('hidden');
+        playerOfferProperty = null;
+        playerOfferRival = null;
+    }
+
+    function setupPlayerOffer() {
+        document.getElementById('player-offer-minus-10').addEventListener('click', () => {
+            Sound.playClick();
+            playerOfferPct = Math.max(50, playerOfferPct - 10);
+            updatePlayerOfferPrice();
+        });
+        document.getElementById('player-offer-minus-5').addEventListener('click', () => {
+            Sound.playClick();
+            playerOfferPct = Math.max(50, playerOfferPct - 5);
+            updatePlayerOfferPrice();
+        });
+        document.getElementById('player-offer-plus-5').addEventListener('click', () => {
+            Sound.playClick();
+            playerOfferPct = Math.min(150, playerOfferPct + 5);
+            updatePlayerOfferPrice();
+        });
+        document.getElementById('player-offer-plus-10').addEventListener('click', () => {
+            Sound.playClick();
+            playerOfferPct = Math.min(150, playerOfferPct + 10);
+            updatePlayerOfferPrice();
+        });
+        document.getElementById('player-offer-submit').addEventListener('click', () => {
+            Sound.playClick();
+            if (!playerOfferProperty || !playerOfferRival) return;
+            const price = Math.floor(playerOfferProperty.price * playerOfferPct / 100);
+            if (price > GameState.money) return;
+            hidePlayerOfferDialog();
+            Game.processPlayerOffer(playerOfferProperty, playerOfferRival, price, playerOfferPct);
+        });
+        document.getElementById('player-offer-cancel').addEventListener('click', () => {
+            Sound.playClick();
+            hidePlayerOfferDialog();
+        });
     }
 
     // === NEWSPAPER ===
@@ -2718,6 +3016,178 @@ Good luck — become the Helsingin Herra!`,
         });
     }
 
+    // === DRAGGABLE PANELS ===
+    function getPanelPositions() {
+        try {
+            return JSON.parse(localStorage.getItem('helsinkiTycoon_panelPositions') || '{}');
+        } catch {
+            return {};
+        }
+    }
+
+    function savePanelPosition(panelId, pinned) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        const scale = parseFloat(getComputedStyle(document.documentElement)
+            .getPropertyValue('--ui-scale')) || 1;
+        const rect = panel.getBoundingClientRect();
+        const positions = getPanelPositions();
+        positions[panelId] = { left: rect.left / scale, top: rect.top / scale, pinned };
+        localStorage.setItem('helsinkiTycoon_panelPositions', JSON.stringify(positions));
+    }
+
+    function isPanelPinned(panelId) {
+        const data = getPanelPositions()[panelId];
+        return !!(data?.pinned);
+    }
+
+    function applyPanelPosition(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        // Reset inline position so CSS defaults take effect
+        panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = '';
+        // Apply saved position if one exists
+        const data = getPanelPositions()[panelId];
+        if (!data || data.left === undefined) return;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+        panel.style.left = data.left + 'px';
+        panel.style.top = data.top + 'px';
+    }
+
+    function resetPanelPosition(panelId) {
+        const positions = getPanelPositions();
+        delete positions[panelId];
+        localStorage.setItem('helsinkiTycoon_panelPositions', JSON.stringify(positions));
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = '';
+    }
+
+    function injectWindowControls(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        const handle = panel.querySelector('.panel-drag-handle');
+        if (!handle) return;
+
+        const pinned = !!(getPanelPositions()[panelId]?.pinned);
+        const controls = document.createElement('div');
+        controls.className = 'panel-window-controls';
+        controls.innerHTML = `
+            <button class="pwc-btn pwc-pin ${pinned ? 'pinned' : ''}"
+                title="${pinned ? 'Unpin panel' : 'Pin panel (stays open when switching panels)'}">
+                ${pinned ? '●' : '○'}
+            </button>
+            <button class="pwc-btn pwc-reset" title="Reset to default position">↺</button>
+            <button class="pwc-btn pwc-close" title="Close panel">✕</button>
+        `;
+        handle.appendChild(controls);
+
+        controls.querySelector('.pwc-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.classList.add('hidden');
+        });
+
+        controls.querySelector('.pwc-reset').addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetPanelPosition(panelId);
+            refreshWindowControls(panelId);
+        });
+
+        controls.querySelector('.pwc-pin').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const data = getPanelPositions()[panelId];
+            const currentlyPinned = !!(data?.pinned);
+            const newPinned = !currentlyPinned;
+            savePanelPosition(panelId, newPinned);
+            refreshWindowControls(panelId);
+            setNewsText(newPinned ? 'Panel pinned — stays open when switching panels.' : 'Panel unpinned.');
+        });
+    }
+
+    function refreshWindowControls(panelId) {
+        const panel = document.getElementById(panelId);
+        if (!panel) return;
+        const existing = panel.querySelector('.panel-window-controls');
+        if (existing) existing.remove();
+        injectWindowControls(panelId);
+    }
+
+    function initDraggablePanels() {
+        const draggablePanels = [
+            'property-panel', 'landmark-panel', 'bank-panel',
+            'stats-panel', 'staff-panel', 'menu-panel',
+            'filter-panel', 'log-panel', 'cheat-panel'
+        ];
+
+        draggablePanels.forEach(injectWindowControls);
+
+        let dragging = null;
+        let topZIndex = 100;
+
+        function bringToFront(panel) {
+            topZIndex++;
+            panel.style.zIndex = topZIndex;
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const { panel, offsetX, offsetY } = dragging;
+            const scale = parseFloat(getComputedStyle(document.documentElement)
+                .getPropertyValue('--ui-scale')) || 1;
+            const rect = panel.getBoundingClientRect();
+
+            let x = (e.clientX - offsetX) / scale;
+            let y = (e.clientY - offsetY) / scale;
+
+            x = Math.max(-(rect.width / scale) + 40, Math.min(x, (window.innerWidth - 40) / scale));
+            y = Math.max(0, Math.min(y, (window.innerHeight - 40) / scale));
+
+            panel.style.left = x + 'px';
+            panel.style.top = y + 'px';
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            const data = getPanelPositions()[dragging.panel.id];
+            savePanelPosition(dragging.panel.id, !!(data?.pinned));
+            document.body.style.userSelect = '';
+            dragging = null;
+        });
+
+        draggablePanels.forEach(id => {
+            const panel = document.getElementById(id);
+            if (!panel) return;
+            const handle = panel.querySelector('.panel-drag-handle');
+            if (!handle) return;
+
+            panel.addEventListener('mousedown', () => bringToFront(panel));
+
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.panel-window-controls')) return;
+                e.preventDefault();
+                const scale = parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--ui-scale')) || 1;
+                const rect = panel.getBoundingClientRect();
+
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.left = (rect.left / scale) + 'px';
+                panel.style.top = (rect.top / scale) + 'px';
+                bringToFront(panel);
+
+                dragging = {
+                    panel,
+                    offsetX: e.clientX - rect.left,
+                    offsetY: e.clientY - rect.top,
+                };
+                document.body.style.userSelect = 'none';
+            });
+        });
+    }
+
     return {
         init,
         updateHUD,
@@ -2746,6 +3216,7 @@ Good luck — become the Helsingin Herra!`,
         formatMoneyPrecise,
         propertyMatchesFilter,
         isFilterActive,
+        shouldFadeLandmarks,
         addLogAction,
         isFreeBuyMode,
         clearFreeBuyMode,
@@ -2758,5 +3229,7 @@ Good luck — become the Helsingin Herra!`,
         showQuirkPopup,
         showLandmarkPanel,
         hideLandmarkPanel,
+        showPlayerOfferDialog,
+        hidePlayerOfferDialog,
     };
 })();

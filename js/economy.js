@@ -1,7 +1,21 @@
 // Helsinki Tycoon - Economy System
 const Economy = (() => {
 
-    function calculateMonthlyRevenue(property, season, activeEvents) {
+    function checkDistrictMonopoly(property, gameState) {
+        // Returns the owner if they own all properties in the district, null otherwise
+        if (!property.district) return null;
+        const propsInDistrict = gameState.properties.filter(p => p.district === property.district);
+        if (propsInDistrict.length === 0) return null;
+
+        // Check if single owner has all properties
+        const owners = new Set(propsInDistrict.filter(p => p.owner).map(p => p.owner));
+        if (owners.size === 1) {
+            return Array.from(owners)[0];
+        }
+        return null;
+    }
+
+    function calculateMonthlyRevenue(property, season, activeEvents, gameState) {
         let revenue = property.revenue;
         if (property.owner !== 'player' && property.owner !== null) return 0;
         if (property.owner !== 'player') return 0;
@@ -25,6 +39,11 @@ const Economy = (() => {
         // Condition affects revenue
         const conditionMod = 0.5 + (property.condition / 100) * 0.5;
         revenue *= conditionMod;
+
+        // District monopoly bonus: +50% per property if player owns entire district (Monopoly-style)
+        if (gameState && checkDistrictMonopoly(property, gameState) === 'player') {
+            revenue *= 1.5;
+        }
 
         return Math.floor(revenue);
     }
@@ -55,7 +74,7 @@ const Economy = (() => {
 
         for (const prop of gameState.properties) {
             if (prop.owner === 'player') {
-                const rev = calculateMonthlyRevenue(prop, season, gameState.activeEvents);
+                const rev = calculateMonthlyRevenue(prop, season, gameState.activeEvents, gameState);
                 const maint = calculateMaintenanceCost(prop, season);
                 totalRevenue += rev;
                 totalMaintenance += maint;
@@ -64,6 +83,9 @@ const Economy = (() => {
                 Properties.degradeCondition(prop);
             }
         }
+
+        // District monopolies are now calculated per-property in calculateMonthlyRevenue
+        // (No additional bonus needed here)
 
         // Loan payment (accountant reduces rate)
         let loanPayment = 0;
@@ -93,7 +115,10 @@ const Economy = (() => {
     }
 
     function getMaxLoan(gameState) {
-        return Math.floor(calculateNetWorth(gameState) * 2);
+        // Max loan is 2x net worth, but capped at 10M to prevent early snowball
+        const netWorthBased = Math.floor(calculateNetWorth(gameState) * 2);
+        const maxCap = 10000000;
+        return Math.min(netWorthBased, maxCap);
     }
 
     function getAvailableCredit(gameState) {
@@ -127,5 +152,6 @@ const Economy = (() => {
         getAvailableCredit,
         takeLoan,
         repayLoan,
+        checkDistrictMonopoly,
     };
 })();

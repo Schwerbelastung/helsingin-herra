@@ -1,7 +1,118 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v1.1.0 — Balance & Polish (2026-04-04)
+const CHANGELOG_MD = `## v1.5.3 — Draggable Panels & Window Controls (2026-04-05)
 
 ### Added
+- **Draggable panels** — all panels (staff, bank, properties, filters, log, etc.) can now be freely repositioned by dragging their header; positions persist across sessions via localStorage
+- **Pin toggle (●/○)** — pinned panels stay open when switching to other panels, overriding the normal mutual-exclusion behavior; useful for keeping stats or staff visible while browsing properties
+- **Window control buttons** — each panel header now has three buttons with tooltips: ● pin, ↺ reset position, ✕ close
+- **Peter's hoodie fix** — darkened drawstring color so it no longer blends with skin tone
+
+### Changed
+- **Panel headers** — old close buttons replaced with the new window control group
+- **Tutorial close button** — now white instead of gray for better visibility
+
+---
+
+## v1.5.2 — Salary Scaling & Maintenance UI (2026-04-05)
+
+### Changed
+- **Percentage-based salary scaling** — all staff salaries now use 15% annual compounding instead of flat yearly increases, making salaries scale meaningfully in late-game (e.g., Manager grows from €5K to €17.5K by year 10, vs flat €14K previously)
+- **Compact maintenance worker widget** — replaced 5 separate staff cards with a single table-like widget showing all tiers in rows, making cost/repair tradeoffs immediately visible; active tier is highlighted with left border
+
+### Fixed
+- **Maintenance tier display clarity** — each tier now explicitly shows how many properties it repairs per turn in a dedicated column
+
+---
+
+## v1.5.1 — Ultra-Cheap Properties Fixes (2026-04-05)
+
+### Fixed
+- **Ultra-cheap property district validation** — 5 properties were assigned to non-existent districts and silently skipped from the game; reassigned to valid districts with real Helsinki locations: Hakaniemi Used Books, Kallio Ramen House, Töölö Smoothie Bar, Ruoholahti Sauna Club, Kruununhaka Vintage Shop
+- **Property name consistency** — fixed Töölö property name to use proper Finnish umlauts (Töölö Smoothie Bar)
+
+---
+
+## v1.5.0 — Starter Properties Balance (2026-04-05)
+
+### Added
+- **12 new ultra-cheap properties (€50K–€140K)** — added cafes, kebab shops, kiosks, and convenience stores across multiple districts to improve early-game fairness in 1+3 rival games; now ~27 total ultra-cheap starters (up from 15) ensures each of 4 players gets 6-7 affordable options regardless of turn order
+
+---
+
+## v1.4.0 — Maintenance Worker Tiers (2026-04-05)
+
+### Added
+- **Multiple maintenance worker tiers (1-5)** — hire progressively higher tiers that automatically repair more properties each turn: Tier 1 repairs 1 property, Tier 2 repairs 2, up to Tier 5 repairing 5 properties per turn, all at 50% repair cost
+- **Tiered salary scaling** — each tier costs 50% more than the previous (base salary scales from €2K to €10.1K), with scaling that increases over time
+- **Tier selection UI** — separate staff panel section showing all 5 maintenance tiers with hire/fire buttons, costs, and salary information
+
+### Changed
+- **Staff hiring system** — maintenance workers now use dedicated tier system instead of single hire; can upgrade to higher tiers or downgrade by firing current tier
+
+---
+
+## v1.3.1 — Ultrawide Support (2026-04-05)
+
+### Fixed
+- **Ultrawide aspect ratio lock** — window now locks to 16:9 aspect ratio on ultrawide monitors, preventing UI elements (advisor, menu bar) from stretching too far to the sides; users can resize the window but it maintains perfect 16:9 proportions with black bars on ultrawide displays
+
+---
+
+## v1.3.0 — District Monopolies & Strategic Depth (2026-04-05)
+
+### Added
+- **District Monopoly System** — acquire all properties in a district to unlock Monopoly-style rewards: +50% revenue per property in monopolized districts, districts change color to owner's color (gold for player, unique colors for each rival), AI strategically pursues district monopolies, and newspaper headlines celebrate major monopoly achievements
+- **District-aware AI offers** — rivals now prioritize buying properties that complete their district monopolies (70% preference) and prefer selling from non-monopoly districts to protect their consolidation strategy
+- **Landmark visibility filter** — new map filter toggle to fade landmarks to 20% opacity for cleaner visual focus on properties
+- **Annual events calendar** — January Year Review newspaper now includes "Helsinki's Annual Events" section with 2-3 randomly selected recurring festivals showing affected districts and estimated revenue impacts (10 unique descriptions per event for variety)
+- **District takeover headlines** — newspaper generates special headlines when players or rivals complete district monopolies, with dedicated story sections for major consolidation events
+
+### Changed
+- **District rendering** — districts now display stronger tint and brighter borders when owned as monopoly, making district control status instantly visible at a glance
+- **Revenue calculation** — per-property monopoly bonus system replaces simpler flat bonuses for more meaningful economic reward
+
+### Fixed
+- **District Monopoly implementation** — completed proper Monopoly-style system that was previously marked as done but not fully implemented; now includes all planned features
+
+---
+
+## v1.2.0 — Interactive UI & Quality of Life (2026-04-05)
+
+### Added
+- **Go-to-property button in My Properties** — click the → button to zoom in, center, and select any property from your portfolio instantly
+- **Upgrade button in My Properties** — upgrade properties directly from the portfolio view without opening the property panel
+- **Clickable scout tips** — click the scout's message in the news ticker to jump directly to the recommended property
+- **Rival win detection** — game now ends immediately if a rival reaches the win target before you
+- **Rival bankruptcy notifications** — receive a notification when a rival runs out of money and is eliminated
+- **Animated offer popups** — rival offers now appear with smooth fade-in and scale-up animations for better visibility
+- **Goal displayed in scoreboard** — win target now shows alongside all player/rival net worths so you can see progress at a glance
+- **Upgrade projection tooltips** — hover over upgrade buttons to see exactly how much they'll increase your property's value and monthly revenue
+- **Landmark visibility filter** — new filter toggle to fade landmarks (20% opacity) for less visual clutter when focusing on properties
+- **Annual events in Year Review** — January newspaper now includes a "Helsinki's Annual Events" section highlighting recurring festivals and events throughout the year with their affected areas and estimated revenue impacts, helping you plan your investment strategy
+- **District Monopoly system** — complete Monopoly-style feature with district color changes, 50% revenue bonuses for monopolized districts, AI preference for completing monopolies, and newspaper headlines when districts are taken over
+
+### Changed
+- **News ticker more prominent** — increased font size (7px → 9px), height (24px → 32px), added gradient background, improved contrast for better visibility
+- **Log panel repositioned and reversed** — moved from top-left to bottom-left corner; newest entries now appear on top for better usability
+- **Money formatting enhanced** — amounts between €1M–€10M now show one decimal (e.g. €5.6M) for more precision; ≥€10M shows whole millions
+- **Menu button moved to bottom-left** — relocated from center-right action bar to bottom-left for consistency with other panels
+- **Newspaper scrollbar visible** — styled webkit scrollbar now visible in Helsingin Sanomat overlay for clarity
+- **AI property retention** — rivals will never sell their last property, showing more realistic behavior
+- **Löyly property type** — changed from restaurant to sauna (still appears with special sauna sprite on map)
+- **Victory screen now shows only once** — no longer re-appears if you continue playing after winning
+
+### Fixed
+- **Go button coordinates** — property zoom now correctly centers on the selected property at maximum zoom level
+- **Escape key close buttons** — updated labels from "Skip" to "Close" in tutorial for consistency
+- **Easter eggs persist on restart** — easter egg properties now properly clear when restarting to main menu
+- **Out of actions feedback** — added clear visual feedback (sound + ⚠️ message) when attempting actions with no remaining actions
+
+---
+
+## v1.1.0 — Balance & Polish (2026-04-04)
+
+### Added
+- **Player-initiated property offers** — you can now offer to buy rival-owned properties at a price of your choosing (50%–150% of market value); AI evaluates based on their cash situation, property ROI, and personality; costs 1 action; each rival has 40 unique personality-matched response quips
 - **Restart to main menu** — RESTART button in the Menu panel returns to the start screen mid-game
 
 ### Changed

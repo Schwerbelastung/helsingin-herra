@@ -2255,8 +2255,11 @@ const Newspaper = (() => {
         const playerSells = events.filter(e => e.type === 'player_sell');
         const rivalBuys = events.filter(e => e.type === 'rival_buy');
         const auctions = events.filter(e => e.type === 'auction');
+        const districtTakeovers = events.filter(e => e.type === 'district_takeover');
 
         // HEADLINE
+        const playerDistrictTakeovers = districtTakeovers.filter(dt => dt.text && dt.text.includes(playerName));
+
         if (specialEvents.length > 0) {
             const evt = specialEvents[0];
             stories.push({
@@ -2264,6 +2267,31 @@ const Newspaper = (() => {
                 title: `${evt.text.toUpperCase()}: THE EVENT THAT DEFINED ${reviewYear}`,
                 text: generateSpecialEventArticle(evt, reviewYear, gameState),
                 illustration: EVENT_ILLUSTRATIONS[evt.text] || null,
+            });
+        } else if (playerDistrictTakeovers.length > 0) {
+            const takeover = playerDistrictTakeovers[0];
+            const districtName = takeover.meta?.districtName || 'a strategic district';
+            const districtMonopolyHeadlines = [
+                `${playerName.toUpperCase()} ACHIEVES MARKET DOMINANCE IN ${districtName.toUpperCase()}`,
+                `${playerName.toUpperCase()}'S DISTRICT MONOPOLY RESHAPES HELSINKI MARKET`,
+                `STRATEGIC MASTERSTROKE: ${playerName.toUpperCase()} COMPLETES ${districtName.toUpperCase()} TAKEOVER`,
+                `${playerName.toUpperCase()} NOW CONTROLS ${districtName.toUpperCase()}: A TURNING POINT FOR HELSINKI`,
+                `MONOPOLY ACHIEVED: ${playerName.toUpperCase()} DOMINATES ${districtName.toUpperCase()}`,
+            ];
+            const districtMonopolyTexts = [
+                `${playerName} has achieved complete control of ${districtName}, becoming the dominant force in the district's property market. Industry experts note that this unprecedented monopoly will significantly boost revenue from the area. "This kind of district-wide control is rare in Helsinki," observed one analyst. "It fundamentally changes the market dynamics."`,
+                `In a display of strategic acquisition, ${playerName} has secured every property in ${districtName}, achieving a complete market monopoly in the district. The move has sent ripples through Helsinki's investment community, with rival investors expressing concern about ${playerName}'s growing market power. Economists predict substantial revenue growth from the unified district.`,
+                `${playerName}'s acquisition spree has culminated in complete control of ${districtName}. Property market analysts are calling the monopoly "a landmark achievement" that positions ${playerName} as the city's most powerful real estate player in the district. The unified control is expected to unlock significant synergies and revenue improvements.`,
+                `Market observers are astounded by ${playerName}'s successful consolidation of ${districtName} into a single monopoly. "Achieving this level of control takes exceptional strategic planning," noted one real estate expert. The monopoly positions ${playerName} to capture maximum value from the district for years to come.`,
+                `${playerName} has completed the acquisition of every property in ${districtName}, establishing an unprecedented monopoly in the district. Real estate analysts predict this will become the defining moment of ${playerName}'s career, transforming the district into a unified revenue engine and solidifying ${playerName}'s position as Helsinki's premier property investor.`,
+            ];
+            const headlineIdx = Math.floor(Math.random() * districtMonopolyHeadlines.length);
+            const textIdx = Math.floor(Math.random() * districtMonopolyTexts.length);
+            stories.push({
+                headline: true,
+                title: districtMonopolyHeadlines[headlineIdx],
+                text: districtMonopolyTexts[textIdx],
+                rival: 'player',
             });
         } else if (auctions.length > 0) {
             const a = auctions[0];
@@ -2440,6 +2468,29 @@ const Newspaper = (() => {
             });
         }
 
+        // Rival district takeovers (if headline wasn't already a player district takeover)
+        const rivalTakeovers = districtTakeovers.filter(dt => !dt.text || !dt.text.includes(playerName));
+        if (rivalTakeovers.length > 0) {
+            const rivalDistrictHeadlines = [
+                'RIVAL MONOPOLY: MARKET CONSOLIDATION REACHES NEW LEVEL',
+                'STRATEGIC DOMINANCE: RIVALS COMPLETE DISTRICT MONOPOLIES',
+                'COMPETITION INTENSIFIES: RIVALS SECURE DISTRICT CONTROL',
+                'DISTRICT CONSOLIDATION: RIVALS MAKE THEIR MOVES',
+                'THE OPPOSITION STRIKES: RIVALS ACHIEVE MONOPOLY CONTROL',
+            ];
+            const rivalDistrictTexts = [
+                `Helsinki's competitive landscape shifted as multiple rivals achieved monopoly control in their respective districts. These strategic consolidations signal a new phase of market competition, where unified district control becomes a key competitive advantage. "The game has changed," noted one market analyst. "District monopolies now appear to be the new battleground."`,
+                `Rival investors made significant moves this year, with several successfully achieving complete control over key districts. These monopoly holdings are expected to strengthen their competitive positions substantially. Observers note that with ${rivalTakeovers.length > 1 ? 'multiple rivals controlling entire districts' : 'a rival now controlling an entire district'}, the Helsinki market has entered a new era of consolidation.`,
+                `The year saw rival investors making bold strategic plays to consolidate district monopolies. These moves have fundamentally altered the competitive dynamics in Helsinki's property market. Market analysts predict that the pursuit of unified district control will drive significant competition and strategic maneuvering in the years ahead.`,
+            ];
+            const headlineIdx = Math.floor(Math.random() * rivalDistrictHeadlines.length);
+            const textIdx = Math.floor(Math.random() * rivalDistrictTexts.length);
+            smallStories.push({
+                title: rivalDistrictHeadlines[headlineIdx],
+                text: rivalDistrictTexts[textIdx],
+            });
+        }
+
         // Add up to 3 small stories
         for (let i = 0; i < Math.min(3, smallStories.length); i++) {
             stories.push(smallStories[i]);
@@ -2458,6 +2509,19 @@ const Newspaper = (() => {
         // If we still don't have enough stories, add another filler
         if (stories.length < 3) {
             stories.push(pickFiller(gameState));
+        }
+
+        // Add upcoming events page as additional stories
+        const upcomingPage = generateUpcomingEventsPage(gameState);
+        // Add a page break indicator
+        stories.push({
+            headline: true,
+            title: upcomingPage.stories[0].title,
+            text: upcomingPage.stories[0].text,
+        });
+        // Add the upcoming event stories
+        for (let i = 1; i < upcomingPage.stories.length; i++) {
+            stories.push(upcomingPage.stories[i]);
         }
 
         return {
@@ -2752,11 +2816,176 @@ const Newspaper = (() => {
         };
     }
 
+    // Event impact descriptions — 10 variations for each event
+    const EVENT_IMPACT_TEXTS = {
+        vappu: [
+            'Restaurants and bars see a significant surge in foot traffic and revenue as the city celebrates.',
+            'Food and beverage establishments report strong bookings and premium pricing throughout the month.',
+            'Hospitality venues in central districts experience peak occupancy and festive spending.',
+            'Restaurants capitalize on the celebratory mood with special events and higher customer spend.',
+            'The hospitality sector sees robust activity as locals and visitors fill dining establishments.',
+            'Food venues prepare for one of the year\'s busiest months, with revenue up significantly.',
+            'Celebratory atmosphere drives robust spending at restaurants and entertainment venues.',
+            'Dining establishments report strong May performance as the city celebrates the arrival of spring.',
+            'The hospitality industry experiences a welcome boost as Vappu brings crowds to restaurants.',
+            'Seasonal celebration drives increased consumer spending at food and beverage properties.',
+        ],
+        pride: [
+            'Nightlife and hospitality in Kamppi and Kallio benefit from Pride celebrations and increased tourism.',
+            'Restaurants, bars, and retail in central districts see strong revenue from Pride visitors and events.',
+            'The celebration attracts visitors to Kamppi and Kallio, boosting revenue across hospitality and retail.',
+            'Entertainment and dining venues in affected districts prepare for increased demand and revenue.',
+            'Kallio and Kamppi properties benefit from the influx of visitors and event-related spending.',
+            'Nightlife establishments see peak activity as Pride brings crowds to central districts.',
+            'Hospitality and retail venues in celebration areas report strong performance during Pride season.',
+            'The event drives tourism and spending in Kamppi, Kallio, and surrounding entertainment districts.',
+            'Central district properties benefit from Pride-related visitor traffic and spending patterns.',
+            'Entertainment venues prepare for increased bookings and revenue during Pride celebrations.',
+        ],
+        flow_festival: [
+            'Flow Festival in Suvilahti drives tourism and spending in nearby Sornainen, Kallio, and Hakaniemi.',
+            'Properties in festival-adjacent districts experience increased foot traffic and consumer spending.',
+            'The festival attracts visitors to the east side, boosting revenue in surrounding residential and retail.',
+            'Kallio and neighboring districts benefit from the influx of festival visitors and event-related activity.',
+            'Festival-related tourism strengthens demand for properties in nearby entertainment and hospitality sectors.',
+            'The summer festival drives visitor spending and activity in Sornainen and Kallio neighborhoods.',
+            'Properties near the festival grounds experience increased occupancy and visitor-related revenue.',
+            'East side districts prepare for peak summer activity driven by Flow Festival visitors.',
+            'The annual festival brings seasonal tourism benefits to surrounding districts and venues.',
+            'Festival visitors and activity boost revenue for properties in Suvilahti, Kallio, and Hakaniemi areas.',
+        ],
+        helsinki_festival: [
+            'Arts and culture programming across Helsinki attracts visitors and boosts hospitality and retail revenue city-wide.',
+            'The month-long festival drives increased tourism and spending throughout Helsinki\'s central districts.',
+            'Festival programming benefits hotels, restaurants, and cultural venues across the city.',
+            'Arts and cultural events attract visitors and increase spending at hospitality and cultural properties.',
+            'The festival season drives tourism and consumer spending across multiple districts.',
+            'Cultural programming attracts art enthusiasts and tourists, boosting visitor-related revenue.',
+            'Festival-related tourism benefits hospitality, retail, and entertainment venues throughout the city.',
+            'The month sees increased visitor spending and cultural venue occupancy across Helsinki.',
+            'Arts and culture drive increased foot traffic and spending at hospitality properties city-wide.',
+            'Festival season brings seasonal tourism benefits to hotels and restaurants throughout Helsinki.',
+        ],
+        design_week: [
+            'Design Week puts Punavuori in the spotlight, attracting design enthusiasts and boosting retail and hospitality.',
+            'Design district properties and nearby retail venues benefit from the influx of visitors and spending.',
+            'Punavuori experiences peak visitor traffic and consumer spending during Design Week activities.',
+            'Design-focused retail, galleries, and hospitality venues in Punavuori and Kamppi see strong performance.',
+            'The design event attracts an audience that appreciates upscale retail and dining, benefiting luxury properties.',
+            'Punavuori and adjacent districts prepare for increased visitor traffic and premium spending.',
+            'Design enthusiasts drive increased occupancy and revenue at retail and hospitality venues.',
+            'The design-focused event attracts visitors to Punavuori\'s galleries, shops, and restaurants.',
+            'Design district properties benefit from seasonal visitor traffic and event-related spending.',
+            'The cultural event drives consumer activity and revenue in Helsinki\'s design-focused neighborhoods.',
+        ],
+        slush: [
+            'Tech startup conference brings visitors to Helsinki, boosting hotel and office district revenue significantly.',
+            'Hotels and restaurants prepare for the influx of tech industry attendees and increased spending.',
+            'The conference attracts thousands of tech professionals, driving strong revenue for hospitality properties.',
+            'Hotels and dining establishments in central districts experience peak occupancy during the conference.',
+            'Tech industry visitors drive increased occupancy and premium pricing at hotels and restaurants.',
+            'The event brings concentrated visitor spending to hospitality and technology-focused properties.',
+            'Hotels and offices benefit from the annual conference bringing industry professionals to the city.',
+            'Conference visitors boost revenue at hospitality venues and support upscale dining establishments.',
+            'The tech event drives seasonal tourism and visitor spending at hotels and restaurants.',
+            'Hospitality properties prepare for peak occupancy as Slush brings visitors to Helsinki.',
+        ],
+        christmas_market: [
+            'Christmas Market in Senate Square draws visitors and boosts retail and hospitality in central districts.',
+            'Holiday shopping and festivities drive strong consumer spending at retail and dining establishments.',
+            'Central district properties benefit from the seasonal market and holiday shopping activity.',
+            'The holiday market attracts visitors to Kruununhaka, Kluuvi, and Kaartinkaupunki districts.',
+            'Holiday festivities and gift-giving drive increased spending at retail and hospitality properties.',
+            'Christmas season brings peak visitor traffic to central districts and holiday-themed establishments.',
+            'Market and holiday activities drive consumer spending and property revenue city-center.',
+            'The seasonal event attracts holiday shoppers and visitors to central district venues.',
+            'Holiday shopping and festivities boost revenue for retail and hospitality properties.',
+            'Christmas season brings predictable seasonal revenue to properties in market-adjacent districts.',
+        ],
+        lux_helsinki: [
+            'Winter light art festival attracts visitors to Helsinki, boosting tourism and hospitality revenue.',
+            'The winter festival drives visitor spending and activity during the traditionally quiet season.',
+            'Light art installations attract visitors and drive tourism to hotels, restaurants, and cultural venues.',
+            'The festival brings winter tourism and consumer spending to Helsinki\'s hospitality sector.',
+            'Seasonal festival attractions drive visitor activity and occupancy at hotels and restaurants.',
+            'Winter lighting and art programming attract visitors to the city, benefiting hospitality properties.',
+            'The light festival brings predictable winter tourism and spending to hospitality establishments.',
+            'Festival installations and programming attract visitors during the quiet winter season.',
+            'Winter festival attractions drive visitor spending at hotels, restaurants, and cultural properties.',
+            'The art and lighting festival brings seasonal tourism revenue to Helsinki\'s hospitality sector.',
+        ],
+    };
+
+    function formatAffectedAreas(event) {
+        const areas = [];
+        if (event.affectedDistricts) {
+            areas.push(...event.affectedDistricts.map(d =>
+                d.charAt(0).toUpperCase() + d.slice(1)
+            ));
+        }
+        if (event.affectedTypes) {
+            areas.push(...event.affectedTypes.map(t =>
+                t.charAt(0).toUpperCase() + t.slice(1) + ' properties'
+            ));
+        }
+        if (event.global) {
+            areas.push('City-wide');
+        }
+        return areas.length > 0 ? areas.join(', ') : 'Various locations';
+    }
+
+    function generateUpcomingEventsPage(gameState) {
+        const year = gameState.year;
+        const stories = [];
+
+        // Get all recurring events (those with a specific month, not special events)
+        const recurringEvents = [];
+        if (typeof Events !== 'undefined' && Events.EVENT_POOL) {
+            recurringEvents.push(...Events.EVENT_POOL.filter(e =>
+                e.month >= 0 && !e.special && !e.councilVote
+            ));
+        }
+
+        // Add section header
+        stories.push({
+            headline: true,
+            title: 'HELSINKI\'S ANNUAL EVENTS: WHAT TO EXPECT THIS YEAR',
+            text: 'Helsinki\'s calendar is filled with annual events that shape the property market. Here\'s what investors should prepare for throughout the year.',
+        });
+
+        // Select 2-3 random events (without duplicates)
+        const shuffled = [...recurringEvents].sort(() => Math.random() - 0.5);
+        const selectedEvents = shuffled.slice(0, Math.min(3, shuffled.length));
+        const displayedEventIds = new Set(selectedEvents.map(e => e.id));
+
+        // Generate story for each selected event
+        for (const event of selectedEvents) {
+            const impactTexts = EVENT_IMPACT_TEXTS[event.id] || [
+                'This annual event brings seasonal activity and revenue opportunities to affected properties.',
+            ];
+            const impactText = impactTexts[Math.floor(Math.random() * impactTexts.length)];
+            const areas = formatAffectedAreas(event);
+            const revenuePercent = Math.round((event.revenueModifier || 0.1) * 100);
+
+            stories.push({
+                title: `${event.name} (${MONTH_NAMES[event.month]})`,
+                text: `${impactText} Affected areas: ${areas}. Expected revenue impact: +${revenuePercent}%.`,
+            });
+        }
+
+        return {
+            date: `January ${year}`,
+            stories,
+            isUpcomingEvents: true,
+        };
+    }
+
     return {
         generateDay1Paper,
         generateYearlyPaper,
         generateSwedishPaper,
         generateSilencePaper,
+        generateUpcomingEventsPage,
         MONTH_NAMES,
     };
 })();

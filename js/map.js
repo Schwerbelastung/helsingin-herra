@@ -85,15 +85,13 @@ const MapRenderer = (() => {
 
     function resize() {
         // Use the canvas element's CSS-computed size (set by flex layout)
+        // Do NOT set canvas.style.width/height — let CSS (flex: 1) control display size
         const rect = canvas.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
         cssWidth = rect.width;
         cssHeight = rect.height;
         canvas.width = Math.round(rect.width * dpr);
         canvas.height = Math.round(rect.height * dpr);
-        // Keep CSS size matching the layout
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
     }
 
     function setupEvents() {
@@ -106,6 +104,8 @@ const MapRenderer = (() => {
         window.addEventListener('resize', () => {
             resize();
             render();
+            // Re-check after layout settles (fullscreen transitions may fire early)
+            setTimeout(() => { resize(); render(); }, 100);
         });
     }
 
@@ -646,12 +646,29 @@ const MapRenderer = (() => {
     }
 
     function drawDistrictOverlays(palette) {
+        // Get monopoly colors (player=gold, rivals=their colors)
+        const monopolyColors = {
+            'player': '#ffcc00',
+            'risto': '#ff4444',
+            'pamela': '#4444ff',
+            'lars': '#44ff44',
+            'peter': '#ff8844',
+        };
+
         for (const district of HelsinkiDistricts.districts) {
             const isHovered = district === hoveredDistrict;
 
-            // Subtle district tint
-            ctx.globalAlpha = 0.08;
-            ctx.fillStyle = district.color;
+            // Check if a player owns all properties in this district (monopoly)
+            const propsInDistrict = typeof GameState !== 'undefined' && GameState.properties
+                ? GameState.properties.filter(p => p.district === district.id)
+                : [];
+            const monopolyOwner = propsInDistrict.length > 0 && propsInDistrict.every(p => p.owner)
+                ? (propsInDistrict[0].owner === propsInDistrict[0].owner && propsInDistrict.every(p => p.owner === propsInDistrict[0].owner) ? propsInDistrict[0].owner : null)
+                : null;
+
+            // District tint — stronger for monopolies
+            ctx.globalAlpha = monopolyOwner ? 0.25 : 0.08;
+            ctx.fillStyle = monopolyOwner ? (monopolyColors[monopolyOwner] || district.color) : district.color;
             fillPolygon(district.polygon);
             ctx.globalAlpha = 1;
 
@@ -662,9 +679,9 @@ const MapRenderer = (() => {
                 ctx.globalAlpha = 1;
             }
 
-            // District border
-            ctx.strokeStyle = isHovered ? '#ffcc00' : 'rgba(255,255,255,0.12)';
-            ctx.lineWidth = isHovered ? 2 : 0.5;
+            // District border — stronger for monopolies
+            ctx.strokeStyle = isHovered ? '#ffcc00' : (monopolyOwner ? (monopolyColors[monopolyOwner] || 'rgba(255,255,255,0.3)') : 'rgba(255,255,255,0.12)');
+            ctx.lineWidth = isHovered ? 2 : (monopolyOwner ? 1.5 : 0.5);
             strokePolygon(district.polygon);
         }
     }
@@ -699,6 +716,13 @@ const MapRenderer = (() => {
     }
 
     function drawLandmarks(palette) {
+        // Check if landmarks should be faded
+        const shouldFade = typeof UI !== 'undefined' && UI.shouldFadeLandmarks();
+        const originalAlpha = ctx.globalAlpha;
+        if (shouldFade) {
+            ctx.globalAlpha = 0.2; // 20% opacity when faded
+        }
+
         for (const lm of HelsinkiDistricts.landmarks) {
             const [x, y] = lm.pos;
             const isHovered = lm === hoveredLandmark;
@@ -786,6 +810,11 @@ const MapRenderer = (() => {
                     }
                 }
             }
+        }
+
+        // Restore original alpha
+        if (shouldFade) {
+            ctx.globalAlpha = originalAlpha;
         }
     }
 
@@ -3060,6 +3089,7 @@ const MapRenderer = (() => {
         office: '#44bbff',
         hotel: '#ffcc00',
         landmark: '#ff44ff',
+        sauna: '#ff6644',
     };
 
     const spriteDrawers = {
@@ -4907,12 +4937,12 @@ const MapRenderer = (() => {
         // Zipper pull
         c.fillStyle = '#bbbbbb';
         c.fillRect(22, 32, 4, 2);
-        // White drawstrings
-        c.fillStyle = '#dddddd';
+        // Dark drawstrings (hood strings)
+        c.fillStyle = '#666666';
         c.fillRect(19, 28, 1, 12);
         c.fillRect(28, 28, 1, 12);
         // Drawstring ends
-        c.fillStyle = '#cccccc';
+        c.fillStyle = '#555555';
         c.fillRect(18, 40, 3, 2);
         c.fillRect(27, 40, 3, 2);
         // Hoodie shoulder shading
@@ -6086,6 +6116,27 @@ const MapRenderer = (() => {
         c.restore();
     }
 
+    function zoomToProperty(property) {
+        // Zoom to max level
+        camera.zoom = 4;
+
+        // Center camera on property
+        // Transform: screenPos = mapPos * zoom + cameraPos
+        // We want property to appear at screen center (cssWidth/2, cssHeight/2)
+        // So: cssWidth/2 = property.x * zoom + camera.x
+        // camera.x = cssWidth/2 - property.x * zoom
+        camera.x = cssWidth / 2 - property.x * camera.zoom;
+        camera.y = cssHeight / 2 - property.y * camera.zoom;
+
+        // Clamp camera to map bounds
+        const mapScreenWidth = HelsinkiDistricts.MAP_WIDTH * camera.zoom;
+        const mapScreenHeight = HelsinkiDistricts.MAP_HEIGHT * camera.zoom;
+        camera.x = Math.max(-mapScreenWidth + cssWidth, Math.min(0, camera.x));
+        camera.y = Math.max(-mapScreenHeight + cssHeight, Math.min(0, camera.y));
+
+        render();
+    }
+
     return {
         init: function(canvasEl) {
             init(canvasEl);
@@ -6104,6 +6155,7 @@ const MapRenderer = (() => {
         drawAdvisorPortrait: drawAdvisorPortraitOnCanvas,
         drawNewsIllustration,
         forcePolarBears,
+        zoomToProperty,
         camera,
         get hoveredDistrict() { return hoveredDistrict; },
         get hoveredProperty() { return hoveredProperty; },

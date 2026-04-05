@@ -9,6 +9,11 @@ app.whenReady().then(() => {
         height: 900,
         title: 'Helsingin Herra',
         icon: path.join(__dirname, 'icon.png'),
+        // Lock to 16:9 aspect ratio (prevents ultrawide stretching)
+        minWidth: 960,
+        minHeight: 540,
+        minAspectRatio: 16 / 9,
+        maxAspectRatio: 16 / 9,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,

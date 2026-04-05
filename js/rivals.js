@@ -318,6 +318,21 @@ const Rivals = (() => {
             // Condition bonus
             score += prop.condition * 0.1;
 
+            // District monopoly bonus: prioritize completing a district
+            // Check how many properties rival already has in this district
+            const rivalPropsInDistrict = gameState.properties.filter(
+                p => p.district === prop.district && p.owner === rival.id
+            );
+            const totalPropsInDistrict = gameState.properties.filter(
+                p => p.district === prop.district
+            );
+            if (totalPropsInDistrict.length > 0) {
+                const percentOwned = rivalPropsInDistrict.length / totalPropsInDistrict.length;
+                if (percentOwned >= 0.5) { // Already owns half or more
+                    score += (percentOwned * 100); // Strong bonus for near-monopoly
+                }
+            }
+
             // Random factor
             score += Math.random() * 15;
 
@@ -366,6 +381,30 @@ const Rivals = (() => {
     // === RANDOM OFFERS ===
     // After rival turns, there's a chance a rival makes an offer to the player
 
+    function getPropertyThatCompletesDistrict(rival, gameState) {
+        // Find a player property that would give rival a district monopoly
+        const rivalProps = gameState.properties.filter(p => p.owner === rival.id);
+        const districtCounts = {};
+
+        // Count rival's properties per district
+        for (const prop of rivalProps) {
+            if (!districtCounts[prop.district]) districtCounts[prop.district] = 0;
+            districtCounts[prop.district]++;
+        }
+
+        // Find districts where rival almost has monopoly
+        for (const [districtId, count] of Object.entries(districtCounts)) {
+            const propsInDistrict = gameState.properties.filter(p => p.district === districtId);
+            if (count >= propsInDistrict.length - 2) { // Needs ≤2 more to monopolize
+                const playerPropsInDistrict = propsInDistrict.filter(p => p.owner === 'player');
+                if (playerPropsInDistrict.length > 0) {
+                    return playerPropsInDistrict[Math.floor(Math.random() * playerPropsInDistrict.length)];
+                }
+            }
+        }
+        return null;
+    }
+
     function generateOffer(gameState) {
         const activeRivals = gameState.rivals.filter(r => r.netWorth > 0);
         if (activeRivals.length === 0) return null;
@@ -381,7 +420,15 @@ const Rivals = (() => {
 
         if (Math.random() < 0.5 && playerProps.length > 0) {
             // Rival wants to BUY one of your properties
-            const prop = playerProps[Math.floor(Math.random() * playerProps.length)];
+            // Prioritize properties that complete a district for them (70% priority)
+            let prop = null;
+            if (Math.random() < 0.7) {
+                prop = getPropertyThatCompletesDistrict(rival, gameState);
+            }
+            if (!prop) {
+                prop = playerProps[Math.floor(Math.random() * playerProps.length)];
+            }
+
             const premium = 1.15 + Math.random() * 0.35; // 115% to 150% of value
             const offerPrice = Math.floor(prop.price * premium);
             return {
@@ -391,9 +438,31 @@ const Rivals = (() => {
                 price: offerPrice,
                 premium: Math.floor((premium - 1) * 100),
             };
-        } else if (rivalProps.length > 0) {
+        } else if (rivalProps.length > 1) {
             // Rival offers to SELL one of their properties to you
-            const prop = rivalProps[Math.floor(Math.random() * rivalProps.length)];
+            // Prefer selling from districts where they don't have monopoly
+            const districts = {};
+            for (const prop of rivalProps) {
+                if (!districts[prop.district]) districts[prop.district] = [];
+                districts[prop.district].push(prop);
+            }
+
+            let prop = null;
+            // Find districts where rival doesn't control everything
+            const nonMonopolyDistricts = [];
+            for (const [districtId, propsInDist] of Object.entries(districts)) {
+                const allInDistrict = gameState.properties.filter(p => p.district === districtId);
+                if (propsInDist.length < allInDistrict.length) {
+                    nonMonopolyDistricts.push(...propsInDist);
+                }
+            }
+
+            if (nonMonopolyDistricts.length > 0) {
+                prop = nonMonopolyDistricts[Math.floor(Math.random() * nonMonopolyDistricts.length)];
+            } else {
+                prop = rivalProps[Math.floor(Math.random() * rivalProps.length)];
+            }
+
             const discount = 0.7 + Math.random() * 0.2; // 70% to 90% of value
             const offerPrice = Math.floor(prop.price * discount);
             return {
@@ -533,6 +602,252 @@ const Rivals = (() => {
         return results;
     }
 
+    // === PLAYER OFFER QUIPS ===
+    const PLAYER_OFFER_ACCEPT_QUIPS = {
+        nalle: [
+            "A fair price. I accept — reluctantly.",
+            "You drive a hard bargain. Fine. It's yours.",
+            "I have better prospects lined up. Take it.",
+            "The Wahlroos portfolio doesn't need dead weight. Done.",
+            "Consider this a gift. I'll make it back by Thursday.",
+            "You're overpaying by my standards. But sure.",
+            "I'm liquidating selectively. You benefit today.",
+            "My accountant will process this. Don't celebrate yet.",
+            "Every empire sheds assets strategically. This is strategy.",
+            "Acceptable. I was going to flip it anyway.",
+            "You caught me in a generous mood. Rare occurrence.",
+            "Fine. I have three acquisitions closing this week anyway.",
+            "Take it before I change my mind. I don't often sell.",
+            "A Wahlroos knows when to hold and when to fold. Today I fold.",
+            "That building served its purpose. Now it serves yours.",
+            "I'll use the capital for something grander. Deal.",
+            "Sold. My next purchase will make this look trivial.",
+            "The numbers work. Barely. But they work.",
+            "You negotiated adequately. I'll remember that.",
+            "Done. Now if you'll excuse me, I have an empire to run.",
+        ],
+        hjallis: [
+            "Sure! I've got my eye on something bigger anyway!",
+            "Deal! Let's shake on it — old school!",
+            "You want it? It's yours! Life's too short to haggle!",
+            "Sold! Come celebrate at my bar tonight!",
+            "Why not! I was thinking about switching things up anyway!",
+            "That place was fun, but I've got new plans. Take it!",
+            "Done deal! First round's on me tonight!",
+            "Ha! Good timing — I need cash for a new venue!",
+            "You got it! More money for my next big idea!",
+            "Shake on it! I never say no to a good offer!",
+            "Perfect! I was just telling my team we need to pivot!",
+            "Sold! But you have to keep the rooftop bar open. Promise?",
+            "It's a deal! Hjallis moves fast — in and out!",
+            "Take it! I've got three new projects cooking!",
+            "Yeah, why not? Helsinki has plenty of buildings for everyone!",
+            "Done! My accountant will be happy for once!",
+            "You drive a fair bargain! I respect that. It's yours!",
+            "Absolutely! I'll reinvest in something with a better DJ booth!",
+            "Sold! Come to the signing — I'll bring champagne!",
+            "Great offer! Let's do it! Life is too short for overthinking!",
+        ],
+        risto: [
+            "The numbers are sound. I accept your offer.",
+            "I've modelled this scenario. The sale is optimal.",
+            "Acceptable. My portfolio correlation improves without it.",
+            "The ROI was declining. Your timing is noted.",
+            "I'll reinvest the capital more efficiently. Agreed.",
+            "After due analysis, I accept. The math works.",
+            "That property no longer fits my risk profile. Done.",
+            "Sold. I calculated 14 scenarios. This was the best.",
+            "Your offer aligns with my divestment schedule. Agreed.",
+            "The yield was suboptimal. You're welcome to it.",
+            "I accept. My weighted portfolio improves by 0.3%.",
+            "Rational offer. Rational acceptance. Transaction complete.",
+            "I was planning to rebalance anyway. Good timing.",
+            "The opportunity cost of holding was too high. Sold.",
+            "My model suggested selling at this price point. Interesting.",
+            "Agreed. I'll allocate the proceeds to higher-yield assets.",
+            "The data supports this decision. Accepted.",
+            "You've priced this within 2% of my internal valuation. Sold.",
+            "Efficient transaction. I appreciate the directness.",
+            "Sold. I trust you'll maintain the property's fundamentals.",
+        ],
+        peter: [
+            "Sure! I've got bigger visions to fund anyway!",
+            "Deal! This frees up capital for the tunnel project!",
+            "You want it? Take it! I'm playing a bigger game!",
+            "Sold! I need the cash for something that'll change Helsinki forever!",
+            "Done! That building was just a stepping stone anyway!",
+            "Absolutely! I'll flip these euros into something ten times bigger!",
+            "It's yours! I'm pivoting to waterfront — exclusively!",
+            "Take it! Every sale funds my master plan!",
+            "Shake on it! In five years you'll see why I sold!",
+            "Deal! The tunnel to Tallinn needs investors, and now I have cash!",
+            "Sold! When I said I'd disrupt this market, I meant it!",
+            "Go for it! I have twelve meetings this week about bigger things!",
+            "Done! Think of me when the property values double after the tunnel!",
+            "Perfect timing! My Angry Birds instincts say: sell now, buy bigger!",
+            "Absolutely! You're buying a building — I'm building a future!",
+            "Take it! I was going to reinvest in harbour-side anyway!",
+            "Deal! Mighty Eagle approves this transaction!",
+            "Sold! Now watch what I do with the proceeds!",
+            "Yes! Capital reallocation is the hallmark of a disruptor!",
+            "It's yours! The hoodie stays, the building goes!",
+        ],
+    };
+
+    const PLAYER_OFFER_DECLINE_QUIPS = {
+        nalle: [
+            "Absolutely not. That property is worth far more to me.",
+            "You insult me with that offer. No.",
+            "A Wahlroos does not sell on demand.",
+            "Come back when you have a serious offer. If ever.",
+            "That building is part of something larger. The answer is no.",
+            "I didn't build this portfolio to dismantle it at your whim.",
+            "No. And don't ask again.",
+            "My grandfather would roll in his grave. Declined.",
+            "The audacity. No.",
+            "That property earns more sleeping than your offer suggests.",
+            "Not for sale. Not today. Not to you.",
+            "I'll sell when I'm good and ready. Which is never.",
+            "Your offer reveals how little you understand valuation.",
+            "Declined. I have standards, even in real estate.",
+            "That's my best performer. You can't afford what it's worth.",
+            "No. Try one of Hjallis's bars — he might be desperate enough.",
+            "I'd rather burn it than sell it at that price.",
+            "Interesting attempt. The answer remains no.",
+            "My portfolio is not a menu you can order from.",
+            "No deal. Now stop wasting my time.",
+        ],
+        hjallis: [
+            "Nah, sorry! I love that place too much!",
+            "Can't do it! That building has great vibes!",
+            "No way! The tenants just started a jazz night!",
+            "Sorry pal! That one's a keeper!",
+            "Not this one! I've got big plans for it!",
+            "Haha, nice try! But that's my baby!",
+            "Nope! Ask me about a different one maybe!",
+            "Can't sell that! The rooftop parties are legendary!",
+            "No deal! But no hard feelings — let's grab a beer!",
+            "That's below what I'd take. Maybe bump it up?",
+            "Love the hustle, but I'm keeping this one!",
+            "Not happening! That location is pure gold!",
+            "Sorry! I just renovated the kitchen there. Can't let go!",
+            "Nah! My gut says hold. And my gut is never wrong!",
+            "Not for sale! But I admire the effort!",
+            "Ha! You'd have to double that. At least!",
+            "Keep your money! That place is my pride and joy!",
+            "No way José! That building's got character!",
+            "Can't do it! I promised the staff I'd keep it!",
+            "Nice offer, but my heart says no! Maybe next time!",
+        ],
+        risto: [
+            "I've run the analysis. Selling would be suboptimal.",
+            "No. The risk-adjusted return exceeds your offer significantly.",
+            "Declined. My model values this property 40% higher.",
+            "The data doesn't support this transaction.",
+            "I'll pass. The yield curve on this asset is exceptional.",
+            "That offer is below my calculated floor price.",
+            "No. This property anchors my district position.",
+            "The numbers don't work. I've checked twice.",
+            "Declined. Emotional selling destroys portfolios.",
+            "My internal valuation is significantly higher. No.",
+            "I've stress-tested keeping this asset. It outperforms.",
+            "No. The compounding returns alone justify holding.",
+            "That's a 23% discount to fair value. Obviously not.",
+            "Declined. Try again when the fundamentals change.",
+            "The correlation benefits alone make this a hold.",
+            "No. And I have the spreadsheet to prove why.",
+            "Below threshold. My model requires at least 15% above market.",
+            "Selling here would reduce my portfolio Sharpe ratio. No.",
+            "I don't make emotional decisions. The math says no.",
+            "Not at this price point. Perhaps revisit next quarter.",
+        ],
+        peter: [
+            "No way! That's going to be worth ten times more after the tunnel!",
+            "Can't sell! That building is part of my master plan!",
+            "Are you kidding? That's prime tunnel-adjacent real estate!",
+            "Nope! I see too much potential there. Way too much!",
+            "Not a chance! Helsinki needs visionaries who hold, not sell!",
+            "Ha! When the tunnel opens, you'll wish you'd offered more!",
+            "No deal! That location is going to be transformative!",
+            "I'm building something bigger than one transaction. Pass!",
+            "That's like asking me to sell Angry Birds in 2010. Not happening!",
+            "No! The Mighty Eagle doesn't retreat!",
+            "You're thinking small. That property is thinking big. I keep it!",
+            "Declined! That building is going to be on the cover of Forbes!",
+            "Not for sale! I pitched that location to three investors already!",
+            "Come back after the tunnel opens. Then we'll talk. Maybe!",
+            "No way! I've got twelve meetings this week about that building!",
+            "That's part of my harbour strategy. Non-negotiable!",
+            "Ask again in five years when it's worth five times more!",
+            "Negative! Angry Birds taught me: hold your best assets!",
+            "No! That building connects to something much bigger!",
+            "I'd rather build than sell. That's the disruptor's way!",
+        ],
+    };
+
+    // === PLAYER OFFER EVALUATION ===
+
+    function evaluatePlayerOffer(rival, property, offerPrice, pctOfMarket, gameState) {
+        // Calculate property's ROI
+        const propROI = property.revenue / property.price;
+
+        // Calculate rival's average ROI across their portfolio
+        const rivalProps = gameState.properties.filter(p => p.owner === rival.id);
+        let avgROI = 0;
+        if (rivalProps.length > 1) {
+            const otherProps = rivalProps.filter(p => p !== property);
+            avgROI = otherProps.reduce((sum, p) => sum + p.revenue / p.price, 0) / otherProps.length;
+        }
+
+        // Base acceptance chance starts at 0%
+        let acceptChance = 0;
+
+        // Premium/discount factor: higher offer = more likely to accept
+        // At 100% market value: baseline ~30%
+        // At 120%: ~55%, at 140%: ~75%
+        // At 80%: ~10%, at 60%: ~0%
+        acceptChance += (pctOfMarket - 70) * 1.0; // 0% at 70%, 30% at 100%, 50% at 120%
+
+        // ROI comparison: if this property's ROI is below their average, more willing to sell
+        if (avgROI > 0 && propROI < avgROI) {
+            acceptChance += 15; // Below-average performer, more willing to part with it
+        } else if (avgROI > 0 && propROI > avgROI * 1.3) {
+            acceptChance -= 20; // Star performer, reluctant to sell
+        }
+
+        // Cash pressure: if rival is low on cash relative to their net worth, more likely to sell
+        const cashRatio = rival.money / Math.max(1, rival.netWorth);
+        if (cashRatio < 0.05) {
+            acceptChance += 20; // Very cash-poor
+        } else if (cashRatio < 0.15) {
+            acceptChance += 10; // Somewhat cash-poor
+        } else if (cashRatio > 0.5) {
+            acceptChance -= 10; // Cash-rich, no need to sell
+        }
+
+        // Aggressiveness: aggressive rivals hold tighter
+        acceptChance -= rival.aggressiveness * 15;
+
+        // Never sell their last property
+        if (rivalProps.length <= 1) {
+            return false;
+        }
+
+        // Random factor: ±10%
+        acceptChance += (Math.random() - 0.5) * 20;
+
+        // Clamp between 2% and 95%
+        acceptChance = Math.max(2, Math.min(95, acceptChance));
+
+        return Math.random() * 100 < acceptChance;
+    }
+
+    function getPlayerOfferQuip(rivalId, accepted) {
+        const quips = accepted ? PLAYER_OFFER_ACCEPT_QUIPS[rivalId] : PLAYER_OFFER_DECLINE_QUIPS[rivalId];
+        if (!quips) return accepted ? "Deal." : "No deal.";
+        return quips[Math.floor(Math.random() * quips.length)];
+    }
+
     return {
         RIVAL_PROFILES,
         initRivals,
@@ -541,5 +856,7 @@ const Rivals = (() => {
         generateAuction,
         processAuctionRound,
         getRandomQuip,
+        evaluatePlayerOffer,
+        getPlayerOfferQuip,
     };
 })();

@@ -14,6 +14,7 @@ const GameState = {
     rivals: [],
     activeEvents: [],
     staff: [], // hired staff IDs, e.g. ['maintenance', 'manager']
+    maintenanceTier: 0, // 0 = none, 1-5 = tier level
     loanAmount: 0,
     loanInterestRate: 0.05, // 5% annual
     winTarget: 50000000,
@@ -36,6 +37,7 @@ const GameState = {
     lastQuipTurn: -6, // turn when last rival quip was shown (cooldown: 4 turns)
     totalRevenueEarned: 0,
     financeHistory: [], // { turn, revenue, maintenance, loanPayment, staffSalaries, netIncome, netWorth, cash }
+    victoryScreenShown: false, // track if victory screen has been shown this game
 };
 
 // Undo snapshot — stores state before last player action
@@ -54,6 +56,7 @@ const Game = (() => {
         GameState.difficulty = difficulty;
         GameState.mode = mode;
         GameState.staff = [];
+        GameState.maintenanceTier = 0;
         GameState.financeHistory = [];
         GameState.yearlyLog = [];
         GameState.usedFillerIndices = [];
@@ -69,6 +72,7 @@ const Game = (() => {
         GameState.lastAuctionTurn = -10;
         GameState.auctionThisYear = false;
         GameState.lastQuipTurn = -6;
+        GameState.victoryScreenShown = false;
 
         // Difficulty settings
         const diffSettings = {
@@ -143,6 +147,37 @@ const Game = (() => {
             Sound.playRivalAction();
             for (const a of allRivalActions) {
                 logYearlyEvent('rival_buy', `${a.rival} bought ${a.property} in ${a.district || 'Helsinki'}`);
+
+                // Check if this action completed a district monopoly for the rival
+                const rivalObj = GameState.rivals.find(r => r.shortName === a.rival);
+                if (rivalObj) {
+                    // Find the property that was bought
+                    const boughtProp = GameState.properties.find(p => p.name === a.property);
+                    if (boughtProp) {
+                        const monopolyOwner = Economy.checkDistrictMonopoly(boughtProp, GameState);
+                        if (monopolyOwner === rivalObj.id) {
+                            logYearlyEvent('district_takeover', `${a.rival} completed a monopoly in ${a.district || 'Helsinki'}`, {
+                                meta: {
+                                    type: 'rival',
+                                    rival: rivalObj.id,
+                                    rivalName: a.rival,
+                                    district: boughtProp.district,
+                                    districtName: a.district || 'Helsinki',
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2b. Check for rival bankruptcies
+        for (const rival of GameState.rivals) {
+            if (rival.netWorth <= 0 && !rival.bankrupted) {
+                rival.bankrupted = true;
+                Sound.playBankrupt();
+                UI.setNewsText(`📉 ${rival.name} has gone bankrupt and is out of the game.`);
+                logYearlyEvent('rival_bankrupt', `${rival.shortName} went bankrupt`);
             }
         }
 
@@ -233,6 +268,12 @@ const Game = (() => {
         GameState.turn++;
         GameState.actionsRemaining = GameState.actionsPerTurn + Staff.getActionsBonus(GameState);
 
+        // Refresh staff panel if open (to show updated salary scaling)
+        const staffPanel = document.getElementById('staff-panel');
+        if (staffPanel && !staffPanel.classList.contains('hidden')) {
+            UI.updateStaffPanel();
+        }
+
         // 6b. Newspaper: show prompt in January, auto-dismiss in March
         if (GameState.month === 0 && GameState.turn > 1) {
             // January — generate year-in-review for the year that just ended
@@ -275,11 +316,22 @@ const Game = (() => {
         // 9. Check win condition
         if (GameState.mode === 'campaign') {
             const netWorth = Economy.calculateNetWorth(GameState);
-            if (netWorth >= GameState.winTarget) {
+            if (netWorth >= GameState.winTarget && !GameState.victoryScreenShown) {
                 GameState.gameOver = true;
+                GameState.victoryScreenShown = true;
                 Achievements.checkWin(GameState);
                 Sound.playVictory();
                 UI.showWinScreen();
+            }
+            // Check if a rival reached the target first
+            for (const rival of GameState.rivals) {
+                if (rival.netWorth >= GameState.winTarget) {
+                    GameState.gameOver = true;
+                    Sound.playBankrupt();
+                    UI.setNewsText(`GAME OVER: ${rival.name} reached the target first!`);
+                    alert(`Game Over!\n\n${rival.name} reached the goal of €${UI.formatMoney(GameState.winTarget)}.\nYou came in 2nd place.\nFinal turn: ${GameState.turn}`);
+                    break;
+                }
             }
         }
 
@@ -331,7 +383,11 @@ const Game = (() => {
                 if (offer) {
                     pendingOffer = offer;
                     GameState.lastOfferTurn = GameState.turn;
-                    UI.showOfferDialog(offer);
+                    // Show as prominent popup with sound
+                    setTimeout(() => {
+                        Sound.playOffer();
+                        UI.showOfferDialog(offer);
+                    }, 800);
                 }
             }
         }
@@ -425,6 +481,47 @@ const Game = (() => {
         document.getElementById('offer-overlay').classList.add('hidden');
         Sound.playClick();
         UI.setNewsText(`${GameState.playerName} declined ${name}'s offer.`);
+    }
+
+    // === PLAYER-INITIATED OFFERS ===
+
+    function processPlayerOffer(property, rival, offerPrice, pctOfMarket) {
+        // Costs 1 action
+        if (GameState.actionsRemaining <= 0) return;
+        GameState.actionsRemaining--;
+        UI.updateHUD(GameState);
+
+        const accepted = Rivals.evaluatePlayerOffer(rival, property, offerPrice, pctOfMarket, GameState);
+        const quip = Rivals.getPlayerOfferQuip(rival.id, accepted);
+
+        if (accepted) {
+            // Transfer property to player
+            property.owner = 'player';
+            rival.money += offerPrice;
+            rival.propertiesOwned = Math.max(0, rival.propertiesOwned - 1);
+            GameState.money -= offerPrice;
+
+            // Update rival net worth
+            const rivalProps = GameState.properties.filter(p => p.owner === rival.id);
+            rival.netWorth = rival.money + rivalProps.reduce((s, p) => s + p.price, 0);
+
+            Sound.playBuy();
+            UI.setNewsText(`${rival.shortName} accepted! Bought ${property.name} for €${UI.formatMoney(offerPrice)}.`);
+            UI.addLogAction(`Bought ${property.name} from ${rival.shortName} for €${UI.formatMoney(offerPrice)}`);
+            logYearlyEvent('deal', `${GameState.playerName} bought ${property.name} from ${rival.shortName} for €${UI.formatMoney(offerPrice)}.`);
+        } else {
+            Sound.playClick();
+            UI.setNewsText(`${rival.shortName} declined your offer for ${property.name}.`);
+            UI.addLogAction(`${rival.shortName} declined offer for ${property.name}`);
+        }
+
+        // Show rival quip
+        UI.showRivalQuip(rival, quip);
+
+        // Refresh map and panels
+        MapRenderer.render();
+        UI.hidePropertyPanel();
+        UI.updateHUD(GameState);
     }
 
     // === AUCTION / BIDDING WAR ===
@@ -859,7 +956,8 @@ const Game = (() => {
     function buyProperty(property) {
         const isFree = UI.isFreeBuyMode();
         if (GameState.actionsRemaining <= 0) {
-            UI.setNewsText('No actions remaining this turn!');
+            Sound.playEventNegative();
+            UI.setNewsText('⚠️ OUT OF ACTIONS! End your turn to continue.');
             return;
         }
         if (property.owner !== null) {
@@ -880,6 +978,19 @@ const Game = (() => {
         property.owner = 'player';
         GameState.actionsRemaining--;
 
+        // Check if player now owns entire district (monopoly)
+        const monopolyOwner = Economy.checkDistrictMonopoly(property, GameState);
+        if (monopolyOwner === 'player') {
+            logYearlyEvent('district_takeover', `${GameState.playerName} completed a monopoly in ${property.districtName || property.district}`, {
+                meta: {
+                    type: 'player',
+                    district: property.district,
+                    districtName: property.districtName || property.district,
+                    playerName: GameState.playerName,
+                }
+            });
+        }
+
         Sound.playBuy();
         MapRenderer.triggerAdvisorAction('buy');
         Achievements.onBuy();
@@ -897,7 +1008,8 @@ const Game = (() => {
 
     function sellProperty(property) {
         if (GameState.actionsRemaining <= 0) {
-            UI.setNewsText('No actions remaining this turn!');
+            Sound.playEventNegative();
+            UI.setNewsText('⚠️ OUT OF ACTIONS! End your turn to continue.');
             return;
         }
         if (property.owner !== 'player') return;
@@ -921,7 +1033,8 @@ const Game = (() => {
 
     function upgradeProperty(property) {
         if (GameState.actionsRemaining <= 0) {
-            UI.setNewsText('No actions remaining this turn!');
+            Sound.playEventNegative();
+            UI.setNewsText('⚠️ OUT OF ACTIONS! End your turn to continue.');
             return;
         }
         const cost = Properties.getUpgradeCost(property);
@@ -950,7 +1063,8 @@ const Game = (() => {
 
     function repairProperty(property) {
         if (GameState.actionsRemaining <= 0) {
-            UI.setNewsText('No actions remaining this turn!');
+            Sound.playEventNegative();
+            UI.setNewsText('⚠️ OUT OF ACTIONS! End your turn to continue.');
             return;
         }
         const cost = Properties.getRepairCost(property);
@@ -1499,6 +1613,7 @@ const Game = (() => {
         undo,
         acceptOffer,
         declineOffer,
+        processPlayerOffer,
         auctionPlayerRaise,
         auctionPlayerDropout,
         closeAuction,

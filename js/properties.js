@@ -47,7 +47,7 @@ const Properties = (() => {
         { name: 'Ruoholahti Office Tower', type: 'office', district: 'ruoholahti', price: 8000000, revenue: 195000, description: 'Office tower near canal', lat: 60.167, lon: 24.910 },
 
         // === HERNESAARI ===
-        { name: 'Löyly', type: 'restaurant', district: 'hernesaari', price: 5000000, revenue: 120000, description: 'Iconic public sauna and restaurant by the sea', lat: 60.1495, lon: 24.920 },
+        { name: 'Löyly', type: 'sauna', district: 'hernesaari', price: 5000000, revenue: 120000, description: 'Iconic public sauna and restaurant by the sea', lat: 60.1495, lon: 24.920 },
         { name: 'Hernesaari Heliport', type: 'landmark', district: 'hernesaari', price: 3000000, revenue: 60000, description: 'Helsinki heliport, scenic flights', lat: 60.149, lon: 24.917 },
         { name: 'Hernesaari Warehouse', type: 'office', district: 'hernesaari', price: 2000000, revenue: 45000, description: 'Industrial warehouse space', lat: 60.151, lon: 24.916 },
 
@@ -99,6 +99,20 @@ const Properties = (() => {
         { name: 'Jätkäsaari Food Truck Spot', type: 'restaurant', district: 'jatkasaari', price: 35000, revenue: 2400, description: 'Food truck parking permit', lat: 60.153, lon: 24.900 },
         { name: 'Kallio Tattoo Studio', type: 'retail', district: 'kallio', price: 95000, revenue: 5700, description: 'Popular tattoo parlour', lat: 60.182, lon: 24.948 },
         { name: 'Eira Massage Studio', type: 'retail', district: 'eira', price: 100000, revenue: 5400, description: 'Wellness studio near the park', lat: 60.156, lon: 24.928 },
+
+        // === ULTRA-CHEAP STARTERS (for balanced 1+3 rival games) ===
+        { name: 'Kluuvi Corner Café', type: 'restaurant', district: 'kluuvi', price: 85000, revenue: 5100, description: 'Small corner coffee shop near the station', lat: 60.171, lon: 24.942 },
+        { name: 'Punavuori Kebab', type: 'restaurant', district: 'punavuori', price: 75000, revenue: 4500, description: 'Quick kebab stand on a busy street', lat: 60.164, lon: 24.922 },
+        { name: 'Kaartinkaupunki Kiosk', type: 'retail', district: 'kaartinkaupunki', price: 50000, revenue: 3000, description: 'Newspaper and candy kiosk', lat: 60.166, lon: 24.940 },
+        { name: 'Rautatientori Flower Stall', type: 'retail', district: 'kluuvi', price: 65000, revenue: 3900, description: 'Small flower stall by railway square', lat: 60.171, lon: 24.944 },
+        { name: 'Aina Cafe', type: 'restaurant', district: 'jatkasaari', price: 110000, revenue: 6600, description: 'Small neighborhood café', lat: 60.155, lon: 24.905 },
+        { name: 'Kalasatama Convenience Store', type: 'retail', district: 'kalasatama', price: 95000, revenue: 5700, description: 'Local convenience store in new district', lat: 60.189, lon: 24.978 },
+        { name: 'Sompasaari Café', type: 'restaurant', district: 'sompasaari', price: 60000, revenue: 3600, description: 'Waterfront café in emerging area', lat: 60.185, lon: 24.982 },
+        { name: 'Hakaniemi Used Books', type: 'retail', district: 'hakaniemi', price: 70000, revenue: 4200, description: 'Cozy secondhand bookshop near the market', lat: 60.182, lon: 24.960 },
+        { name: 'Kallio Ramen House', type: 'restaurant', district: 'kallio', price: 120000, revenue: 7200, description: 'Popular neighborhood ramen shop', lat: 60.184, lon: 24.950 },
+        { name: 'Töölö Smoothie Bar', type: 'restaurant', district: 'toolo', price: 105000, revenue: 6300, description: 'Healthy smoothie and juice bar in Töölö', lat: 60.178, lon: 24.920 },
+        { name: 'Ruoholahti Sauna Club', type: 'retail', district: 'ruoholahti', price: 140000, revenue: 8400, description: 'Small private sauna rental space', lat: 60.165, lon: 24.908 },
+        { name: 'Kruununhaka Vintage Shop', type: 'retail', district: 'kruununhaka', price: 55000, revenue: 3300, description: 'Charming antique shop in Old Town', lat: 60.173, lon: 24.954 },
 
         // === EASTER EGGS ===
         { name: 'Schwerbelastung\'s Penthouse', type: 'residential', district: 'jatkasaari', price: 300000, revenue: 15000, description: 'A mysterious developer\'s luxury penthouse with a suspiciously good Wi-Fi setup', lat: 60.150, lon: 24.899, color: '#cc44ff', easterEgg: true },
@@ -436,7 +450,10 @@ const Properties = (() => {
     }
 
     function degradeCondition(property) {
-        const degradeAmount = Math.random() * 3 + 1; // 1-4% per month
+        let degradeAmount = Math.random() * 3 + 1; // 1-4% per month
+        // Upgraded properties degrade slower: each upgrade level reduces decay by 20%
+        const decayReduction = (property.upgradeLevel - 1) * 0.2;
+        degradeAmount = degradeAmount * (1 - decayReduction);
         property.condition = Math.max(0, property.condition - degradeAmount);
         // Condition affects revenue
         const conditionMultiplier = 0.5 + (property.condition / 100) * 0.5;

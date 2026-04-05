@@ -1,34 +1,68 @@
 // Helsingin Herra - Staff System
 const Staff = (() => {
 
-    const STAFF_DEFS = [
+    const MAINTENANCE_TIERS = [
+        null, // tier 0 = none
         {
-            id: 'maintenance',
-            name: 'Maintenance Person',
-            description: 'Repairs one random property to 100% each turn at 50% of normal cost.',
+            tier: 1,
+            name: 'Maintenance Person (Tier 1)',
+            description: 'Repairs 1 property per turn at 50% cost.',
             baseSalary: 2000,
-            salaryScale: 500, // +€500 per 12 turns
+            hireCostBase: 6000, // 3x base salary
+            repairsPerTurn: 1,
         },
+        {
+            tier: 2,
+            name: 'Maintenance Person (Tier 2)',
+            description: 'Repairs 2 properties per turn at 50% cost.',
+            baseSalary: 3000,
+            hireCostBase: 9000,
+            repairsPerTurn: 2,
+        },
+        {
+            tier: 3,
+            name: 'Maintenance Person (Tier 3)',
+            description: 'Repairs 3 properties per turn at 50% cost.',
+            baseSalary: 4500,
+            hireCostBase: 13500,
+            repairsPerTurn: 3,
+        },
+        {
+            tier: 4,
+            name: 'Maintenance Person (Tier 4)',
+            description: 'Repairs 4 properties per turn at 50% cost.',
+            baseSalary: 6750,
+            hireCostBase: 20250,
+            repairsPerTurn: 4,
+        },
+        {
+            tier: 5,
+            name: 'Maintenance Person (Tier 5)',
+            description: 'Repairs 5 properties per turn at 50% cost.',
+            baseSalary: 10125,
+            hireCostBase: 30375,
+            repairsPerTurn: 5,
+        },
+    ];
+
+    const STAFF_DEFS = [
         {
             id: 'manager',
             name: 'Property Manager',
             description: '+1 action per turn.',
             baseSalary: 5000,
-            salaryScale: 1000,
         },
         {
             id: 'accountant',
             name: 'Accountant',
             description: 'Reduces loan interest rate by 1.5%.',
             baseSalary: 3000,
-            salaryScale: 750,
         },
         {
             id: 'scout',
             name: 'Scout',
             description: 'Reveals the best available deal each turn in the news ticker.',
             baseSalary: 1500,
-            salaryScale: 400,
         },
     ];
 
@@ -40,14 +74,33 @@ const Staff = (() => {
         return STAFF_DEFS.find(s => s.id === id);
     }
 
+    function getMaintenanceTierDef(tier) {
+        return MAINTENANCE_TIERS[tier] || null;
+    }
+
     function getSalary(staffId, turn) {
         const def = getDefinition(staffId);
         if (!def) return 0;
-        return def.baseSalary + Math.floor((turn - 1) / 12) * def.salaryScale;
+        const yearsElapsed = Math.floor((turn - 1) / 12);
+        return Math.floor(def.baseSalary * Math.pow(1.15, yearsElapsed));
+    }
+
+    function getMaintenanceSalary(tier, turn) {
+        const def = getMaintenanceTierDef(tier);
+        if (!def) return 0;
+        const yearsElapsed = Math.floor((turn - 1) / 12);
+        return Math.floor(def.baseSalary * Math.pow(1.15, yearsElapsed));
     }
 
     function getTotalSalaries(gameState) {
         let total = 0;
+
+        // Maintenance worker tier salary
+        if (gameState.maintenanceTier) {
+            total += getMaintenanceSalary(gameState.maintenanceTier, gameState.turn);
+        }
+
+        // Other staff
         for (const id of gameState.staff) {
             total += getSalary(id, gameState.turn);
         }
@@ -59,8 +112,18 @@ const Staff = (() => {
         return getSalary(staffId, turn) * 3;
     }
 
+    function getMaintenanceHireCost(tier) {
+        const def = getMaintenanceTierDef(tier);
+        if (!def) return 0;
+        return def.hireCostBase;
+    }
+
     function isHired(gameState, staffId) {
         return gameState.staff.includes(staffId);
+    }
+
+    function getMaintenanceTier(gameState) {
+        return gameState.maintenanceTier || 0;
     }
 
     function hire(gameState, staffId) {
@@ -69,6 +132,21 @@ const Staff = (() => {
         if (gameState.money < cost) return false;
         gameState.money -= cost;
         gameState.staff.push(staffId);
+        return true;
+    }
+
+    function hireMaintenanceTier(gameState, tier) {
+        if (tier < 1 || tier > 5) return false;
+        if (gameState.maintenanceTier === tier) return false; // already hired
+        const cost = getMaintenanceHireCost(tier);
+        if (gameState.money < cost) return false;
+        gameState.money -= cost;
+        gameState.maintenanceTier = tier;
+        return true;
+    }
+
+    function fireMaintenanceTier(gameState) {
+        gameState.maintenanceTier = 0;
         return true;
     }
 
@@ -83,16 +161,29 @@ const Staff = (() => {
     function processStaffEffects(gameState) {
         const results = [];
 
-        // Maintenance Person: repair one random property at 50% cost
-        if (isHired(gameState, 'maintenance')) {
-            const damaged = gameState.properties.filter(p => p.owner === 'player' && p.condition < 90);
-            if (damaged.length > 0) {
-                const prop = damaged[Math.floor(Math.random() * damaged.length)];
+        // Maintenance Person: repair multiple properties based on tier at 50% cost
+        const maintenanceTier = getMaintenanceTier(gameState);
+        if (maintenanceTier > 0) {
+            const tierDef = getMaintenanceTierDef(maintenanceTier);
+            const repairsPerTurn = tierDef.repairsPerTurn;
+            const damaged = gameState.properties.filter(p => p.owner === 'player' && p.condition < 100);
+            let totalRepairCost = 0;
+            let repairsCount = 0;
+
+            // Repair up to repairsPerTurn properties
+            for (let i = 0; i < Math.min(repairsPerTurn, damaged.length); i++) {
+                const prop = damaged[i];
                 const fullCost = Properties.getRepairCost(prop);
                 const cost = Math.floor(fullCost * 0.5);
                 gameState.money -= cost;
+                totalRepairCost += cost;
                 prop.condition = 100;
-                results.push(`🔧 Maintenance: repaired ${prop.name} for €${UI.formatMoney(cost)}`);
+                repairsCount++;
+            }
+
+            if (repairsCount > 0) {
+                const plural = repairsCount > 1 ? `${repairsCount} properties` : 'property';
+                results.push(`🔧 Maintenance (Tier ${maintenanceTier}): repaired ${plural} for €${UI.formatMoney(totalRepairCost)}`);
             }
         }
 
@@ -113,7 +204,8 @@ const Staff = (() => {
                     return roiB > roiA ? b : a;
                 });
                 const roi = best.price > 0 ? (best.revenue / best.price * 100).toFixed(1) : '0';
-                results.push(`🔍 Scout tip: ${best.name} in ${best.districtName} — €${UI.formatMoney(best.price)}, ${roi}% ROI`);
+                const msg = `🔍 Scout tip: ${best.name} in ${best.districtName} — €${UI.formatMoney(best.price)}, ${roi}% ROI`;
+                results.push({ text: msg, scoutProperty: best });
             }
         }
 
@@ -140,5 +232,12 @@ const Staff = (() => {
         processStaffEffects,
         getActionsBonus,
         getInterestReduction,
+        MAINTENANCE_TIERS,
+        getMaintenanceTierDef,
+        getMaintenanceSalary,
+        getMaintenanceHireCost,
+        getMaintenanceTier,
+        hireMaintenanceTier,
+        fireMaintenanceTier,
     };
 })();
