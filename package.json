@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win portable",
-    "postbuild": "cp dist/Helsingin-Herra-v*.exe ."
+    "postbuild": "node -e \"const fs=require('fs'),f=fs.readdirSync('dist').find(f=>/\\.exe$/.test(f));if(f){fs.copyFileSync('dist/'+f,f);console.log('Copied',f);}else{console.warn('No .exe found in dist/');}\""
   },
   "build": {
     "appId": "com.schwerbelastung.helsingin-herra",
