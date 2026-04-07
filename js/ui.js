@@ -247,6 +247,10 @@ const UI = (() => {
             Sound.playClick();
             showTutorial();
         });
+
+        document.getElementById('btn-quit-game').addEventListener('click', () => {
+            window.close();
+        });
     }
 
     let changelogCache = null;
@@ -1299,6 +1303,11 @@ Good luck — become the Helsingin Herra!`,
         document.getElementById('menu-restart').addEventListener('click', () => {
             Sound.playClick();
             restartToMainMenu();
+        });
+
+        document.getElementById('menu-quit').addEventListener('click', () => {
+            Sound.playClick();
+            window.close();
         });
     }
 

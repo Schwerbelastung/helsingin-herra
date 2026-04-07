@@ -1,5 +1,14 @@
 # Helsingin Herra - Changelog
 
+## v1.6.2 — Fullscreen & Quit Button (2026-04-07)
+
+### Added
+- **Fullscreen launch** — game now opens in fullscreen by default
+- **Quit button on start screen** — below CHANGELOG and HOW TO PLAY
+- **Quit button in Menu panel** — alongside Save/Load/Restart for in-game exit
+
+---
+
 ## v1.6.1 — Splash Screen Music (2026-04-07)
 
 ### Added

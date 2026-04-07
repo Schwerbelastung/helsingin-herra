@@ -1,6 +1,6 @@
 {
   "name": "helsingin-herra",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Helsingin Herra — real estate tycoon set in Helsinki",
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "appId": "com.schwerbelastung.helsingin-herra",
     "productName": "Helsingin Herra",
     "portable": {
-      "artifactName": "Helsingin-Herra-v1.6.1.exe"
+      "artifactName": "Helsingin-Herra-v1.6.2.exe"
     },
     "files": [
       "**/*",

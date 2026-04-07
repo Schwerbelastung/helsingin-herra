@@ -7,6 +7,7 @@ app.whenReady().then(() => {
     const win = new BrowserWindow({
         width: 1280,
         height: 900,
+        fullscreen: true,
         title: 'Helsingin Herra',
         icon: path.join(__dirname, 'icon.png'),
         // Lock to 16:9 aspect ratio (prevents ultrawide stretching)
