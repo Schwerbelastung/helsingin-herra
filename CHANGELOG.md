@@ -1,5 +1,14 @@
 # Helsingin Herra - Changelog
 
+## v1.6.1 — Splash Screen Music (2026-04-07)
+
+### Added
+- **Splash screen music** — upbeat procedural music plays immediately when the game launches, before any button is clicked
+- Music is a bouncy C–G–Am–F loop with walking bass, triangle arpeggios, a bright melody line, and light hi-hat ticks at ~107 BPM
+- Music fades out gracefully when starting or continuing a game
+
+---
+
 ## v1.6.0 — Alppila & Pasila Districts (2026-04-05)
 
 ### Added

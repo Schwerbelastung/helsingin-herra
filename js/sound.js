@@ -9,6 +9,9 @@ const Sound = (() => {
     let musicEnabled = true;
     let sfxEnabled = true;
     let musicInterval = null;
+    let menuMusicInterval = null;
+    let menuDroneOsc = null;
+    let menuDroneGain = null;
     let currentSeason = 'winter';
     let musicStyle = 'ambient'; // 'ambient', 'minimal', 'cinematic'
 
@@ -308,6 +311,123 @@ const Sound = (() => {
         if (musicInterval) {
             clearInterval(musicInterval);
             musicInterval = null;
+        }
+    }
+
+    // === MENU / SPLASH SCREEN MUSIC ===
+    // Slow Nordic ambient: sustained drone + gentle arpeggiated chords + occasional bell
+
+    function startMenuMusic() {
+        ensureAudio();
+        if (menuMusicInterval) return;
+
+        // Warm walking bass — root notes of the chord progression
+        // C - G - Am - F (I-V-vi-IV), classic upbeat loop
+        const bassNotes  = [65.41, 49.00, 55.00, 43.65]; // C2, G1, A1, F1
+        const chords = [
+            [261.63, 329.63, 392.00, 523.25],  // C  maj
+            [196.00, 246.94, 293.66, 392.00],  // G  maj
+            [220.00, 261.63, 329.63, 440.00],  // Am
+            [174.61, 220.00, 261.63, 349.23],  // F  maj
+        ];
+        const melody = [
+            // A simple bouncy 8-note motif over the 4-chord loop
+            523.25, 587.33, 659.25, 698.46,
+            659.25, 587.33, 523.25, 493.88,
+        ];
+
+        let step = 0;
+
+        function playMenuBeat() {
+            if (!musicEnabled) return;
+            const now = audioCtx.currentTime;
+            const chordIdx = Math.floor(step / 2) % chords.length;
+            const chord = chords[chordIdx];
+
+            // Plucked arp note from chord
+            const arpFreq = chord[step % chord.length];
+            const arp = audioCtx.createOscillator();
+            const arpG = audioCtx.createGain();
+            arp.type = 'triangle';
+            arp.frequency.value = arpFreq;
+            arpG.gain.setValueAtTime(0.08, now);
+            arpG.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            arp.connect(arpG);
+            arpG.connect(musicGain);
+            arp.start(now);
+            arp.stop(now + 0.5);
+
+            // Walking bass every other beat
+            if (step % 2 === 0) {
+                const bass = audioCtx.createOscillator();
+                const bassG = audioCtx.createGain();
+                bass.type = 'sine';
+                bass.frequency.value = bassNotes[chordIdx];
+                bassG.gain.setValueAtTime(0.12, now);
+                bassG.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+                bass.connect(bassG);
+                bassG.connect(musicGain);
+                bass.start(now);
+                bass.stop(now + 0.9);
+            }
+
+            // Bright melody note every 4 steps
+            if (step % 4 === 0) {
+                const melFreq = melody[Math.floor(step / 4) % melody.length];
+                const mel = audioCtx.createOscillator();
+                const melG = audioCtx.createGain();
+                mel.type = 'sine';
+                mel.frequency.value = melFreq;
+                melG.gain.setValueAtTime(0, now + 0.05);
+                melG.gain.linearRampToValueAtTime(0.06, now + 0.12);
+                melG.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                mel.connect(melG);
+                melG.connect(musicGain);
+                mel.start(now + 0.05);
+                mel.stop(now + 1.0);
+            }
+
+            // Light hi-hat tick on every beat
+            const bufSize = Math.floor(audioCtx.sampleRate * 0.04);
+            const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+            const bd = buf.getChannelData(0);
+            for (let i = 0; i < bufSize; i++) bd[i] = (Math.random() * 2 - 1);
+            const hat = audioCtx.createBufferSource();
+            hat.buffer = buf;
+            const hatFilter = audioCtx.createBiquadFilter();
+            hatFilter.type = 'highpass';
+            hatFilter.frequency.value = 7000;
+            const hatG = audioCtx.createGain();
+            hatG.gain.setValueAtTime(0.04, now);
+            hatG.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            hat.connect(hatFilter);
+            hatFilter.connect(hatG);
+            hatG.connect(musicGain);
+            hat.start(now);
+
+            step++;
+        }
+
+        playMenuBeat();
+        menuMusicInterval = setInterval(playMenuBeat, 280); // ~214 BPM 16th notes → feels ~107 BPM
+    }
+
+    function stopMenuMusic() {
+        if (menuMusicInterval) {
+            clearInterval(menuMusicInterval);
+            menuMusicInterval = null;
+        }
+        if (menuDroneOsc) {
+            try {
+                // Fade out drone gracefully
+                if (menuDroneGain) {
+                    menuDroneGain.gain.setValueAtTime(menuDroneGain.gain.value, audioCtx.currentTime);
+                    menuDroneGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.5);
+                }
+                menuDroneOsc.stop(audioCtx.currentTime + 1.5);
+            } catch(e) {}
+            menuDroneOsc = null;
+            menuDroneGain = null;
         }
     }
 
@@ -795,6 +915,8 @@ const Sound = (() => {
         playAuctionDropout,
         playAuctionWin,
         playAuctionLose,
+        startMenuMusic,
+        stopMenuMusic,
         startAuctionMusic,
         stopAuctionMusic,
         playVictory,

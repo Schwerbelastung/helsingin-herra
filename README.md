@@ -4,7 +4,7 @@
 
 **A retro pixel-art real estate tycoon game set in the heart of Finland's capital.**
 
-Buy corner shops in Kallio, flip luxury villas in Kaivopuisto, and outmaneuver three ruthless AI rivals -- all while dodging pipe bursts, market crashes, and the occasional... unusual event. Helsinki is a weird place.
+Buy corner shops in Kallio, flip luxury villas in Kaivopuisto, and outmaneuver four ruthless AI rivals -- all while dodging pipe bursts, market crashes, and the occasional... unusual event. Helsinki is a weird place.
 
 No downloads, no installs, no frameworks. Just open `index.html` in your browser and start your empire.
 
@@ -43,10 +43,11 @@ Press **Space** to end your turn and watch the months roll by.
 Real Helsinki events affect the economy: **Flow Festival**, **Slush**, **Helsinki Pride**, **Christmas Markets**, and more. Also fictional ones: recessions, pipe bursts, and a handful of rare surprises that you'll have to discover for yourself.
 
 ### AI Rivals
-Three Finnish business personalities compete for properties:
+Four Finnish business personalities compete for properties:
 - **Nalle** (Bjorn Wahlroos) -- goes for premium properties
 - **Hjallis** (Harry Harkimo) -- entertainment and hospitality focus
 - **Risto** (Risto Siilasmaa) -- tech and office buildings
+- **Peter** (Peter Vesterbacka) -- scrappy opportunist
 
 ### Staff
 Hire employees from the Staff panel to give you an edge:
@@ -61,7 +62,7 @@ Hire employees from the Staff panel to give you an edge:
 Salaries scale up as the game progresses. You can fire them anytime (no severance -- this is a game, not Finland's labor law simulator).
 
 ### Districts
-23 districts modeled on real Helsinki geography, from downtown Kamppi to the islands of Kaskisaari and Kuusisaari. The map is pannable and zoomable with seasonal visual changes.
+24 districts modeled on real Helsinki geography, from downtown Kamppi to the islands of Kaskisaari and Kuusisaari. The map is pannable and zoomable with seasonal visual changes.
 
 ---
 
@@ -89,7 +90,7 @@ Click and drag to pan the map. Scroll to zoom.
 
 - **Zero dependencies.** Pure HTML5, CSS3, and vanilla JavaScript
 - Canvas-based map renderer with pan/zoom
-- Procedural ambient music via Web Audio API (season-aware, no audio files)
+- Procedural ambient music via Web Audio API (season-aware, no audio files) — plays from the splash screen
 - All sound effects synthesized at runtime
 - Saves to localStorage (auto-save + manual save)
 - Works offline, works from `file://`, works on a potato
@@ -103,12 +104,12 @@ helsinki-tycoon/
   index.html        -- game page
   css/style.css     -- dark retro pixel art theme
   js/
-    districts.js    -- 23 Helsinki districts + coastline + landmarks
+    districts.js    -- 24 Helsinki districts + coastline + landmarks
     properties.js   -- 33 named businesses + procedural generation
     economy.js      -- revenue, maintenance, loans
     events.js       -- 16+ events including rare surprises
     seasons.js      -- seasonal revenue modifiers
-    rivals.js       -- 3 AI competitors
+    rivals.js       -- 4 AI competitors
     staff.js        -- hireable staff system
     sound.js        -- procedural Web Audio music & SFX
     changelog.js    -- embedded changelog for in-game viewer
@@ -127,7 +128,7 @@ helsinki-tycoon/
 
 See [CHANGELOG.md](CHANGELOG.md) for the full version history, or click the **CHANGELOG** button on the in-game start screen.
 
-**Current version: v0.16.0**
+**Current version: v1.6.1**
 
 ---
 

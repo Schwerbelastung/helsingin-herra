@@ -25,6 +25,7 @@ const UI = (() => {
 
     function launchPendingGame() {
         if (!pendingStart) return;
+        Sound.stopMenuMusic();
         Sound.playStartGame();
         const s = pendingStart;
         pendingStart = null;
@@ -118,6 +119,7 @@ const UI = (() => {
                     group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
                     btn.classList.add('selected');
                     Sound.init(); // ensure audio context on first interaction
+                    Sound.startMenuMusic();
                     Sound.playClick();
 
                     // Show/hide campaign target based on mode
@@ -217,6 +219,7 @@ const UI = (() => {
         const continueBtn = document.getElementById('btn-continue-game');
         continueBtn.addEventListener('click', () => {
             Sound.init();
+            Sound.stopMenuMusic();
             Sound.playStartGame();
             document.getElementById('start-screen').classList.add('hidden');
             // Prefer auto-save (most recent), fall back to manual

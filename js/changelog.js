@@ -1,5 +1,14 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v1.5.4 — Portrait Selection & UX Polish (2026-04-05)
+const CHANGELOG_MD = `## v1.6.1 — Splash Screen Music (2026-04-07)
+
+### Added
+- **Splash screen music** — upbeat procedural music plays immediately when the game launches, before any button is clicked
+- Music is a bouncy C–G–Am–F loop with walking bass, triangle arpeggios, a bright melody line, and light hi-hat ticks at ~107 BPM
+- Music fades out gracefully when starting or continuing a game
+
+---
+
+## v1.5.4 — Portrait Selection & UX Polish (2026-04-05)
 
 ### Added
 - **Portrait picker** — choose from 3 distinct character portraits per gender on the start screen; each variant has unique suit/blazer color, hair color, and skin tone (saved/loaded with game)
