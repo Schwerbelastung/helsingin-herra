@@ -251,6 +251,20 @@ const UI = (() => {
         document.getElementById('btn-quit-game').addEventListener('click', () => {
             window.close();
         });
+
+        if (window.electronAPI) {
+            const fsBtn = document.getElementById('btn-toggle-fullscreen');
+            function updateFsLabel() {
+                fsBtn.textContent = window.electronAPI.isFullscreen() ? 'WINDOWED MODE' : 'FULLSCREEN';
+            }
+            updateFsLabel();
+            fsBtn.addEventListener('click', () => {
+                Sound.playClick();
+                const goFs = !window.electronAPI.isFullscreen();
+                window.electronAPI.setFullscreen(goFs);
+                setTimeout(updateFsLabel, 100);
+            });
+        }
     }
 
     let changelogCache = null;
@@ -1309,6 +1323,20 @@ Good luck — become the Helsingin Herra!`,
             Sound.playClick();
             window.close();
         });
+
+        if (window.electronAPI) {
+            const menuFsBtn = document.getElementById('menu-toggle-fullscreen');
+            function updateMenuFsLabel() {
+                menuFsBtn.textContent = window.electronAPI.isFullscreen() ? 'WINDOWED MODE' : 'FULLSCREEN';
+            }
+            updateMenuFsLabel();
+            menuFsBtn.addEventListener('click', () => {
+                Sound.playClick();
+                const goFs = !window.electronAPI.isFullscreen();
+                window.electronAPI.setFullscreen(goFs);
+                setTimeout(updateMenuFsLabel, 100);
+            });
+        }
     }
 
     function restartToMainMenu() {

@@ -1,5 +1,14 @@
 // Auto-generated from CHANGELOG.md — update when releasing new versions
-const CHANGELOG_MD = `## v1.6.2 — Fullscreen & Quit Button (2026-04-07)
+const CHANGELOG_MD = `## v1.6.3 — Fullscreen Toggle & F11 (2026-04-07)
+
+### Added
+- **Fullscreen / Windowed toggle** in both the start screen and in-game Menu panel
+- **F11** now correctly toggles fullscreen (fixed for Electron)
+- Windowed mode defaults to maximized
+
+---
+
+## v1.6.2 — Fullscreen & Quit Button (2026-04-07)
 
 ### Added
 - **Fullscreen launch** — game now opens in fullscreen by default
